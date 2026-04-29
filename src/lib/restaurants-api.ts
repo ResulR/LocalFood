@@ -556,6 +556,44 @@ export async function trackRestaurantInteractionBySlug({
   }
 }
 
+export type UpdateOwnedRestaurantPayload = {
+  restaurantId: string;
+  name: string;
+  category: string;
+  cuisineType: string;
+  description: string;
+  priceLabel: "€" | "€€" | "€€€";
+  isOpen: boolean;
+  address: string;
+  city: string;
+  country: string;
+  phone: string;
+  isActive: boolean;
+};
+
+export async function updateOwnedRestaurant(payload: UpdateOwnedRestaurantPayload) {
+  const { data, error } = await supabase.rpc("update_owned_restaurant", {
+    _restaurant_id: payload.restaurantId,
+    _name: payload.name,
+    _category: payload.category,
+    _cuisine_type: payload.cuisineType,
+    _description: payload.description,
+    _price_label: payload.priceLabel,
+    _is_open: payload.isOpen,
+    _address: payload.address,
+    _city: payload.city,
+    _country: payload.country,
+    _phone: payload.phone,
+    _is_active: payload.isActive,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 export type SupabaseCompanyRestaurant = {
   id: string;
   name: string;

@@ -10,14 +10,50 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   fetchSupabaseRestaurantById,
   fetchSupabaseRestaurantsByCompanyId,
+  updateOwnedRestaurant,
+  type SupabaseRestaurantListItem,
 } from "@/lib/restaurants-api";
 import { mapSupabaseRestaurantToRestaurant } from "@/lib/restaurant-mappers";
+
+type ProfileForm = {
+  restaurantId: string;
+  name: string;
+  category: string;
+  cuisineType: string;
+  description: string;
+  priceLabel: "€" | "€€" | "€€€";
+  isOpen: boolean;
+  address: string;
+  city: string;
+  country: string;
+  phone: string;
+  isActive: boolean;
+};
+
+function buildProfileForm(restaurant: SupabaseRestaurantListItem): ProfileForm {
+  return {
+    restaurantId: restaurant.id,
+    name: restaurant.name,
+    category: restaurant.category,
+    cuisineType: restaurant.cuisine_type,
+    description: restaurant.description,
+    priceLabel: restaurant.price_label,
+    isOpen: restaurant.is_open,
+    address: restaurant.address,
+    city: restaurant.city,
+    country: restaurant.country,
+    phone: restaurant.phone ?? "",
+    isActive: restaurant.is_active,
+  };
+}
 
 export function ProfileEditor() {
   const { profile } = useAuth();
   const [restaurant, setRestaurant] = useState<Restaurant>(localRestaurants[0]);
+  const [form, setForm] = useState<ProfileForm | null>(null);
   const [tags, setTags] = useState<string[]>(localRestaurants[0].tags);
   const [saved, setSaved] = useState(false);
+  const [saving, setSaving] = useState(false);
   const [loadingRestaurant, setLoadingRestaurant] = useState(true);
   const [profileMessage, setProfileMessage] = useState("");
 
@@ -57,6 +93,7 @@ export function ProfileEditor() {
 
       const mapped = mapSupabaseRestaurantToRestaurant(data);
       setRestaurant(mapped);
+      setForm(buildProfileForm(data));
       setTags(mapped.tags);
       setLoadingRestaurant(false);
     }
@@ -76,14 +113,54 @@ export function ProfileEditor() {
   }, [profile?.current_company_id]);
 
   const r = restaurant;
+  const f = form;
+
+  const updateForm = <K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) => {
+    setForm((current) => (current ? { ...current, [key]: value } : current));
+  };
+
   const toggle = (t: string) =>
     setTags(tags.includes(t) ? tags.filter((x) => x !== t) : [...tags, t]);
-  const save = () => {
-    setSaved(true);
-    toast.success("Fiche enregistrée", {
-      description: "Vos modifications ont bien été prises en compte dans cette session.",
-    });
-    setTimeout(() => setSaved(false), 2500);
+
+  const save = async () => {
+    if (!f) {
+      toast.error("Impossible d’enregistrer", {
+        description: "Aucun restaurant n’est chargé.",
+      });
+      return;
+    }
+
+    setSaving(true);
+
+    try {
+      await updateOwnedRestaurant({
+        restaurantId: f.restaurantId,
+        name: f.name,
+        category: f.category,
+        cuisineType: f.cuisineType,
+        description: f.description,
+        priceLabel: f.priceLabel,
+        isOpen: f.isOpen,
+        address: f.address,
+        city: f.city,
+        country: f.country,
+        phone: f.phone,
+        isActive: f.isActive,
+      });
+
+      setSaved(true);
+      toast.success("Fiche enregistrée", {
+        description: "Les informations principales ont été sauvegardées en base.",
+      });
+      setTimeout(() => setSaved(false), 2500);
+    } catch (error) {
+      console.error("Failed to update restaurant profile:", error);
+      toast.error("Enregistrement impossible", {
+        description: "La base de données a refusé la modification.",
+      });
+    } finally {
+      setSaving(false);
+    }
   };
 
   return (
@@ -105,43 +182,79 @@ export function ProfileEditor() {
         </div>
         <button
           onClick={save}
-          className="inline-flex items-center gap-2 rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-medium hover:opacity-90"
+          disabled={saving || loadingRestaurant || !f}
+          className="inline-flex items-center gap-2 rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-medium hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
-          <Save className="h-4 w-4" /> {saved ? "Enregistré ✓" : "Enregistrer"}
+          <Save className="h-4 w-4" />{" "}
+          {saving ? "Enregistrement..." : saved ? "Enregistré ✓" : "Enregistrer"}
         </button>
       </div>
 
       <Section title="Informations générales">
         <Field label="Nom du restaurant">
-          <input defaultValue={r.name} className={inputCls} />
+          <input
+            value={f?.name ?? r.name}
+            onChange={(event) => updateForm("name", event.target.value)}
+            className={inputCls}
+          />
         </Field>
         <Field label="Catégorie">
-          <input defaultValue={r.category} className={inputCls} />
+          <input
+            value={f?.category ?? r.category}
+            onChange={(event) => updateForm("category", event.target.value)}
+            className={inputCls}
+          />
         </Field>
         <Field label="Type de cuisine">
-          <input defaultValue={r.cuisineType} className={inputCls} />
+          <input
+            value={f?.cuisineType ?? r.cuisineType}
+            onChange={(event) => updateForm("cuisineType", event.target.value)}
+            className={inputCls}
+          />
         </Field>
         <Field label="Niveau de prix">
-          <select defaultValue={r.price} className={inputCls}>
+          <select
+            value={f?.priceLabel ?? r.price}
+            onChange={(event) =>
+              updateForm("priceLabel", event.target.value as ProfileForm["priceLabel"])
+            }
+            className={inputCls}
+          >
             <option>€</option>
             <option>€€</option>
             <option>€€€</option>
           </select>
         </Field>
         <Field label="Description" full>
-          <textarea defaultValue={r.description} className={`${inputCls} min-h-[110px]`} />
+          <textarea
+            value={f?.description ?? r.description}
+            onChange={(event) => updateForm("description", event.target.value)}
+            className={`${inputCls} min-h-[110px]`}
+          />
         </Field>
       </Section>
 
       <Section title="Coordonnées">
         <Field label="Adresse" full>
-          <input defaultValue={r.address} className={inputCls} />
+          <input
+            value={f?.address ?? r.address}
+            onChange={(event) => updateForm("address", event.target.value)}
+            className={inputCls}
+          />
+        </Field>
+        <Field label="Ville">
+          <input
+            value={f?.city ?? r.city}
+            onChange={(event) => updateForm("city", event.target.value)}
+            className={inputCls}
+          />
         </Field>
         <Field label="Téléphone">
-          <input defaultValue={r.phone} className={inputCls} />
-        </Field>
-        <Field label="Horaires">
-          <input defaultValue={r.hours} className={inputCls} />
+          <input
+            value={f?.phone ?? r.phone}
+            onChange={(event) => updateForm("phone", event.target.value)}
+            className={inputCls}
+          />
         </Field>
       </Section>
 
