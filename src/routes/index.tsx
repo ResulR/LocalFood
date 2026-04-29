@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import {
   Search,
   MapPin,
@@ -13,15 +14,14 @@ import {
 import { SiteShell } from "@/components/site/SiteShell";
 import { RestaurantCard } from "@/components/site/RestaurantCard";
 import {
-  restaurants,
+  restaurants as localRestaurants,
   categories,
   QUICK_FILTERS,
-  getOpenNow,
-  getNew,
-  getDeals,
-  getPopular,
+  type Restaurant,
 } from "@/data/restaurants";
 import { SUGGESTED_PROMPTS } from "@/data/mockAI";
+import { fetchSupabaseRestaurants } from "@/lib/restaurants-api";
+import { mapSupabaseRestaurantsToRestaurants } from "@/lib/restaurant-mappers";
 import heroFood from "@/assets/hero-food.jpg";
 
 export const Route = createFileRoute("/")({
@@ -44,10 +44,64 @@ export const Route = createFileRoute("/")({
 });
 
 function HomePage() {
-  const popular = getPopular();
-  const openNow = getOpenNow();
-  const newOnes = getNew();
-  const deals = getDeals();
+  const [supabaseRestaurants, setSupabaseRestaurants] = useState<Restaurant[]>([]);
+  const [restaurantsSource, setRestaurantsSource] = useState<"supabase" | "local">("local");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchSupabaseRestaurants()
+      .then((data) => {
+        if (cancelled) return;
+
+        const mapped = mapSupabaseRestaurantsToRestaurants(data);
+
+        if (mapped.length > 0) {
+          setSupabaseRestaurants(mapped);
+          setRestaurantsSource("supabase");
+        } else {
+          setSupabaseRestaurants([]);
+          setRestaurantsSource("local");
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load home restaurants from Supabase:", error);
+
+        if (!cancelled) {
+          setSupabaseRestaurants([]);
+          setRestaurantsSource("local");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const sourceRestaurants =
+    restaurantsSource === "supabase" && supabaseRestaurants.length > 0
+      ? supabaseRestaurants
+      : localRestaurants;
+
+  const popular = useMemo(
+    () => [...sourceRestaurants].sort((a, b) => b.reviewsCount - a.reviewsCount).slice(0, 4),
+    [sourceRestaurants],
+  );
+
+  const openNow = useMemo(
+    () => sourceRestaurants.filter((restaurant) => restaurant.open).slice(0, 4),
+    [sourceRestaurants],
+  );
+
+  const newOnes = useMemo(
+    () => sourceRestaurants.filter((restaurant) => restaurant.isNew).slice(0, 4),
+    [sourceRestaurants],
+  );
+
+  const deals = useMemo(
+    () => sourceRestaurants.filter((restaurant) => restaurant.hasOffer).slice(0, 3),
+    [sourceRestaurants],
+  );
 
   return (
     <SiteShell>
@@ -321,7 +375,7 @@ function SectionWithCarousel({
 }: {
   title: string;
   subtitle: string;
-  items: typeof restaurants;
+  items: Restaurant[];
   icon?: React.ComponentType<{ className?: string }>;
 }) {
   return (
