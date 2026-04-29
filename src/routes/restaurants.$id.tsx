@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   Star,
   MapPin,
@@ -88,6 +88,7 @@ export const Route = createFileRoute("/restaurants/$id")({
 function RestaurantPage() {
   const loaderData = Route.useLoaderData();
   const r = loaderData.restaurant;
+  const hasTrackedView = useRef(false);
   const { has, toggle } = useFavorites();
   const isFav = has(r.id);
 
@@ -103,6 +104,23 @@ function RestaurantPage() {
   const [comment, setComment] = useState("");
   const [photoCat, setPhotoCat] = useState<PhotoCategory | "Toutes">("Toutes");
   const [offerOpen, setOfferOpen] = useState(false);
+
+  useEffect(() => {
+    if (hasTrackedView.current) {
+      return;
+    }
+
+    hasTrackedView.current = true;
+
+    trackRestaurantInteractionBySlug({
+      slug: r.slug,
+      action: "Vue de fiche restaurant",
+      source: "public_detail",
+      interactionType: "Vue",
+    }).catch((error) => {
+      console.error("Failed to track restaurant detail view:", error);
+    });
+  }, [r.slug]);
 
   const filteredPhotos =
     photoCat === "Toutes" ? r.photos : r.photos.filter((p) => p.category === photoCat);
