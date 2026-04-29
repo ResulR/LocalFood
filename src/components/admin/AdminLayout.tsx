@@ -13,6 +13,8 @@ import {
   Shield,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { fetchSupabaseRestaurantsByCompanyId } from "@/lib/restaurants-api";
+import { useEffect, useState } from "react";
 
 type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
 const NAV: NavItem[] = [
@@ -26,12 +28,40 @@ const NAV: NavItem[] = [
 export function AdminLayout() {
   const loc = useLocation();
   const navigate = useNavigate();
-  const { role, signOut } = useAuth();
+  const { profile, role, signOut } = useAuth();
+  const [restaurantName, setRestaurantName] = useState("Espace pro");
 
   const handleSignOut = async () => {
     await signOut();
     navigate({ to: "/login" });
   };
+
+  useEffect(() => {
+    let cancelled = false;
+
+    if (!profile?.current_company_id) {
+      setRestaurantName("Aucune entreprise");
+      return;
+    }
+
+    fetchSupabaseRestaurantsByCompanyId(profile.current_company_id)
+      .then((restaurants) => {
+        if (cancelled) return;
+
+        setRestaurantName(restaurants[0]?.name ?? "Aucun restaurant");
+      })
+      .catch((error) => {
+        console.error("Failed to load dashboard restaurant name:", error);
+
+        if (!cancelled) {
+          setRestaurantName("Espace pro");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [profile?.current_company_id]);
 
   return (
     <div className="min-h-screen bg-secondary/30 flex">
@@ -93,10 +123,16 @@ export function AdminLayout() {
           </button>
           <div className="flex items-center gap-2">
             <div className="h-9 w-9 rounded-full bg-gradient-primary text-primary-foreground inline-flex items-center justify-center text-sm font-semibold">
-              MZ
+              {restaurantName
+                .split(" ")
+                .slice(0, 2)
+                .map((part) => part[0])
+                .join("")
+                .toUpperCase()
+                .slice(0, 2)}
             </div>
             <div className="hidden sm:block text-xs leading-tight">
-              <div className="font-medium">Maison Zayna</div>
+              <div className="font-medium">{restaurantName}</div>
               <div className="text-muted-foreground">Espace pro</div>
             </div>
           </div>

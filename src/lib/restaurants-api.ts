@@ -447,3 +447,25 @@ export async function trackRestaurantInteractionBySlug({
     throw error;
   }
 }
+
+export type SupabaseCompanyRestaurant = {
+  id: string;
+  name: string;
+  slug: string;
+  company_id: string | null;
+  is_active: boolean;
+};
+
+export async function fetchSupabaseRestaurantsByCompanyId(companyId: string) {
+  const { data, error } = await supabase
+    .from("restaurants")
+    .select("id, name, slug, company_id, is_active")
+    .eq("company_id", companyId)
+    .order("name");
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as SupabaseCompanyRestaurant[];
+}

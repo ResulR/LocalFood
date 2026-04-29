@@ -24,8 +24,11 @@ import {
 } from "recharts";
 import { interactions as localInteractions } from "@/data/mockStats";
 import { TOP_AI_QUERIES } from "@/data/mockAI";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   fetchSupabaseRestaurantInteractionsBySlug,
+  fetchSupabaseRestaurantsByCompanyId,
+  type SupabaseCompanyRestaurant,
   type SupabaseRestaurantInteraction,
   type SupabaseRestaurantInteractionType,
 } from "@/lib/restaurants-api";
@@ -121,40 +124,64 @@ function countType(
 }
 
 export function DashboardOverview() {
-  const [interactions, setInteractions] =
-    useState<SupabaseRestaurantInteraction[]>(FALLBACK_INTERACTIONS);
+  const { profile } = useAuth();
+  const [currentRestaurant, setCurrentRestaurant] = useState<SupabaseCompanyRestaurant | null>(
+    null,
+  );
+  const [interactions, setInteractions] = useState<SupabaseRestaurantInteraction[]>([]);
   const [loadingDashboard, setLoadingDashboard] = useState(true);
+  const [dashboardMessage, setDashboardMessage] = useState("");
 
   useEffect(() => {
     let cancelled = false;
 
-    fetchSupabaseRestaurantInteractionsBySlug("maison-zayna")
-      .then((data) => {
-        if (cancelled) return;
+    async function loadDashboard() {
+      setLoadingDashboard(true);
+      setDashboardMessage("");
+      setCurrentRestaurant(null);
+      setInteractions([]);
 
-        if (data.length > 0) {
-          setInteractions(data);
-        } else {
-          setInteractions(FALLBACK_INTERACTIONS);
-        }
-      })
-      .catch((error) => {
-        console.error("Failed to load dashboard interactions from Supabase:", error);
+      if (!profile?.current_company_id) {
+        setDashboardMessage("Aucune entreprise n’est liée à votre profil.");
+        setLoadingDashboard(false);
+        return;
+      }
 
-        if (!cancelled) {
-          setInteractions(FALLBACK_INTERACTIONS);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoadingDashboard(false);
-        }
-      });
+      const restaurants = await fetchSupabaseRestaurantsByCompanyId(profile.current_company_id);
+      const restaurant = restaurants[0] ?? null;
+
+      if (cancelled) return;
+
+      if (!restaurant) {
+        setDashboardMessage("Aucun restaurant n’est encore lié à votre entreprise.");
+        setLoadingDashboard(false);
+        return;
+      }
+
+      setCurrentRestaurant(restaurant);
+
+      const data = await fetchSupabaseRestaurantInteractionsBySlug(restaurant.slug);
+
+      if (cancelled) return;
+
+      setInteractions(data);
+      setLoadingDashboard(false);
+    }
+
+    loadDashboard().catch((error) => {
+      console.error("Failed to load tenant dashboard:", error);
+
+      if (!cancelled) {
+        setDashboardMessage("Impossible de charger les données du dashboard.");
+        setInteractions([]);
+        setLoadingDashboard(false);
+      }
+    });
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [profile?.current_company_id]);
 
   const last7dInteractions = useMemo(() => {
     const now = new Date();
@@ -199,9 +226,16 @@ export function DashboardOverview() {
           Chargement de la vue d’ensemble...
         </div>
       )}
+      {dashboardMessage && (
+        <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
+          {dashboardMessage}
+        </div>
+      )}
 
       <div>
-        <h1 className="font-display text-3xl font-semibold">Bonjour, Maison Zayna 👋</h1>
+        <h1 className="font-display text-3xl font-semibold">
+          Bonjour, {currentRestaurant?.name ?? "restaurateur"} 👋
+        </h1>
         <p className="text-muted-foreground mt-1">
           Voici comment votre fiche performe ces 7 derniers jours.
         </p>
@@ -339,7 +373,9 @@ export function DashboardOverview() {
                   <td className="px-6 py-3.5 text-muted-foreground">
                     {formatInteractionSource(row.source)}
                   </td>
-                  <td className="px-6 py-3.5 text-muted-foreground">Maison Zayna</td>
+                  <td className="px-6 py-3.5 text-muted-foreground">
+                    {currentRestaurant?.name ?? "Restaurant"}
+                  </td>
                   <td className="px-6 py-3.5 text-muted-foreground">
                     {formatWhen(row.created_at)}
                   </td>

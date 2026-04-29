@@ -12,8 +12,11 @@ import {
 import { topActionsBreakdown, peakHours } from "@/data/mockStats";
 import { TOP_AI_QUERIES } from "@/data/mockAI";
 import { Sparkles } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 import {
   fetchSupabaseRestaurantInteractionsBySlug,
+  fetchSupabaseRestaurantsByCompanyId,
+  type SupabaseCompanyRestaurant,
   type SupabaseRestaurantInteraction,
   type SupabaseRestaurantInteractionType,
 } from "@/lib/restaurants-api";
@@ -163,41 +166,65 @@ function buildActionBreakdown(interactions: SupabaseRestaurantInteraction[]): Ac
 }
 
 export function StatsView() {
+  const { profile } = useAuth();
   const [range, setRange] = useState<Range>("7d");
-  const [interactions, setInteractions] =
-    useState<SupabaseRestaurantInteraction[]>(FALLBACK_INTERACTIONS);
+  const [currentRestaurant, setCurrentRestaurant] = useState<SupabaseCompanyRestaurant | null>(
+    null,
+  );
+  const [interactions, setInteractions] = useState<SupabaseRestaurantInteraction[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
+  const [statsMessage, setStatsMessage] = useState("");
 
   useEffect(() => {
     let cancelled = false;
 
-    fetchSupabaseRestaurantInteractionsBySlug("maison-zayna")
-      .then((data) => {
-        if (cancelled) return;
+    async function loadStats() {
+      setLoadingStats(true);
+      setStatsMessage("");
+      setCurrentRestaurant(null);
+      setInteractions([]);
 
-        if (data.length > 0) {
-          setInteractions(data);
-        } else {
-          setInteractions(FALLBACK_INTERACTIONS);
-        }
-      })
-      .catch((error) => {
-        console.error("Failed to load restaurant interactions from Supabase:", error);
+      if (!profile?.current_company_id) {
+        setStatsMessage("Aucune entreprise n’est liée à votre profil.");
+        setLoadingStats(false);
+        return;
+      }
 
-        if (!cancelled) {
-          setInteractions(FALLBACK_INTERACTIONS);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoadingStats(false);
-        }
-      });
+      const restaurants = await fetchSupabaseRestaurantsByCompanyId(profile.current_company_id);
+      const restaurant = restaurants[0] ?? null;
+
+      if (cancelled) return;
+
+      if (!restaurant) {
+        setStatsMessage("Aucun restaurant n’est encore lié à votre entreprise.");
+        setLoadingStats(false);
+        return;
+      }
+
+      setCurrentRestaurant(restaurant);
+
+      const data = await fetchSupabaseRestaurantInteractionsBySlug(restaurant.slug);
+
+      if (cancelled) return;
+
+      setInteractions(data);
+      setLoadingStats(false);
+    }
+
+    loadStats().catch((error) => {
+      console.error("Failed to load tenant stats:", error);
+
+      if (!cancelled) {
+        setStatsMessage("Impossible de charger les statistiques.");
+        setInteractions([]);
+        setLoadingStats(false);
+      }
+    });
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [profile?.current_company_id]);
 
   const rangeInteractions = useMemo(
     () => interactions.filter((interaction) => isInsideRange(interaction.created_at, range)),
@@ -247,12 +274,17 @@ export function StatsView() {
           Chargement des statistiques...
         </div>
       )}
+      {statsMessage && (
+        <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
+          {statsMessage}
+        </div>
+      )}
 
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
           <h1 className="font-display text-3xl font-semibold">Statistiques</h1>
           <p className="text-muted-foreground mt-1">
-            Suivez l'évolution de votre fiche dans le temps.
+            Suivez l'évolution de {currentRestaurant?.name ?? "votre fiche"} dans le temps.
           </p>
         </div>
         <div className="inline-flex rounded-full bg-secondary p-1">
