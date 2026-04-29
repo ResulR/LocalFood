@@ -62,6 +62,17 @@ const FALLBACK_INTERACTIONS: SupabaseRestaurantInteraction[] = [
   })),
 ];
 
+const SOURCE_LABELS: Record<string, string> = {
+  public_card: "Carte restaurant",
+  public_detail: "Fiche restaurant",
+  ai_assistant: "Assistant IA",
+  dashboard_seed: "Données initiales",
+};
+
+function formatInteractionSource(source: string) {
+  return SOURCE_LABELS[source] ?? source;
+}
+
 function formatWhen(createdAt: string) {
   const createdDate = new Date(createdAt);
   const now = new Date();
@@ -325,7 +336,9 @@ export function DashboardOverview() {
                   className="border-b border-border last:border-0 hover:bg-secondary/30"
                 >
                   <td className="px-6 py-3.5 font-medium">{row.action}</td>
-                  <td className="px-6 py-3.5 text-muted-foreground">{row.source}</td>
+                  <td className="px-6 py-3.5 text-muted-foreground">
+                    {formatInteractionSource(row.source)}
+                  </td>
                   <td className="px-6 py-3.5 text-muted-foreground">Maison Zayna</td>
                   <td className="px-6 py-3.5 text-muted-foreground">
                     {formatWhen(row.created_at)}
