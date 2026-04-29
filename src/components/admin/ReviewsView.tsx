@@ -2,11 +2,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Star, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useRestaurantDashboard } from "@/contexts/RestaurantDashboardContext";
 import {
   fetchSupabaseRestaurantReviewsByRestaurantId,
-  fetchSupabaseRestaurantsByCompanyId,
   updateOwnedRestaurantReviewStatus,
-  type SupabaseCompanyRestaurant,
   type SupabaseRestaurantReview,
   type SupabaseRestaurantReviewStatus,
 } from "@/lib/restaurants-api";
@@ -61,10 +60,9 @@ function mapSupabaseReview(review: SupabaseRestaurantReview): AdminReview {
 }
 
 export function ReviewsView() {
-  const { profile, role } = useAuth();
-  const [currentRestaurant, setCurrentRestaurant] = useState<SupabaseCompanyRestaurant | null>(
-    null,
-  );
+  const { role } = useAuth();
+  const { selectedRestaurant, loadingRestaurants, restaurantMessage } = useRestaurantDashboard();
+  const currentRestaurant = selectedRestaurant;
   const [reviews, setReviews] = useState<AdminReview[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(true);
   const [reviewsMessage, setReviewsMessage] = useState("");
@@ -76,29 +74,19 @@ export function ReviewsView() {
     async function loadReviews() {
       setLoadingReviews(true);
       setReviewsMessage("");
-      setCurrentRestaurant(null);
       setReviews([]);
 
-      if (!profile?.current_company_id) {
-        setReviewsMessage("Aucune entreprise n’est liée à votre profil.");
+      if (loadingRestaurants) {
+        return;
+      }
+
+      if (!currentRestaurant) {
+        setReviewsMessage(restaurantMessage || "Aucun restaurant n’est sélectionné.");
         setLoadingReviews(false);
         return;
       }
 
-      const restaurants = await fetchSupabaseRestaurantsByCompanyId(profile.current_company_id);
-      const restaurant = restaurants[0] ?? null;
-
-      if (cancelled) return;
-
-      if (!restaurant) {
-        setReviewsMessage("Aucun restaurant n’est encore lié à votre entreprise.");
-        setLoadingReviews(false);
-        return;
-      }
-
-      setCurrentRestaurant(restaurant);
-
-      const data = await fetchSupabaseRestaurantReviewsByRestaurantId(restaurant.id);
+      const data = await fetchSupabaseRestaurantReviewsByRestaurantId(currentRestaurant.id);
 
       if (cancelled) return;
 
@@ -119,7 +107,7 @@ export function ReviewsView() {
     return () => {
       cancelled = true;
     };
-  }, [profile?.current_company_id]);
+  }, [currentRestaurant, loadingRestaurants, restaurantMessage]);
 
   const updateReviewStatus = async (review: AdminReview, nextStatus: AdminReviewStatus) => {
     if (review.status === nextStatus) return;
