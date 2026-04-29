@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
-import { Building2, Loader2, Search, Shield } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { Building2, Loader2, Plus, Search, Shield } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
 export const Route = createFileRoute("/super-admin/companies")({
@@ -37,57 +38,85 @@ type CompanyListRow = {
   usersCount: number;
 };
 
+function normalizeSlug(value: string) {
+  return value
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+}
+
+function buildUniqueSlug(name: string, existingSlugs: string[]) {
+  const baseSlug = normalizeSlug(name) || "entreprise";
+  const usedSlugs = new Set(existingSlugs);
+
+  if (!usedSlugs.has(baseSlug)) {
+    return baseSlug;
+  }
+
+  let index = 1;
+  let nextSlug = `${baseSlug}-${String(index).padStart(2, "0")}`;
+
+  while (usedSlugs.has(nextSlug)) {
+    index += 1;
+    nextSlug = `${baseSlug}-${String(index).padStart(2, "0")}`;
+  }
+
+  return nextSlug;
+}
+
 function SuperAdminCompaniesPage() {
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [restaurants, setRestaurants] = useState<RestaurantRow[]>([]);
   const [companyUsers, setCompanyUsers] = useState<CompanyUserRow[]>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(true);
+  const [creatingCompany, setCreatingCompany] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
   const [search, setSearch] = useState("");
+  const [newCompanyName, setNewCompanyName] = useState("");
+  const [newCompanyDescription, setNewCompanyDescription] = useState("");
+
+  const loadCompanies = useCallback(async () => {
+    setLoadingCompanies(true);
+    setErrorMessage("");
+
+    const [companiesResult, restaurantsResult, companyUsersResult] = await Promise.all([
+      supabase
+        .from("companies")
+        .select("id, name, slug, description, is_active, created_at")
+        .order("created_at", { ascending: false }),
+      supabase.from("restaurants").select("id, company_id"),
+      supabase.from("company_users").select("id, company_id"),
+    ]);
+
+    if (companiesResult.error) {
+      setErrorMessage(companiesResult.error.message);
+      setLoadingCompanies(false);
+      return;
+    }
+
+    if (restaurantsResult.error) {
+      setErrorMessage(restaurantsResult.error.message);
+      setLoadingCompanies(false);
+      return;
+    }
+
+    if (companyUsersResult.error) {
+      setErrorMessage(companyUsersResult.error.message);
+      setLoadingCompanies(false);
+      return;
+    }
+
+    setCompanies((companiesResult.data ?? []) as CompanyRow[]);
+    setRestaurants((restaurantsResult.data ?? []) as RestaurantRow[]);
+    setCompanyUsers((companyUsersResult.data ?? []) as CompanyUserRow[]);
+    setLoadingCompanies(false);
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
-
-    async function loadCompanies() {
-      setLoadingCompanies(true);
-      setErrorMessage("");
-
-      const [companiesResult, restaurantsResult, companyUsersResult] = await Promise.all([
-        supabase
-          .from("companies")
-          .select("id, name, slug, description, is_active, created_at")
-          .order("created_at", { ascending: false }),
-        supabase.from("restaurants").select("id, company_id"),
-        supabase.from("company_users").select("id, company_id"),
-      ]);
-
-      if (cancelled) {
-        return;
-      }
-
-      if (companiesResult.error) {
-        setErrorMessage(companiesResult.error.message);
-        setLoadingCompanies(false);
-        return;
-      }
-
-      if (restaurantsResult.error) {
-        setErrorMessage(restaurantsResult.error.message);
-        setLoadingCompanies(false);
-        return;
-      }
-
-      if (companyUsersResult.error) {
-        setErrorMessage(companyUsersResult.error.message);
-        setLoadingCompanies(false);
-        return;
-      }
-
-      setCompanies((companiesResult.data ?? []) as CompanyRow[]);
-      setRestaurants((restaurantsResult.data ?? []) as RestaurantRow[]);
-      setCompanyUsers((companyUsersResult.data ?? []) as CompanyUserRow[]);
-      setLoadingCompanies(false);
-    }
 
     loadCompanies().catch((error) => {
       console.error("Failed to load super admin companies:", error);
@@ -101,7 +130,7 @@ function SuperAdminCompaniesPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadCompanies]);
 
   const rows = useMemo<CompanyListRow[]>(() => {
     return companies.map((company) => ({
@@ -128,6 +157,47 @@ function SuperAdminCompaniesPage() {
     );
   }, [rows, search]);
 
+  const createCompany = async (event: React.FormEvent) => {
+    event.preventDefault();
+
+    const name = newCompanyName.trim();
+    const description = newCompanyDescription.trim();
+
+    if (!name) {
+      toast.error("Le nom de l’entreprise est obligatoire");
+      return;
+    }
+
+    setCreatingCompany(true);
+
+    const slug = buildUniqueSlug(
+      name,
+      companies.map((company) => company.slug),
+    );
+
+    const { error } = await supabase.from("companies").insert({
+      name,
+      slug,
+      description: description || null,
+      is_active: true,
+    });
+
+    if (error) {
+      setCreatingCompany(false);
+      toast.error("Impossible de créer l’entreprise", { description: error.message });
+      return;
+    }
+
+    toast.success("Entreprise créée", {
+      description: `${name} a été ajoutée à LocalFood.`,
+    });
+
+    setNewCompanyName("");
+    setNewCompanyDescription("");
+    setCreatingCompany(false);
+    await loadCompanies();
+  };
+
   return (
     <div className="max-w-[1400px] space-y-6">
       <div className="flex items-end justify-between gap-4 flex-wrap">
@@ -147,6 +217,69 @@ function SuperAdminCompaniesPage() {
           <div className="font-display text-2xl font-semibold">{rows.length}</div>
         </div>
       </div>
+
+      <form onSubmit={createCompany} className="rounded-2xl border border-border bg-card p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <Plus className="h-4 w-4 text-primary" />
+          <h2 className="font-display text-lg font-semibold">Ajouter une entreprise</h2>
+        </div>
+
+        <div className="grid gap-3 lg:grid-cols-[1fr_1.5fr_auto]">
+          <div>
+            <label htmlFor="company-name" className="text-xs font-medium text-muted-foreground">
+              Nom
+            </label>
+            <input
+              id="company-name"
+              value={newCompanyName}
+              onChange={(event) => setNewCompanyName(event.target.value)}
+              placeholder="Ex : Groupe Maison Zayna"
+              className="mt-1 w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-ring"
+            />
+          </div>
+
+          <div>
+            <label
+              htmlFor="company-description"
+              className="text-xs font-medium text-muted-foreground"
+            >
+              Description optionnelle
+            </label>
+            <input
+              id="company-description"
+              value={newCompanyDescription}
+              onChange={(event) => setNewCompanyDescription(event.target.value)}
+              placeholder="Description interne de l’entreprise..."
+              className="mt-1 w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-ring"
+            />
+          </div>
+
+          <div className="flex items-end">
+            <button
+              type="submit"
+              disabled={creatingCompany}
+              className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-foreground px-5 py-2.5 text-sm font-semibold text-background hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60 lg:w-auto"
+            >
+              {creatingCompany ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin" />
+                  Création...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4" />
+                  Ajouter
+                </>
+              )}
+            </button>
+          </div>
+        </div>
+
+        <p className="mt-3 text-xs text-muted-foreground">
+          Le slug est généré automatiquement à partir du nom. En cas de doublon, LocalFood ajoute
+          automatiquement un suffixe comme -01, -02, etc.
+        </p>
+      </form>
 
       <div className="rounded-2xl border border-border bg-card p-4">
         <div className="relative max-w-md">
@@ -227,8 +360,8 @@ function SuperAdminCompaniesPage() {
       )}
 
       <div className="rounded-2xl border border-border bg-secondary/40 p-5 text-sm text-muted-foreground">
-        Cette première version affiche les entreprises uniquement. La création, modification et
-        désactivation seront ajoutées étape par étape après validation de cette base.
+        Vous pouvez créer une entreprise avec un nom simple. Le slug reste technique et est calculé
+        automatiquement pour éviter les doublons.
       </div>
     </div>
   );
