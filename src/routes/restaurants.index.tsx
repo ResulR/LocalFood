@@ -15,6 +15,7 @@ import {
 } from "@/lib/location";
 import { fetchSupabaseRestaurants } from "@/lib/restaurants-api";
 import { mapSupabaseRestaurantsToRestaurants } from "@/lib/restaurant-mappers";
+import { useI18n } from "@/lib/i18n";
 
 type RestaurantsSearch = {
   tag?: string;
@@ -56,6 +57,7 @@ function RestaurantsPage() {
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
   const [locationMessage, setLocationMessage] = useState("");
+  const { t } = useI18n();
 
   const toggle = (t: RestaurantTag) => {
     const n = new Set(active);
@@ -111,7 +113,7 @@ function RestaurantsPage() {
         setSupabaseRestaurants(mapped);
 
         if (mapped.length === 0) {
-          setRestaurantsMessage("Aucun restaurant actif n’est disponible pour le moment.");
+          setRestaurantsMessage(t("restaurants.noActiveRestaurants"));
         }
       })
       .catch((error) => {
@@ -119,7 +121,7 @@ function RestaurantsPage() {
 
         if (!cancelled) {
           setSupabaseRestaurants([]);
-          setRestaurantsMessage("Impossible de charger les restaurants depuis la base de données.");
+          setRestaurantsMessage(t("restaurants.loadError"));
         }
       })
       .finally(() => {
@@ -214,7 +216,7 @@ function RestaurantsPage() {
         });
         setShowLocationPrompt(false);
         setLocationStatus("success");
-        setLocationMessage("Votre position est prise en compte pour trier les restaurants.");
+        setLocationMessage(t("restaurants.locationSuccess"));
         setSort("near");
       },
       (error) => {
@@ -223,9 +225,7 @@ function RestaurantsPage() {
 
         dismissLocation(reason);
         setLocationStatus("error");
-        setLocationMessage(
-          "Impossible de récupérer votre position. Vous pouvez continuer à explorer les restaurants.",
-        );
+        setLocationMessage(t("restaurants.locationError"));
       },
       {
         enableHighAccuracy: false,
@@ -246,11 +246,13 @@ function RestaurantsPage() {
         <div className="flex items-end justify-between flex-wrap gap-4">
           <div>
             <h1 className="font-display text-3xl sm:text-4xl font-semibold">
-              Restaurants autour de vous
+              {t("restaurants.title")}
             </h1>
             <p className="text-muted-foreground mt-2">
-              {filtered.length} adresse{filtered.length > 1 ? "s" : ""} disponible
-              {filtered.length > 1 ? "s" : ""} autour de vous.
+              {filtered.length}{" "}
+              {filtered.length > 1
+                ? t("restaurants.availablePlural")
+                : t("restaurants.availableSingular")}
             </p>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
@@ -259,7 +261,7 @@ function RestaurantsPage() {
               <input
                 value={search}
                 onChange={(e) => setSearch(e.target.value)}
-                placeholder="Rechercher : halal, brunch, sushi..."
+                placeholder={t("restaurants.searchPlaceholder")}
                 className="w-full rounded-full border border-border bg-background pl-9 pr-4 py-2 text-sm outline-none focus:border-ring"
               />
             </div>
@@ -271,14 +273,14 @@ function RestaurantsPage() {
                 className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm hover:border-foreground/40 disabled:cursor-not-allowed disabled:opacity-60"
               >
                 <MapPin className="h-4 w-4" />
-                {locationStatus === "loading" ? "Localisation..." : "Autour de moi"}
+                {locationStatus === "loading" ? t("restaurants.locating") : t("restaurants.nearMe")}
               </button>
 
               <button
                 onClick={() => setMobileFilters(true)}
                 className="lg:hidden inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm"
               >
-                <SlidersHorizontal className="h-4 w-4" /> Filtres{" "}
+                <SlidersHorizontal className="h-4 w-4" /> {t("restaurants.filters")}{" "}
                 {active.size > 0 && `(${active.size})`}
               </button>
               <select
@@ -286,10 +288,10 @@ function RestaurantsPage() {
                 onChange={(e) => setSort(e.target.value as Sort)}
                 className="rounded-full border border-border bg-background px-4 py-2 text-sm outline-none focus:border-ring"
               >
-                <option value="near">Plus proche</option>
-                <option value="rating">Mieux noté</option>
-                <option value="popular">Plus populaire</option>
-                <option value="open">Ouvert maintenant</option>
+                <option value="near">{t("restaurants.sortNearest")}</option>
+                <option value="rating">{t("restaurants.sortRating")}</option>
+                <option value="popular">{t("restaurants.sortPopular")}</option>
+                <option value="open">{t("restaurants.sortOpen")}</option>
               </select>
             </div>
           </div>
@@ -312,13 +314,13 @@ function RestaurantsPage() {
           <aside className="hidden lg:block">
             <div className="sticky top-20 rounded-2xl bg-card border border-border p-5 shadow-soft">
               <div className="flex items-center justify-between mb-4">
-                <div className="font-semibold">Filtres</div>
+                <div className="font-semibold">{t("restaurants.filters")}</div>
                 {active.size > 0 && (
                   <button
                     onClick={() => setActive(new Set())}
                     className="text-xs text-muted-foreground hover:text-foreground"
                   >
-                    Réinitialiser
+                    {t("restaurants.reset")}
                   </button>
                 )}
               </div>
@@ -343,7 +345,9 @@ function RestaurantsPage() {
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="flex items-center justify-between mb-5">
-                  <div className="font-display text-xl font-semibold">Filtres</div>
+                  <div className="font-display text-xl font-semibold">
+                    {t("restaurants.filters")}
+                  </div>
                   <button
                     onClick={() => setMobileFilters(false)}
                     className="h-9 w-9 rounded-full hover:bg-secondary inline-flex items-center justify-center"
@@ -362,7 +366,7 @@ function RestaurantsPage() {
                   onClick={() => setMobileFilters(false)}
                   className="mt-6 w-full rounded-full bg-foreground text-background py-3 text-sm font-medium"
                 >
-                  Voir {filtered.length} résultats
+                  {t("restaurants.viewResults")} ({filtered.length})
                 </button>
               </div>
             </div>
@@ -371,7 +375,7 @@ function RestaurantsPage() {
           <div>
             {loadingRestaurants && (
               <div className="mb-4 rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
-                Chargement des restaurants...
+                {t("restaurants.loading")}
               </div>
             )}
             {restaurantsMessage && (
@@ -388,9 +392,7 @@ function RestaurantsPage() {
 
             {filtered.length === 0 && (
               <div className="rounded-2xl border border-dashed border-border p-12 text-center">
-                <p className="text-muted-foreground">
-                  Aucun restaurant ne correspond à vos filtres.
-                </p>
+                <p className="text-muted-foreground">{t("restaurants.noMatch")}</p>
               </div>
             )}
           </div>
@@ -405,11 +407,11 @@ function RestaurantsPage() {
             </div>
 
             <h2 className="font-display text-2xl font-semibold">
-              Trouver les restaurants proches de vous ?
+              {t("restaurants.locationPromptTitle")}
             </h2>
 
             <p className="mt-3 text-sm text-muted-foreground">
-              LocalFood peut utiliser votre position pour trier les restaurants autour de vous.
+              {t("restaurants.locationPromptDescription")}
             </p>
 
             <div className="mt-6 flex flex-col gap-2 sm:flex-row">
@@ -418,14 +420,16 @@ function RestaurantsPage() {
                 disabled={locationStatus === "loading"}
                 className="rounded-full bg-foreground px-5 py-3 text-sm font-medium text-background disabled:cursor-not-allowed disabled:opacity-60"
               >
-                {locationStatus === "loading" ? "Localisation..." : "Utiliser ma position"}
+                {locationStatus === "loading"
+                  ? t("restaurants.locating")
+                  : t("restaurants.useMyLocation")}
               </button>
 
               <button
                 onClick={() => dismissLocation("later")}
                 className="rounded-full border border-border px-5 py-3 text-sm font-medium hover:border-foreground/40"
               >
-                Plus tard
+                {t("restaurants.later")}
               </button>
             </div>
           </div>
