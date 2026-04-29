@@ -4,7 +4,12 @@ import { Loader2, Search, Shield, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import type { AppRole } from "@/contexts/AuthContext";
-import { createAdminUser, updateAdminUserStatus } from "@/lib/admin-users-api";
+import {
+  createAdminUser,
+  updateAdminUserCompany,
+  updateAdminUserRole,
+  updateAdminUserStatus,
+} from "@/lib/admin-users-api";
 
 export const Route = createFileRoute("/super-admin/users")({
   head: () => ({ meta: [{ title: "Utilisateurs — SuperAdmin LocalFood" }] }),
@@ -162,37 +167,26 @@ function SuperAdminUsersPage() {
 
     setSavingUserId(row.userId);
 
-    const { error: deleteError } = await supabase
-      .from("user_roles")
-      .delete()
-      .eq("user_id", row.userId);
-
-    if (deleteError) {
-      setSavingUserId(null);
-      toast.error("Impossible de modifier le rôle", { description: deleteError.message });
-      return;
-    }
-
-    const { error: insertError } = await supabase.from("user_roles").insert({
-      user_id: row.userId,
-      role: nextRole,
-    });
-
-    if (insertError) {
-      setSavingUserId(null);
-      toast.error("Impossible d’enregistrer le nouveau rôle", {
-        description: insertError.message,
+    try {
+      await updateAdminUserRole({
+        userId: row.userId,
+        role: nextRole,
       });
+
+      toast.success("Rôle mis à jour", {
+        description: `${row.email} est maintenant ${nextRole}.`,
+      });
+
       await loadUsers();
-      return;
+    } catch (error) {
+      console.error("Failed to update user role:", error);
+      toast.error("Impossible de modifier le rôle", {
+        description:
+          error instanceof Error ? error.message : "Le backend a refusé la modification.",
+      });
+    } finally {
+      setSavingUserId(null);
     }
-
-    toast.success("Rôle mis à jour", {
-      description: `${row.email} est maintenant ${nextRole}.`,
-    });
-
-    setSavingUserId(null);
-    await loadUsers();
   };
 
   const changeUserCompany = async (row: UserListRow, nextCompanyId: string) => {
@@ -204,61 +198,30 @@ function SuperAdminUsersPage() {
 
     setSavingUserId(row.userId);
 
-    const { error: profileError } = await supabase
-      .from("profiles")
-      .update({
-        current_company_id: companyId,
-      })
-      .eq("user_id", row.userId);
-
-    if (profileError) {
-      setSavingUserId(null);
-      toast.error("Impossible de modifier l’entreprise actuelle", {
-        description: profileError.message,
+    try {
+      await updateAdminUserCompany({
+        userId: row.userId,
+        companyId,
       });
-      return;
-    }
 
-    const { error: deleteMembershipsError } = await supabase
-      .from("company_users")
-      .delete()
-      .eq("user_id", row.userId);
+      const companyName = companyId
+        ? companies.find((company) => company.id === companyId)?.name
+        : "Aucune entreprise";
 
-    if (deleteMembershipsError) {
-      setSavingUserId(null);
-      toast.error("Impossible de synchroniser les entreprises", {
-        description: deleteMembershipsError.message,
+      toast.success("Entreprise mise à jour", {
+        description: `${row.email} → ${companyName ?? "Entreprise inconnue"}.`,
       });
+
       await loadUsers();
-      return;
-    }
-
-    if (companyId) {
-      const { error: insertMembershipError } = await supabase.from("company_users").insert({
-        company_id: companyId,
-        user_id: row.userId,
+    } catch (error) {
+      console.error("Failed to update user company:", error);
+      toast.error("Impossible de modifier l’entreprise", {
+        description:
+          error instanceof Error ? error.message : "Le backend a refusé la modification.",
       });
-
-      if (insertMembershipError) {
-        setSavingUserId(null);
-        toast.error("Impossible d’ajouter l’utilisateur à l’entreprise", {
-          description: insertMembershipError.message,
-        });
-        await loadUsers();
-        return;
-      }
+    } finally {
+      setSavingUserId(null);
     }
-
-    const companyName = companyId
-      ? companies.find((company) => company.id === companyId)?.name
-      : "Aucune entreprise";
-
-    toast.success("Entreprise mise à jour", {
-      description: `${row.email} → ${companyName ?? "Entreprise inconnue"}.`,
-    });
-
-    setSavingUserId(null);
-    await loadUsers();
   };
 
   const handleCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {

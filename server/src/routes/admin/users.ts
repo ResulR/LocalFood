@@ -17,6 +17,14 @@ const updateAdminUserStatusSchema = z.object({
   isActive: z.boolean(),
 });
 
+const updateAdminUserRoleSchema = z.object({
+  role: z.enum(["superadmin", "admin", "user"]),
+});
+
+const updateAdminUserCompanySchema = z.object({
+  companyId: z.string().uuid().nullable(),
+});
+
 adminUsersRouter.post("/", requireAuth, requireSuperAdmin, async (request, response, next) => {
   try {
     const payload = createAdminUserSchema.parse(request.body);
@@ -204,6 +212,198 @@ adminUsersRouter.patch(
           email: updatedProfile.email,
           fullName: updatedProfile.full_name,
           isActive: updatedProfile.is_active,
+        },
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        next(new HttpError(400, "Invalid request.", "VALIDATION_ERROR"));
+        return;
+      }
+
+      next(error);
+    }
+  },
+);
+
+adminUsersRouter.patch(
+  "/:userId/role",
+  requireAuth,
+  requireSuperAdmin,
+  async (request, response, next) => {
+    try {
+      const paramsSchema = z.object({
+        userId: z.string().uuid(),
+      });
+
+      const { userId } = paramsSchema.parse(request.params);
+      const payload = updateAdminUserRoleSchema.parse(request.body);
+      const supabaseAdmin = createSupabaseAdminClient();
+
+      const { data: currentRoleData, error: currentRoleError } = await supabaseAdmin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (currentRoleError) {
+        throw new HttpError(500, currentRoleError.message, "USER_ROLE_LOOKUP_FAILED");
+      }
+
+      if (!currentRoleData) {
+        throw new HttpError(404, "User role not found.", "USER_ROLE_NOT_FOUND");
+      }
+
+      if (currentRoleData.role === "superadmin" && payload.role !== "superadmin") {
+        const { count, error: countError } = await supabaseAdmin
+          .from("profiles")
+          .select("user_id, user_roles!inner(role)", { count: "exact", head: true })
+          .eq("is_active", true)
+          .eq("user_roles.role", "superadmin");
+
+        if (countError) {
+          throw new HttpError(500, countError.message, "SUPERADMIN_COUNT_FAILED");
+        }
+
+        if ((count ?? 0) <= 1) {
+          throw new HttpError(
+            400,
+            "Cannot remove the last active SuperAdmin role.",
+            "LAST_SUPERADMIN_ROLE",
+          );
+        }
+      }
+
+      const { error: deleteRoleError } = await supabaseAdmin
+        .from("user_roles")
+        .delete()
+        .eq("user_id", userId);
+
+      if (deleteRoleError) {
+        throw new HttpError(500, deleteRoleError.message, "USER_ROLE_RESET_FAILED");
+      }
+
+      const { data: insertedRole, error: insertRoleError } = await supabaseAdmin
+        .from("user_roles")
+        .insert({
+          user_id: userId,
+          role: payload.role,
+        })
+        .select("user_id, role")
+        .maybeSingle();
+
+      if (insertRoleError) {
+        throw new HttpError(500, insertRoleError.message, "USER_ROLE_INSERT_FAILED");
+      }
+
+      if (!insertedRole) {
+        throw new HttpError(500, "Role insert returned no data.", "USER_ROLE_INSERT_EMPTY");
+      }
+
+      response.json({
+        ok: true,
+        data: {
+          userId: insertedRole.user_id,
+          role: insertedRole.role,
+        },
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        next(new HttpError(400, "Invalid request.", "VALIDATION_ERROR"));
+        return;
+      }
+
+      next(error);
+    }
+  },
+);
+
+adminUsersRouter.patch(
+  "/:userId/company",
+  requireAuth,
+  requireSuperAdmin,
+  async (request, response, next) => {
+    try {
+      const paramsSchema = z.object({
+        userId: z.string().uuid(),
+      });
+
+      const { userId } = paramsSchema.parse(request.params);
+      const payload = updateAdminUserCompanySchema.parse(request.body);
+      const supabaseAdmin = createSupabaseAdminClient();
+
+      if (payload.companyId) {
+        const { data: company, error: companyError } = await supabaseAdmin
+          .from("companies")
+          .select("id, name, is_active")
+          .eq("id", payload.companyId)
+          .maybeSingle();
+
+        if (companyError) {
+          throw new HttpError(500, companyError.message, "COMPANY_LOOKUP_FAILED");
+        }
+
+        if (!company) {
+          throw new HttpError(404, "Company not found.", "COMPANY_NOT_FOUND");
+        }
+
+        if (!company.is_active) {
+          throw new HttpError(400, "Company is inactive.", "COMPANY_INACTIVE");
+        }
+      }
+
+      const { data: updatedProfile, error: profileError } = await supabaseAdmin
+        .from("profiles")
+        .update({
+          current_company_id: payload.companyId,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", userId)
+        .select("user_id, email, full_name, current_company_id")
+        .maybeSingle();
+
+      if (profileError) {
+        throw new HttpError(500, profileError.message, "PROFILE_COMPANY_UPDATE_FAILED");
+      }
+
+      if (!updatedProfile) {
+        throw new HttpError(404, "Profile not found.", "PROFILE_NOT_FOUND");
+      }
+
+      const { error: deleteMembershipsError } = await supabaseAdmin
+        .from("company_users")
+        .delete()
+        .eq("user_id", userId);
+
+      if (deleteMembershipsError) {
+        throw new HttpError(
+          500,
+          deleteMembershipsError.message,
+          "COMPANY_MEMBERSHIP_RESET_FAILED",
+        );
+      }
+
+      if (payload.companyId) {
+        const { error: membershipError } = await supabaseAdmin.from("company_users").insert({
+          user_id: userId,
+          company_id: payload.companyId,
+        });
+
+        if (membershipError) {
+          throw new HttpError(
+            500,
+            membershipError.message,
+            "COMPANY_MEMBERSHIP_INSERT_FAILED",
+          );
+        }
+      }
+
+      response.json({
+        ok: true,
+        data: {
+          userId: updatedProfile.user_id,
+          email: updatedProfile.email,
+          fullName: updatedProfile.full_name,
+          companyId: updatedProfile.current_company_id,
         },
       });
     } catch (error) {
