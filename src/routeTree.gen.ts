@@ -29,8 +29,10 @@ import { Route as RestaurantDashboardStatistiquesRouteImport } from './routes/re
 import { Route as RestaurantDashboardReviewsRouteImport } from './routes/restaurant-dashboard.reviews'
 import { Route as RestaurantDashboardProfileRouteImport } from './routes/restaurant-dashboard.profile'
 import { Route as RestaurantDashboardPhotosRouteImport } from './routes/restaurant-dashboard.photos'
+import { Route as RestaurantDashboardOpeningHoursRouteImport } from './routes/restaurant-dashboard.opening-hours'
 import { Route as RestaurantDashboardOffresRouteImport } from './routes/restaurant-dashboard.offres'
 import { Route as RestaurantDashboardOffersRouteImport } from './routes/restaurant-dashboard.offers'
+import { Route as RestaurantDashboardHorairesRouteImport } from './routes/restaurant-dashboard.horaires'
 import { Route as RestaurantDashboardFicheRouteImport } from './routes/restaurant-dashboard.fiche'
 import { Route as RestaurantDashboardAvisRouteImport } from './routes/restaurant-dashboard.avis'
 import { Route as RestaurantDashboardAbonnementRouteImport } from './routes/restaurant-dashboard.abonnement'
@@ -142,6 +144,12 @@ const RestaurantDashboardPhotosRoute =
     path: '/photos',
     getParentRoute: () => RestaurantDashboardRoute,
   } as any)
+const RestaurantDashboardOpeningHoursRoute =
+  RestaurantDashboardOpeningHoursRouteImport.update({
+    id: '/opening-hours',
+    path: '/opening-hours',
+    getParentRoute: () => RestaurantDashboardRoute,
+  } as any)
 const RestaurantDashboardOffresRoute =
   RestaurantDashboardOffresRouteImport.update({
     id: '/offres',
@@ -152,6 +160,12 @@ const RestaurantDashboardOffersRoute =
   RestaurantDashboardOffersRouteImport.update({
     id: '/offers',
     path: '/offers',
+    getParentRoute: () => RestaurantDashboardRoute,
+  } as any)
+const RestaurantDashboardHorairesRoute =
+  RestaurantDashboardHorairesRouteImport.update({
+    id: '/horaires',
+    path: '/horaires',
     getParentRoute: () => RestaurantDashboardRoute,
   } as any)
 const RestaurantDashboardFicheRoute =
@@ -184,8 +198,10 @@ export interface FileRoutesByFullPath {
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
   '/restaurant-dashboard/avis': typeof RestaurantDashboardAvisRoute
   '/restaurant-dashboard/fiche': typeof RestaurantDashboardFicheRoute
+  '/restaurant-dashboard/horaires': typeof RestaurantDashboardHorairesRoute
   '/restaurant-dashboard/offers': typeof RestaurantDashboardOffersRoute
   '/restaurant-dashboard/offres': typeof RestaurantDashboardOffresRoute
+  '/restaurant-dashboard/opening-hours': typeof RestaurantDashboardOpeningHoursRoute
   '/restaurant-dashboard/photos': typeof RestaurantDashboardPhotosRoute
   '/restaurant-dashboard/profile': typeof RestaurantDashboardProfileRoute
   '/restaurant-dashboard/reviews': typeof RestaurantDashboardReviewsRoute
@@ -209,8 +225,10 @@ export interface FileRoutesByTo {
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
   '/restaurant-dashboard/avis': typeof RestaurantDashboardAvisRoute
   '/restaurant-dashboard/fiche': typeof RestaurantDashboardFicheRoute
+  '/restaurant-dashboard/horaires': typeof RestaurantDashboardHorairesRoute
   '/restaurant-dashboard/offers': typeof RestaurantDashboardOffersRoute
   '/restaurant-dashboard/offres': typeof RestaurantDashboardOffresRoute
+  '/restaurant-dashboard/opening-hours': typeof RestaurantDashboardOpeningHoursRoute
   '/restaurant-dashboard/photos': typeof RestaurantDashboardPhotosRoute
   '/restaurant-dashboard/profile': typeof RestaurantDashboardProfileRoute
   '/restaurant-dashboard/reviews': typeof RestaurantDashboardReviewsRoute
@@ -237,8 +255,10 @@ export interface FileRoutesById {
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
   '/restaurant-dashboard/avis': typeof RestaurantDashboardAvisRoute
   '/restaurant-dashboard/fiche': typeof RestaurantDashboardFicheRoute
+  '/restaurant-dashboard/horaires': typeof RestaurantDashboardHorairesRoute
   '/restaurant-dashboard/offers': typeof RestaurantDashboardOffersRoute
   '/restaurant-dashboard/offres': typeof RestaurantDashboardOffresRoute
+  '/restaurant-dashboard/opening-hours': typeof RestaurantDashboardOpeningHoursRoute
   '/restaurant-dashboard/photos': typeof RestaurantDashboardPhotosRoute
   '/restaurant-dashboard/profile': typeof RestaurantDashboardProfileRoute
   '/restaurant-dashboard/reviews': typeof RestaurantDashboardReviewsRoute
@@ -266,8 +286,10 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard/abonnement'
     | '/restaurant-dashboard/avis'
     | '/restaurant-dashboard/fiche'
+    | '/restaurant-dashboard/horaires'
     | '/restaurant-dashboard/offers'
     | '/restaurant-dashboard/offres'
+    | '/restaurant-dashboard/opening-hours'
     | '/restaurant-dashboard/photos'
     | '/restaurant-dashboard/profile'
     | '/restaurant-dashboard/reviews'
@@ -291,8 +313,10 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard/abonnement'
     | '/restaurant-dashboard/avis'
     | '/restaurant-dashboard/fiche'
+    | '/restaurant-dashboard/horaires'
     | '/restaurant-dashboard/offers'
     | '/restaurant-dashboard/offres'
+    | '/restaurant-dashboard/opening-hours'
     | '/restaurant-dashboard/photos'
     | '/restaurant-dashboard/profile'
     | '/restaurant-dashboard/reviews'
@@ -318,8 +342,10 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard/abonnement'
     | '/restaurant-dashboard/avis'
     | '/restaurant-dashboard/fiche'
+    | '/restaurant-dashboard/horaires'
     | '/restaurant-dashboard/offers'
     | '/restaurant-dashboard/offres'
+    | '/restaurant-dashboard/opening-hours'
     | '/restaurant-dashboard/photos'
     | '/restaurant-dashboard/profile'
     | '/restaurant-dashboard/reviews'
@@ -487,6 +513,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RestaurantDashboardPhotosRouteImport
       parentRoute: typeof RestaurantDashboardRoute
     }
+    '/restaurant-dashboard/opening-hours': {
+      id: '/restaurant-dashboard/opening-hours'
+      path: '/opening-hours'
+      fullPath: '/restaurant-dashboard/opening-hours'
+      preLoaderRoute: typeof RestaurantDashboardOpeningHoursRouteImport
+      parentRoute: typeof RestaurantDashboardRoute
+    }
     '/restaurant-dashboard/offres': {
       id: '/restaurant-dashboard/offres'
       path: '/offres'
@@ -499,6 +532,13 @@ declare module '@tanstack/react-router' {
       path: '/offers'
       fullPath: '/restaurant-dashboard/offers'
       preLoaderRoute: typeof RestaurantDashboardOffersRouteImport
+      parentRoute: typeof RestaurantDashboardRoute
+    }
+    '/restaurant-dashboard/horaires': {
+      id: '/restaurant-dashboard/horaires'
+      path: '/horaires'
+      fullPath: '/restaurant-dashboard/horaires'
+      preLoaderRoute: typeof RestaurantDashboardHorairesRouteImport
       parentRoute: typeof RestaurantDashboardRoute
     }
     '/restaurant-dashboard/fiche': {
@@ -529,8 +569,10 @@ interface RestaurantDashboardRouteChildren {
   RestaurantDashboardAbonnementRoute: typeof RestaurantDashboardAbonnementRoute
   RestaurantDashboardAvisRoute: typeof RestaurantDashboardAvisRoute
   RestaurantDashboardFicheRoute: typeof RestaurantDashboardFicheRoute
+  RestaurantDashboardHorairesRoute: typeof RestaurantDashboardHorairesRoute
   RestaurantDashboardOffersRoute: typeof RestaurantDashboardOffersRoute
   RestaurantDashboardOffresRoute: typeof RestaurantDashboardOffresRoute
+  RestaurantDashboardOpeningHoursRoute: typeof RestaurantDashboardOpeningHoursRoute
   RestaurantDashboardPhotosRoute: typeof RestaurantDashboardPhotosRoute
   RestaurantDashboardProfileRoute: typeof RestaurantDashboardProfileRoute
   RestaurantDashboardReviewsRoute: typeof RestaurantDashboardReviewsRoute
@@ -544,8 +586,10 @@ const RestaurantDashboardRouteChildren: RestaurantDashboardRouteChildren = {
   RestaurantDashboardAbonnementRoute: RestaurantDashboardAbonnementRoute,
   RestaurantDashboardAvisRoute: RestaurantDashboardAvisRoute,
   RestaurantDashboardFicheRoute: RestaurantDashboardFicheRoute,
+  RestaurantDashboardHorairesRoute: RestaurantDashboardHorairesRoute,
   RestaurantDashboardOffersRoute: RestaurantDashboardOffersRoute,
   RestaurantDashboardOffresRoute: RestaurantDashboardOffresRoute,
+  RestaurantDashboardOpeningHoursRoute: RestaurantDashboardOpeningHoursRoute,
   RestaurantDashboardPhotosRoute: RestaurantDashboardPhotosRoute,
   RestaurantDashboardProfileRoute: RestaurantDashboardProfileRoute,
   RestaurantDashboardReviewsRoute: RestaurantDashboardReviewsRoute,

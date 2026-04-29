@@ -815,3 +815,51 @@ export async function updateOwnedRestaurantOfferStatus({
     updated_at: string;
   }[];
 }
+
+export type OwnedRestaurantOpeningHour = {
+  id: string;
+  restaurant_id: string;
+  day_of_week: number;
+  day_label: string;
+  hours_text: string;
+  is_closed: boolean;
+  created_at: string;
+};
+
+export type OwnedRestaurantOpeningHourInput = {
+  day_of_week: number;
+  day_label: string;
+  hours_text: string;
+  is_closed: boolean;
+};
+
+export async function fetchOwnedRestaurantOpeningHours(restaurantId: string) {
+  const { data, error } = await (supabase as any).rpc("fetch_owned_restaurant_opening_hours", {
+    _restaurant_id: restaurantId,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as OwnedRestaurantOpeningHour[];
+}
+
+export async function upsertOwnedRestaurantOpeningHours({
+  restaurantId,
+  hours,
+}: {
+  restaurantId: string;
+  hours: OwnedRestaurantOpeningHourInput[];
+}) {
+  const { data, error } = await (supabase as any).rpc("upsert_owned_restaurant_opening_hours", {
+    _restaurant_id: restaurantId,
+    _hours: hours,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as OwnedRestaurantOpeningHour[];
+}
