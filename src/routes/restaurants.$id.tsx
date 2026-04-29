@@ -1,0 +1,533 @@
+import { createFileRoute, Link, notFound } from "@tanstack/react-router";
+import { useState } from "react";
+import {
+  Star,
+  MapPin,
+  Clock,
+  Phone,
+  Navigation,
+  Menu as MenuIcon,
+  Heart,
+  Share2,
+  Camera,
+  ArrowLeft,
+  Check,
+  Sparkles,
+  BadgeCheck,
+  Tag,
+  X,
+} from "lucide-react";
+import { toast } from "sonner";
+import { SiteShell } from "@/components/site/SiteShell";
+import { RestaurantCard } from "@/components/site/RestaurantCard";
+import {
+  getRestaurant,
+  getSimilar,
+  PHOTO_CATEGORIES,
+  type PhotoCategory,
+} from "@/data/restaurants";
+import { useFavorites } from "@/lib/favorites";
+
+export const Route = createFileRoute("/restaurants/$id")({
+  loader: ({ params }) => {
+    const r = getRestaurant(params.id);
+    if (!r) throw notFound();
+    return r;
+  },
+  head: ({ loaderData }) => ({
+    meta: loaderData
+      ? [
+          { title: `${loaderData.name} — LocalFood` },
+          { name: "description", content: loaderData.description },
+          { property: "og:title", content: `${loaderData.name} — LocalFood` },
+          { property: "og:description", content: loaderData.description },
+          { property: "og:image", content: loaderData.image },
+        ]
+      : [],
+  }),
+  notFoundComponent: () => (
+    <SiteShell>
+      <div className="max-w-3xl mx-auto px-4 py-20 text-center">
+        <h1 className="font-display text-3xl font-semibold">Restaurant introuvable</h1>
+        <Link to="/restaurants" className="inline-block mt-4 text-primary hover:underline">
+          Retour aux restaurants
+        </Link>
+      </div>
+    </SiteShell>
+  ),
+  component: RestaurantPage,
+});
+
+function RestaurantPage() {
+  const r = Route.useLoaderData();
+  const { has, toggle } = useFavorites();
+  const isFav = has(r.id);
+  const similar = getSimilar(r.id);
+
+  const [rating, setRating] = useState(0);
+  const [comment, setComment] = useState("");
+  const [photoCat, setPhotoCat] = useState<PhotoCategory | "Toutes">("Toutes");
+  const [offerOpen, setOfferOpen] = useState(false);
+
+  const filteredPhotos =
+    photoCat === "Toutes" ? r.photos : r.photos.filter((p) => p.category === photoCat);
+
+  const submit = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (rating === 0) return toast.error("Choisissez une note");
+    toast.success("Avis publié ✓", { description: "Merci pour votre contribution." });
+    setRating(0);
+    setComment("");
+  };
+
+  const trackClick = (label: string, target?: string) => {
+    toast.success(label, {
+      description: target ?? "Interaction enregistrée dans les statistiques.",
+    });
+  };
+
+  const handleFav = () => {
+    const added = toggle(r.id);
+    toast(added ? "Ajouté aux favoris ❤" : "Retiré des favoris", { description: r.name });
+  };
+
+  return (
+    <SiteShell>
+      {/* Cover */}
+      <div className="relative h-[42vh] sm:h-[55vh] min-h-[320px] overflow-hidden">
+        <img src={r.image} alt={r.name} className="h-full w-full object-cover" />
+        <div className="absolute inset-0 bg-gradient-to-t from-foreground/85 via-foreground/30 to-transparent" />
+        <div className="absolute top-4 left-4">
+          <Link
+            to="/restaurants"
+            className="inline-flex items-center gap-2 rounded-full bg-background/90 backdrop-blur px-3 py-1.5 text-xs font-medium hover:bg-background"
+          >
+            <ArrowLeft className="h-3.5 w-3.5" /> Retour
+          </Link>
+        </div>
+        <div className="absolute bottom-0 inset-x-0 px-4 sm:px-6 pb-8 text-primary-foreground">
+          <div className="max-w-7xl mx-auto">
+            <div className="flex flex-wrap gap-1.5 mb-3">
+              {r.badges.map((b) => (
+                <span
+                  key={b}
+                  className="inline-flex items-center gap-1 rounded-full bg-background/15 backdrop-blur border border-background/20 px-2.5 py-1 text-[11px] font-semibold"
+                >
+                  {b === "Vérifié" && <BadgeCheck className="h-3 w-3" />} {b}
+                </span>
+              ))}
+              <span className="inline-flex items-center gap-1 rounded-full bg-gradient-primary px-2.5 py-1 text-[11px] font-semibold shadow-glow">
+                <Sparkles className="h-3 w-3" /> Match {r.localFoodMatchScore}%
+              </span>
+            </div>
+            <h1 className="font-display text-4xl sm:text-5xl font-semibold">{r.name}</h1>
+            <div className="mt-3 flex flex-wrap items-center gap-x-5 gap-y-2 text-sm">
+              <span>
+                {r.category} · {r.price}
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <Star className="h-4 w-4 fill-warning text-warning" /> {r.rating.toFixed(1)} (
+                {r.reviewsCount} avis)
+              </span>
+              <span className="inline-flex items-center gap-1">
+                <MapPin className="h-4 w-4" /> {r.distanceKm} km · {r.city}
+              </span>
+              <span
+                className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${r.open ? "bg-success text-success-foreground" : "bg-muted text-muted-foreground"}`}
+              >
+                {r.open ? "Ouvert maintenant" : "Fermé"}
+              </span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-10 grid lg:grid-cols-[1fr_360px] gap-10">
+        <div className="space-y-12">
+          {/* Mobile actions */}
+          <div className="grid grid-cols-2 sm:grid-cols-5 gap-2 lg:hidden">
+            <ActionBtn
+              icon={Navigation}
+              label="Maps"
+              onClick={() => trackClick("Ouverture Google Maps enregistrée")}
+            />
+            <ActionBtn
+              icon={Navigation}
+              label="Waze"
+              onClick={() => trackClick("Ouverture Waze enregistrée")}
+            />
+            <ActionBtn
+              icon={Phone}
+              label="Appeler"
+              onClick={() => trackClick("Appel enregistré", r.phone)}
+            />
+            <ActionBtn icon={MenuIcon} label="Menu" onClick={() => trackClick("Menu consulté")} />
+            <ActionBtn
+              icon={Heart}
+              label="J'y vais"
+              primary
+              onClick={() => trackClick("Clic « J'y vais » enregistré")}
+            />
+          </div>
+
+          {r.hasOffer && r.offer && (
+            <section className="rounded-3xl border border-primary/30 bg-gradient-warm p-6 sm:p-7">
+              <div className="flex items-start gap-4 flex-wrap">
+                <span className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground shrink-0">
+                  <Tag className="h-5 w-5" />
+                </span>
+                <div className="flex-1 min-w-[240px]">
+                  <div className="text-xs font-semibold text-primary uppercase tracking-wider">
+                    Offre LocalFood
+                  </div>
+                  <h3 className="font-display text-xl font-semibold mt-1">{r.offer.title}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">{r.offer.description}</p>
+                  {r.offer.conditions && (
+                    <p className="text-xs text-muted-foreground mt-1.5 italic">
+                      {r.offer.conditions}
+                    </p>
+                  )}
+                </div>
+                <button
+                  onClick={() => {
+                    setOfferOpen(true);
+                    trackClick("Offre débloquée", r.offer!.code);
+                  }}
+                  className="rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:opacity-90"
+                >
+                  Débloquer l'offre
+                </button>
+              </div>
+            </section>
+          )}
+
+          <section>
+            <h2 className="font-display text-2xl font-semibold mb-4">À propos</h2>
+            <p className="text-muted-foreground leading-relaxed">{r.description}</p>
+          </section>
+
+          <section>
+            <div className="flex items-end justify-between mb-4 flex-wrap gap-3">
+              <h2 className="font-display text-2xl font-semibold">Galerie</h2>
+              <button
+                onClick={() => toast.success("Photo ajoutée")}
+                className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
+              >
+                <Camera className="h-4 w-4" /> Ajouter une photo
+              </button>
+            </div>
+            <div className="flex flex-wrap gap-2 mb-4">
+              {(["Toutes", ...PHOTO_CATEGORIES] as const).map((c) => (
+                <button
+                  key={c}
+                  onClick={() => setPhotoCat(c as PhotoCategory | "Toutes")}
+                  className={`rounded-full px-3 py-1.5 text-xs font-medium border transition ${photoCat === c ? "bg-foreground text-background border-foreground" : "bg-background border-border hover:border-foreground/40"}`}
+                >
+                  {c}
+                </button>
+              ))}
+            </div>
+            {filteredPhotos.length === 0 ? (
+              <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+                Aucune photo dans cette catégorie pour le moment.
+              </div>
+            ) : (
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {filteredPhotos.map((p, i) => (
+                  <div
+                    key={i}
+                    className="relative aspect-square rounded-xl overflow-hidden bg-muted group"
+                  >
+                    <img
+                      src={p.url}
+                      alt={p.category}
+                      loading="lazy"
+                      className="h-full w-full object-cover hover:scale-105 transition duration-500"
+                    />
+                    <span className="absolute top-2 left-2 rounded-full bg-background/95 backdrop-blur px-2 py-0.5 text-[10px] font-semibold">
+                      {p.category}
+                    </span>
+                    {p.byClient && (
+                      <span className="absolute bottom-2 right-2 rounded-full bg-foreground/90 text-background px-2 py-0.5 text-[10px] font-semibold">
+                        {p.author}
+                      </span>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
+          </section>
+
+          <section>
+            <h2 className="font-display text-2xl font-semibold mb-4">Infos pratiques</h2>
+            <div className="grid sm:grid-cols-2 gap-3">
+              {r.tags.map((t) => (
+                <div
+                  key={t}
+                  className="flex items-center gap-3 rounded-xl border border-border bg-card p-4"
+                >
+                  <Check className="h-4 w-4 text-success" /> <span className="text-sm">{t}</span>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          <section>
+            <h2 className="font-display text-2xl font-semibold mb-4">Notes détaillées</h2>
+            <div className="grid sm:grid-cols-2 gap-x-8 gap-y-3">
+              {[
+                { l: "Nourriture", v: r.detailedRating.food },
+                { l: "Accueil", v: r.detailedRating.welcome },
+                { l: "Prix", v: r.detailedRating.price },
+                { l: "Propreté", v: r.detailedRating.cleanliness },
+                { l: "Ambiance", v: r.detailedRating.ambiance },
+                { l: "Temps d'attente", v: r.detailedRating.waitTime },
+              ].map((c) => (
+                <div key={c.l}>
+                  <div className="flex justify-between text-sm">
+                    <span>{c.l}</span>
+                    <span className="font-medium">{c.v.toFixed(1)}</span>
+                  </div>
+                  <div className="mt-1 h-2 rounded-full bg-secondary overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-primary"
+                      style={{ width: `${(c.v / 5) * 100}%` }}
+                    />
+                  </div>
+                </div>
+              ))}
+            </div>
+          </section>
+
+          {/* Reviews */}
+          <section>
+            <div className="flex items-end justify-between mb-5">
+              <h2 className="font-display text-2xl font-semibold">Avis clients</h2>
+              <div className="text-sm text-muted-foreground">
+                {r.reviewsCount} avis · {r.rating.toFixed(1)} ★
+              </div>
+            </div>
+            <div className="space-y-4">
+              {r.reviews.map((rev) => (
+                <div key={rev.id} className="rounded-2xl border border-border bg-card p-5">
+                  <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 rounded-full bg-gradient-primary text-primary-foreground inline-flex items-center justify-center text-sm font-semibold">
+                        {rev.author[0]}
+                      </div>
+                      <div>
+                        <div className="font-medium text-sm">{rev.author}</div>
+                        <div className="text-xs text-muted-foreground">{rev.date}</div>
+                      </div>
+                    </div>
+                    <div className="flex">
+                      {Array.from({ length: 5 }).map((_, i) => (
+                        <Star
+                          key={i}
+                          className={`h-4 w-4 ${i < rev.rating ? "fill-warning text-warning" : "text-muted"}`}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                  <p className="text-sm mt-3 text-muted-foreground">{rev.comment}</p>
+                  {rev.photo && (
+                    <img src={rev.photo} alt="" className="mt-3 rounded-lg max-h-48 object-cover" />
+                  )}
+                </div>
+              ))}
+            </div>
+
+            <form onSubmit={submit} className="mt-8 rounded-2xl border border-border bg-card p-6">
+              <h3 className="font-display text-xl font-semibold">Laisser un avis</h3>
+              <div className="mt-4">
+                <div className="text-sm font-medium mb-2">Votre note</div>
+                <div className="flex gap-1">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <button type="button" key={i} onClick={() => setRating(i + 1)}>
+                      <Star
+                        className={`h-7 w-7 transition ${i < rating ? "fill-warning text-warning" : "text-muted-foreground/30 hover:text-warning"}`}
+                      />
+                    </button>
+                  ))}
+                </div>
+              </div>
+              <textarea
+                value={comment}
+                onChange={(e) => setComment(e.target.value)}
+                placeholder="Partagez votre expérience…"
+                className="mt-4 w-full rounded-xl border border-border bg-background p-3 text-sm outline-none focus:border-ring min-h-[100px]"
+              />
+              <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
+                <button
+                  type="button"
+                  onClick={() => toast.success("Photo ajoutée")}
+                  className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
+                >
+                  <Camera className="h-4 w-4" /> Ajouter une photo
+                </button>
+                <button
+                  type="submit"
+                  className="rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-medium hover:opacity-90"
+                >
+                  Publier l'avis
+                </button>
+              </div>
+            </form>
+          </section>
+
+          {/* Similar */}
+          {similar.length > 0 && (
+            <section>
+              <h2 className="font-display text-2xl font-semibold mb-5">Restaurants similaires</h2>
+              <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
+                {similar.map((s) => (
+                  <RestaurantCard key={s.id} r={s} />
+                ))}
+              </div>
+            </section>
+          )}
+        </div>
+
+        {/* Aside */}
+        <aside className="hidden lg:block">
+          <div className="sticky top-20 space-y-4">
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+              <div className="space-y-3 text-sm">
+                <Info icon={MapPin} label={r.address} />
+                <Info icon={Clock} label={r.hours} />
+                <Info icon={Phone} label={r.phone} />
+              </div>
+              <div className="mt-5 grid grid-cols-2 gap-2">
+                <ActionBtn
+                  icon={Navigation}
+                  label="Google Maps"
+                  onClick={() => trackClick("Ouverture Google Maps enregistrée")}
+                />
+                <ActionBtn
+                  icon={Navigation}
+                  label="Waze"
+                  onClick={() => trackClick("Ouverture Waze enregistrée")}
+                />
+                <ActionBtn
+                  icon={Phone}
+                  label="Appeler"
+                  onClick={() => trackClick("Appel enregistré", r.phone)}
+                />
+                <ActionBtn
+                  icon={MenuIcon}
+                  label="Voir le menu"
+                  onClick={() => trackClick("Menu consulté")}
+                />
+              </div>
+              <button
+                onClick={() => trackClick("Clic « J'y vais » enregistré")}
+                className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-primary text-primary-foreground px-4 py-3 text-sm font-semibold shadow-glow hover:opacity-95"
+              >
+                <Heart className="h-4 w-4" /> J'y vais
+              </button>
+              <button
+                onClick={handleFav}
+                className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm hover:bg-secondary"
+              >
+                <Heart className={`h-4 w-4 ${isFav ? "fill-destructive text-destructive" : ""}`} />{" "}
+                {isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
+              </button>
+              <button
+                onClick={() => toast("Lien copié")}
+                className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm hover:bg-secondary"
+              >
+                <Share2 className="h-4 w-4" /> Partager
+              </button>
+            </div>
+
+            <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
+                Horaires
+              </div>
+              <ul className="space-y-1.5 text-sm">
+                {Object.entries(r.openingHours).map(([d, h]) => (
+                  <li key={d} className="flex justify-between">
+                    <span>{d}</span>
+                    <span className="text-muted-foreground">{h}</span>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          </div>
+        </aside>
+      </div>
+
+      {/* Offer modal */}
+      {offerOpen && r.offer && (
+        <div
+          className="fixed inset-0 z-50 bg-foreground/50 flex items-center justify-center p-4"
+          onClick={() => setOfferOpen(false)}
+        >
+          <div
+            className="bg-background rounded-3xl max-w-md w-full p-8 shadow-elevated relative"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <button
+              onClick={() => setOfferOpen(false)}
+              className="absolute top-4 right-4 h-8 w-8 rounded-full hover:bg-secondary inline-flex items-center justify-center"
+            >
+              <X className="h-4 w-4" />
+            </button>
+            <div className="text-center">
+              <span className="inline-flex h-14 w-14 items-center justify-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow mb-4">
+                <Tag className="h-6 w-6" />
+              </span>
+              <h3 className="font-display text-2xl font-semibold">{r.offer.title}</h3>
+              <p className="text-sm text-muted-foreground mt-2">{r.offer.description}</p>
+              <div className="mt-6 rounded-2xl border-2 border-dashed border-primary p-5">
+                <div className="text-xs text-muted-foreground">Votre code</div>
+                <div className="font-mono text-3xl font-bold tracking-widest text-primary mt-1">
+                  {r.offer.code}
+                </div>
+              </div>
+              <p className="text-xs text-muted-foreground mt-4">
+                Présentez ce code en caisse pour bénéficier de l'offre.
+              </p>
+              <button
+                onClick={() => setOfferOpen(false)}
+                className="mt-6 w-full rounded-full bg-foreground text-background px-5 py-3 text-sm font-medium"
+              >
+                J'ai compris
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+    </SiteShell>
+  );
+}
+
+function Info({ icon: Icon, label }: { icon: typeof MapPin; label: string }) {
+  return (
+    <div className="flex items-start gap-3">
+      <Icon className="h-4 w-4 text-muted-foreground mt-0.5 shrink-0" />
+      <span>{label}</span>
+    </div>
+  );
+}
+
+function ActionBtn({
+  icon: Icon,
+  label,
+  primary,
+  onClick,
+}: {
+  icon: typeof MapPin;
+  label: string;
+  primary?: boolean;
+  onClick?: () => void;
+}) {
+  return (
+    <button
+      onClick={onClick}
+      className={`inline-flex flex-col sm:flex-row items-center justify-center gap-1.5 rounded-xl px-3 py-2.5 text-xs sm:text-sm font-medium transition ${primary ? "bg-gradient-primary text-primary-foreground shadow-glow" : "border border-border hover:bg-secondary"}`}
+    >
+      <Icon className="h-4 w-4" /> {label}
+    </button>
+  );
+}
