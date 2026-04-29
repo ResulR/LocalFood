@@ -140,6 +140,8 @@ export function mapSupabaseRestaurantToRestaurant(
     reviewsCount: restaurant.reviews_count,
     detailedRating: buildDetailedRating(restaurant.rating),
     distanceKm: restaurant.distance_km ?? 0,
+    latitude: restaurant.latitude ?? undefined,
+    longitude: restaurant.longitude ?? undefined,
     price: restaurant.price_label,
     priceLevel: restaurant.price_level as 1 | 2 | 3,
     open: restaurant.is_open,

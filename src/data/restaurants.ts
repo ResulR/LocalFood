@@ -83,6 +83,8 @@ export type Restaurant = {
   reviewsCount: number;
   detailedRating: DetailedRating;
   distanceKm: number;
+  latitude?: number;
+  longitude?: number;
   price: "€" | "€€" | "€€€";
   priceLevel: 1 | 2 | 3;
   open: boolean;

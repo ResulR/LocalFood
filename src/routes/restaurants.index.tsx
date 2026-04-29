@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import { Search, SlidersHorizontal, X } from "lucide-react";
+import { MapPin, Search, SlidersHorizontal, X } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
 import { RestaurantCard } from "@/components/site/RestaurantCard";
 import {
@@ -9,6 +9,15 @@ import {
   type Restaurant,
   type RestaurantTag,
 } from "@/data/restaurants";
+import {
+  calculateDistanceKm,
+  dismissLocationPrompt,
+  getSavedUserLocation,
+  hasDismissedLocationPrompt,
+  saveUserLocation,
+  type LocationDismissReason,
+  type UserLocation,
+} from "@/lib/location";
 import { fetchSupabaseRestaurants } from "@/lib/restaurants-api";
 import { mapSupabaseRestaurantsToRestaurants } from "@/lib/restaurant-mappers";
 
@@ -26,6 +35,7 @@ export const Route = createFileRoute("/restaurants/")({
 });
 
 type Sort = "near" | "rating" | "popular" | "open";
+type LocationStatus = "idle" | "loading" | "success" | "error";
 
 function RestaurantsPage() {
   const [active, setActive] = useState<Set<RestaurantTag>>(new Set());
@@ -35,6 +45,10 @@ function RestaurantsPage() {
   const [supabaseRestaurants, setSupabaseRestaurants] = useState<Restaurant[]>([]);
   const [loadingRestaurants, setLoadingRestaurants] = useState(true);
   const [restaurantsSource, setRestaurantsSource] = useState<"supabase" | "local">("local");
+  const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
+  const [showLocationPrompt, setShowLocationPrompt] = useState(false);
+  const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
+  const [locationMessage, setLocationMessage] = useState("");
 
   const toggle = (t: RestaurantTag) => {
     const n = new Set(active);
@@ -47,6 +61,19 @@ function RestaurantsPage() {
 
     setActive(n);
   };
+
+  useEffect(() => {
+    const savedLocation = getSavedUserLocation();
+
+    if (savedLocation) {
+      setUserLocation(savedLocation);
+      return;
+    }
+
+    if (!hasDismissedLocationPrompt()) {
+      setShowLocationPrompt(true);
+    }
+  }, []);
 
   useEffect(() => {
     let cancelled = false;
@@ -89,10 +116,30 @@ function RestaurantsPage() {
       ? supabaseRestaurants
       : localRestaurants;
 
+  const restaurantsWithDistance = useMemo(() => {
+    if (!userLocation) {
+      return sourceRestaurants;
+    }
+
+    return sourceRestaurants.map((restaurant) => {
+      if (typeof restaurant.latitude !== "number" || typeof restaurant.longitude !== "number") {
+        return restaurant;
+      }
+
+      return {
+        ...restaurant,
+        distanceKm: calculateDistanceKm(userLocation, {
+          latitude: restaurant.latitude,
+          longitude: restaurant.longitude,
+        }),
+      };
+    });
+  }, [sourceRestaurants, userLocation]);
+
   const filtered = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
 
-    let list = sourceRestaurants.filter((r) => {
+    let list = restaurantsWithDistance.filter((r) => {
       const matchesFilters = [...active].every((t) => r.tags.includes(t));
 
       if (!normalizedSearch) return matchesFilters;
@@ -120,7 +167,59 @@ function RestaurantsPage() {
     if (sort === "open") list = [...list].sort((a, b) => Number(b.open) - Number(a.open));
 
     return list;
-  }, [active, search, sort, sourceRestaurants]);
+  }, [active, search, sort, restaurantsWithDistance]);
+
+  const requestUserLocation = () => {
+    if (!navigator.geolocation) {
+      dismissLocation("unavailable");
+      setLocationStatus("error");
+      setLocationMessage(
+        "La localisation n'est pas disponible sur votre navigateur. Vous pouvez continuer à explorer les restaurants.",
+      );
+      return;
+    }
+
+    setLocationStatus("loading");
+    setLocationMessage("");
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        const latitude = position.coords.latitude;
+        const longitude = position.coords.longitude;
+
+        saveUserLocation(latitude, longitude);
+        setUserLocation({
+          latitude,
+          longitude,
+          savedAt: new Date().toISOString(),
+        });
+        setShowLocationPrompt(false);
+        setLocationStatus("success");
+        setLocationMessage("Votre position est prise en compte pour trier les restaurants.");
+        setSort("near");
+      },
+      (error) => {
+        const reason: LocationDismissReason =
+          error.code === error.PERMISSION_DENIED ? "denied" : "error";
+
+        dismissLocation(reason);
+        setLocationStatus("error");
+        setLocationMessage(
+          "Impossible de récupérer votre position. Vous pouvez continuer à explorer les restaurants.",
+        );
+      },
+      {
+        enableHighAccuracy: false,
+        timeout: 10000,
+        maximumAge: 5 * 60 * 1000,
+      },
+    );
+  };
+
+  const dismissLocation = (reason: LocationDismissReason) => {
+    dismissLocationPrompt(reason);
+    setShowLocationPrompt(false);
+  };
 
   return (
     <SiteShell>
@@ -148,6 +247,15 @@ function RestaurantsPage() {
 
             <div className="flex items-center gap-2">
               <button
+                onClick={requestUserLocation}
+                disabled={locationStatus === "loading"}
+                className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm hover:border-foreground/40 disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                <MapPin className="h-4 w-4" />
+                {locationStatus === "loading" ? "Localisation..." : "Autour de moi"}
+              </button>
+
+              <button
                 onClick={() => setMobileFilters(true)}
                 className="lg:hidden inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm"
               >
@@ -167,6 +275,18 @@ function RestaurantsPage() {
             </div>
           </div>
         </div>
+
+        {locationMessage && (
+          <div
+            className={`mt-5 rounded-2xl border p-4 text-sm ${
+              locationStatus === "error"
+                ? "border-destructive/30 bg-destructive/10 text-destructive"
+                : "border-border bg-card text-muted-foreground"
+            }`}
+          >
+            {locationMessage}
+          </div>
+        )}
 
         <div className="mt-8 grid lg:grid-cols-[260px_1fr] gap-8">
           {/* Sidebar filters */}
@@ -252,6 +372,41 @@ function RestaurantsPage() {
           </div>
         </div>
       </div>
+
+      {showLocationPrompt && (
+        <div className="fixed inset-0 z-50 flex items-end justify-center bg-foreground/40 px-4 py-6 sm:items-center">
+          <div className="w-full max-w-md rounded-3xl border border-border bg-background p-6 shadow-soft">
+            <div className="mb-4 flex h-11 w-11 items-center justify-center rounded-full bg-secondary">
+              <MapPin className="h-5 w-5" />
+            </div>
+
+            <h2 className="font-display text-2xl font-semibold">
+              Trouver les restaurants proches de vous ?
+            </h2>
+
+            <p className="mt-3 text-sm text-muted-foreground">
+              LocalFood peut utiliser votre position pour trier les restaurants autour de vous.
+            </p>
+
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row">
+              <button
+                onClick={requestUserLocation}
+                disabled={locationStatus === "loading"}
+                className="rounded-full bg-foreground px-5 py-3 text-sm font-medium text-background disabled:cursor-not-allowed disabled:opacity-60"
+              >
+                {locationStatus === "loading" ? "Localisation..." : "Utiliser ma position"}
+              </button>
+
+              <button
+                onClick={() => dismissLocation("later")}
+                className="rounded-full border border-border px-5 py-3 text-sm font-medium hover:border-foreground/40"
+              >
+                Plus tard
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </SiteShell>
   );
 }

@@ -47,6 +47,8 @@ export type SupabaseRestaurantListItem = {
   rating: number;
   reviews_count: number;
   distance_km: number | null;
+  latitude: number | null;
+  longitude: number | null;
   price_level: number;
   price_label: "€" | "€€" | "€€€";
   is_open: boolean;
@@ -106,6 +108,8 @@ function normalizeRestaurant(row: SupabaseRestaurantRow): SupabaseRestaurantList
     rating: Number(row.rating),
     reviews_count: row.reviews_count,
     distance_km: row.distance_km === null ? null : Number(row.distance_km),
+    latitude: row.latitude === null ? null : Number(row.latitude),
+    longitude: row.longitude === null ? null : Number(row.longitude),
     price_level: row.price_level,
     price_label: row.price_label,
     is_open: row.is_open,
@@ -143,6 +147,8 @@ export async function fetchSupabaseRestaurants() {
         rating,
         reviews_count,
         distance_km,
+        latitude,
+        longitude,
         price_level,
         price_label,
         is_open,
@@ -219,6 +225,8 @@ export async function fetchSupabaseRestaurantBySlug(slug: string) {
         rating,
         reviews_count,
         distance_km,
+        latitude,
+        longitude,
         price_level,
         price_label,
         is_open,
