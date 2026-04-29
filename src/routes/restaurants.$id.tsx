@@ -28,7 +28,11 @@ import {
   type PhotoCategory,
 } from "@/data/restaurants";
 import { useFavorites } from "@/lib/favorites";
-import { fetchSupabaseRestaurantBySlug } from "@/lib/restaurants-api";
+import {
+  fetchSupabaseRestaurantBySlug,
+  trackRestaurantInteractionBySlug,
+  type SupabaseRestaurantInteractionType,
+} from "@/lib/restaurants-api";
 import { mapSupabaseRestaurantToRestaurant } from "@/lib/restaurant-mappers";
 
 export const Route = createFileRoute("/restaurants/$id")({
@@ -117,11 +121,26 @@ function RestaurantPage() {
     });
   };
 
+  const trackPublicDetailInteraction = (
+    action: string,
+    interactionType: SupabaseRestaurantInteractionType,
+  ) => {
+    trackRestaurantInteractionBySlug({
+      slug: r.slug,
+      action,
+      source: "public_detail",
+      interactionType,
+    }).catch((error) => {
+      console.error("Failed to track restaurant detail interaction:", error);
+    });
+  };
+
   const openRestaurantAction = (
     type: "maps" | "waze" | "call" | "menu" | "intent",
     label: string,
   ) => {
     if (type === "intent") {
+      trackPublicDetailInteraction("Clic J'y vais depuis la fiche", "Intent");
       trackClick(label);
       return;
     }
@@ -132,6 +151,7 @@ function RestaurantPage() {
         return;
       }
 
+      trackPublicDetailInteraction("Appel depuis la fiche", "Appel");
       window.location.href = `tel:${r.phone.replace(/\s/g, "")}`;
       trackClick(label, r.phone);
       return;
@@ -150,6 +170,17 @@ function RestaurantPage() {
       toast.error("Lien indisponible", { description: r.name });
       return;
     }
+
+    const interactionType = type === "maps" ? "Maps" : type === "waze" ? "Waze" : "Menu";
+
+    trackPublicDetailInteraction(
+      type === "maps"
+        ? "Ouverture Google Maps depuis la fiche"
+        : type === "waze"
+          ? "Ouverture Waze depuis la fiche"
+          : "Consultation du menu depuis la fiche",
+      interactionType,
+    );
 
     window.open(url, "_blank", "noopener,noreferrer");
     trackClick(label, r.name);
@@ -264,6 +295,7 @@ function RestaurantPage() {
                 <button
                   onClick={() => {
                     setOfferOpen(true);
+                    trackPublicDetailInteraction("Offre débloquée depuis la fiche", "Offre");
                     trackClick("Offre débloquée", r.offer!.code);
                   }}
                   className="rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:opacity-90"

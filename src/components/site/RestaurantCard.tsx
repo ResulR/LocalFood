@@ -3,6 +3,7 @@ import { Star, MapPin, Phone, Clock, Navigation, Heart, Sparkles, BadgeCheck } f
 import { toast } from "sonner";
 import type { Restaurant } from "@/data/restaurants";
 import { useFavorites } from "@/lib/favorites";
+import { trackRestaurantInteractionBySlug } from "@/lib/restaurants-api";
 
 export function RestaurantCard({ r, matchScore }: { r: Restaurant; matchScore?: number }) {
   const { has, toggle } = useFavorites();
@@ -15,6 +16,17 @@ export function RestaurantCard({ r, matchScore }: { r: Restaurant; matchScore?: 
     toast(added ? "Ajouté aux favoris ❤" : "Retiré des favoris", { description: r.name });
   };
 
+  const trackPublicCardInteraction = (action: string, interactionType: "Maps" | "Appel") => {
+    trackRestaurantInteractionBySlug({
+      slug: r.slug,
+      action,
+      source: "public_card",
+      interactionType,
+    }).catch((error) => {
+      console.error("Failed to track restaurant card interaction:", error);
+    });
+  };
+
   const openExternalAction = (e: React.MouseEvent, label: string, url: string) => {
     e.preventDefault();
     e.stopPropagation();
@@ -24,6 +36,7 @@ export function RestaurantCard({ r, matchScore }: { r: Restaurant; matchScore?: 
       return;
     }
 
+    trackPublicCardInteraction("Ouverture Google Maps depuis une carte", "Maps");
     window.open(url, "_blank", "noopener,noreferrer");
     toast.success(label, { description: r.name });
   };
@@ -37,6 +50,7 @@ export function RestaurantCard({ r, matchScore }: { r: Restaurant; matchScore?: 
       return;
     }
 
+    trackPublicCardInteraction("Appel depuis une carte", "Appel");
     window.location.href = `tel:${r.phone.replace(/\s/g, "")}`;
     toast.success("Appel lancé", { description: r.name });
   };

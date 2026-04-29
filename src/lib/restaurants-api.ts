@@ -403,3 +403,47 @@ export async function fetchSupabaseRestaurantInteractionsBySlug(slug: string) {
 
   return (data ?? []) as SupabaseRestaurantInteraction[];
 }
+
+export type SupabaseRestaurantInteractionSource =
+  | "public_card"
+  | "public_detail"
+  | "ai_assistant"
+  | "dashboard_seed";
+
+export async function trackRestaurantInteractionBySlug({
+  slug,
+  action,
+  source,
+  interactionType,
+}: {
+  slug: string;
+  action: string;
+  source: SupabaseRestaurantInteractionSource;
+  interactionType: SupabaseRestaurantInteractionType;
+}) {
+  const { data: restaurant, error: restaurantError } = await supabase
+    .from("restaurants")
+    .select("id")
+    .eq("slug", slug)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (restaurantError) {
+    throw restaurantError;
+  }
+
+  if (!restaurant) {
+    return;
+  }
+
+  const { error } = await supabase.from("restaurant_interactions").insert({
+    restaurant_id: restaurant.id,
+    action,
+    source,
+    interaction_type: interactionType,
+  });
+
+  if (error) {
+    throw error;
+  }
+}
