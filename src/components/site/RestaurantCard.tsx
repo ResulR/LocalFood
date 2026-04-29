@@ -15,9 +15,30 @@ export function RestaurantCard({ r, matchScore }: { r: Restaurant; matchScore?: 
     toast(added ? "Ajouté aux favoris ❤" : "Retiré des favoris", { description: r.name });
   };
 
-  const trackClick = (e: React.MouseEvent, label: string) => {
+  const openExternalAction = (e: React.MouseEvent, label: string, url: string) => {
     e.preventDefault();
-    toast.success(label, { description: "Interaction enregistrée dans les statistiques." });
+    e.stopPropagation();
+
+    if (!url) {
+      toast.error("Lien indisponible", { description: r.name });
+      return;
+    }
+
+    window.open(url, "_blank", "noopener,noreferrer");
+    toast.success(label, { description: r.name });
+  };
+
+  const callRestaurant = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+
+    if (!r.phone) {
+      toast.error("Numéro indisponible", { description: r.name });
+      return;
+    }
+
+    window.location.href = `tel:${r.phone.replace(/\s/g, "")}`;
+    toast.success("Appel lancé", { description: r.name });
   };
 
   return (
@@ -116,14 +137,14 @@ export function RestaurantCard({ r, matchScore }: { r: Restaurant; matchScore?: 
             Voir la fiche
           </Link>
           <button
-            onClick={(e) => trackClick(e, "Itinéraire enregistré")}
+            onClick={(e) => openExternalAction(e, "Ouverture de l'itinéraire", r.googleMapsUrl)}
             className="inline-flex items-center justify-center h-9 w-9 rounded-full border border-border hover:bg-secondary transition"
             title="Itinéraire"
           >
             <Navigation className="h-4 w-4" />
           </button>
           <button
-            onClick={(e) => trackClick(e, "Appel enregistré")}
+            onClick={callRestaurant}
             className="inline-flex items-center justify-center h-9 w-9 rounded-full border border-border hover:bg-secondary transition"
             title="Appeler"
           >

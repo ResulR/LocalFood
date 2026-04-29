@@ -117,6 +117,44 @@ function RestaurantPage() {
     });
   };
 
+  const openRestaurantAction = (
+    type: "maps" | "waze" | "call" | "menu" | "intent",
+    label: string,
+  ) => {
+    if (type === "intent") {
+      trackClick(label);
+      return;
+    }
+
+    if (type === "call") {
+      if (!r.phone) {
+        toast.error("Numéro indisponible", { description: r.name });
+        return;
+      }
+
+      window.location.href = `tel:${r.phone.replace(/\s/g, "")}`;
+      trackClick(label, r.phone);
+      return;
+    }
+
+    const url =
+      type === "maps"
+        ? r.googleMapsUrl
+        : type === "waze"
+          ? r.wazeUrl
+          : type === "menu"
+            ? r.menuUrl
+            : "";
+
+    if (!url) {
+      toast.error("Lien indisponible", { description: r.name });
+      return;
+    }
+
+    window.open(url, "_blank", "noopener,noreferrer");
+    trackClick(label, r.name);
+  };
+
   const handleFav = () => {
     const added = toggle(r.id);
     toast(added ? "Ajouté aux favoris ❤" : "Retiré des favoris", { description: r.name });
@@ -180,24 +218,28 @@ function RestaurantPage() {
             <ActionBtn
               icon={Navigation}
               label="Maps"
-              onClick={() => trackClick("Ouverture Google Maps enregistrée")}
+              onClick={() => openRestaurantAction("maps", "Ouverture Google Maps")}
             />
             <ActionBtn
               icon={Navigation}
               label="Waze"
-              onClick={() => trackClick("Ouverture Waze enregistrée")}
+              onClick={() => openRestaurantAction("waze", "Ouverture Waze")}
             />
             <ActionBtn
               icon={Phone}
               label="Appeler"
-              onClick={() => trackClick("Appel enregistré", r.phone)}
+              onClick={() => openRestaurantAction("call", "Appel lancé")}
             />
-            <ActionBtn icon={MenuIcon} label="Menu" onClick={() => trackClick("Menu consulté")} />
+            <ActionBtn
+              icon={MenuIcon}
+              label="Menu"
+              onClick={() => openRestaurantAction("menu", "Menu consulté")}
+            />
             <ActionBtn
               icon={Heart}
               label="J'y vais"
               primary
-              onClick={() => trackClick("Clic « J'y vais » enregistré")}
+              onClick={() => openRestaurantAction("intent", "Clic « J'y vais » enregistré")}
             />
           </div>
 
@@ -432,26 +474,26 @@ function RestaurantPage() {
                 <ActionBtn
                   icon={Navigation}
                   label="Google Maps"
-                  onClick={() => trackClick("Ouverture Google Maps enregistrée")}
+                  onClick={() => openRestaurantAction("maps", "Ouverture Google Maps")}
                 />
                 <ActionBtn
                   icon={Navigation}
                   label="Waze"
-                  onClick={() => trackClick("Ouverture Waze enregistrée")}
+                  onClick={() => openRestaurantAction("waze", "Ouverture Waze")}
                 />
                 <ActionBtn
                   icon={Phone}
                   label="Appeler"
-                  onClick={() => trackClick("Appel enregistré", r.phone)}
+                  onClick={() => openRestaurantAction("call", "Appel lancé")}
                 />
                 <ActionBtn
                   icon={MenuIcon}
                   label="Voir le menu"
-                  onClick={() => trackClick("Menu consulté")}
+                  onClick={() => openRestaurantAction("menu", "Menu consulté")}
                 />
               </div>
               <button
-                onClick={() => trackClick("Clic « J'y vais » enregistré")}
+                onClick={() => openRestaurantAction("intent", "Clic « J'y vais » enregistré")}
                 className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-primary text-primary-foreground px-4 py-3 text-sm font-semibold shadow-glow hover:opacity-95"
               >
                 <Heart className="h-4 w-4" /> J'y vais
