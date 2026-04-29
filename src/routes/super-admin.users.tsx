@@ -38,6 +38,7 @@ type UserListRow = {
   email: string;
   fullName: string;
   role: AppRole | "non défini";
+  companyId: string | null;
   companyName: string;
   isActive: boolean;
 };
@@ -114,6 +115,7 @@ function SuperAdminUsersPage() {
       email: profile.email ?? "Email non renseigné",
       fullName: profile.full_name ?? "Nom non renseigné",
       role: roleByUserId.get(profile.user_id) ?? "non défini",
+      companyId: profile.current_company_id,
       companyName: profile.current_company_id
         ? (companyById.get(profile.current_company_id) ?? "Entreprise inconnue")
         : "Aucune entreprise",
@@ -180,6 +182,72 @@ function SuperAdminUsersPage() {
 
     toast.success("Rôle mis à jour", {
       description: `${row.email} est maintenant ${nextRole}.`,
+    });
+
+    setSavingUserId(null);
+    await loadUsers();
+  };
+
+  const changeUserCompany = async (row: UserListRow, nextCompanyId: string) => {
+    const companyId = nextCompanyId || null;
+
+    if (row.companyId === companyId) {
+      return;
+    }
+
+    setSavingUserId(row.userId);
+
+    const { error: profileError } = await supabase
+      .from("profiles")
+      .update({
+        current_company_id: companyId,
+      })
+      .eq("user_id", row.userId);
+
+    if (profileError) {
+      setSavingUserId(null);
+      toast.error("Impossible de modifier l’entreprise actuelle", {
+        description: profileError.message,
+      });
+      return;
+    }
+
+    const { error: deleteMembershipsError } = await supabase
+      .from("company_users")
+      .delete()
+      .eq("user_id", row.userId);
+
+    if (deleteMembershipsError) {
+      setSavingUserId(null);
+      toast.error("Impossible de synchroniser les entreprises", {
+        description: deleteMembershipsError.message,
+      });
+      await loadUsers();
+      return;
+    }
+
+    if (companyId) {
+      const { error: insertMembershipError } = await supabase.from("company_users").insert({
+        company_id: companyId,
+        user_id: row.userId,
+      });
+
+      if (insertMembershipError) {
+        setSavingUserId(null);
+        toast.error("Impossible d’ajouter l’utilisateur à l’entreprise", {
+          description: insertMembershipError.message,
+        });
+        await loadUsers();
+        return;
+      }
+    }
+
+    const companyName = companyId
+      ? companies.find((company) => company.id === companyId)?.name
+      : "Aucune entreprise";
+
+    toast.success("Entreprise mise à jour", {
+      description: `${row.email} → ${companyName ?? "Entreprise inconnue"}.`,
     });
 
     setSavingUserId(null);
@@ -292,7 +360,21 @@ function SuperAdminUsersPage() {
                           )}
                         </div>
                       </td>
-                      <td className="px-5 py-4 text-muted-foreground">{row.companyName}</td>
+                      <td className="px-5 py-4">
+                        <select
+                          value={row.companyId ?? ""}
+                          disabled={isSaving}
+                          onChange={(event) => changeUserCompany(row, event.target.value)}
+                          className="w-fit max-w-[220px] rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                        >
+                          <option value="">Aucune entreprise</option>
+                          {companies.map((company) => (
+                            <option key={company.id} value={company.id}>
+                              {company.name}
+                            </option>
+                          ))}
+                        </select>
+                      </td>
                       <td className="px-5 py-4">
                         <span
                           className={`rounded-full px-2.5 py-1 text-xs font-medium ${
@@ -314,8 +396,9 @@ function SuperAdminUsersPage() {
       )}
 
       <div className="rounded-2xl border border-border bg-secondary/40 p-5 text-sm text-muted-foreground">
-        Vous pouvez maintenant modifier les rôles. Le dernier SuperAdmin est protégé pour éviter de
-        perdre l’accès global à LocalFood.
+        Vous pouvez modifier les rôles et l’entreprise actuelle d’un utilisateur. Pour cette V1,
+        changer l’entreprise remplace ses anciennes associations d’entreprise afin de garder une
+        gestion simple et lisible.
       </div>
     </div>
   );
