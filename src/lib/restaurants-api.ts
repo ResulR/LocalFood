@@ -581,6 +581,28 @@ export async function trackRestaurantInteractionBySlug({
   }
 }
 
+export async function updateOwnedRestaurantTags({
+  restaurantId,
+  tagSlugs,
+}: {
+  restaurantId: string;
+  tagSlugs: string[];
+}) {
+  const { data, error } = await supabase.rpc("update_owned_restaurant_tags", {
+    _restaurant_id: restaurantId,
+    _tag_slugs: tagSlugs,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data as {
+    restaurant_id: string;
+    tag_count: number;
+  }[];
+}
+
 export type UpdateOwnedRestaurantPayload = {
   restaurantId: string;
   name: string;

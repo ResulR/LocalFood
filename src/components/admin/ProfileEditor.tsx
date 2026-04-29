@@ -1,19 +1,16 @@
 import { useEffect, useState } from "react";
-import { Save, Upload, X } from "lucide-react";
+import { Save } from "lucide-react";
 import { toast } from "sonner";
-import {
-  restaurants as localRestaurants,
-  QUICK_FILTERS,
-  type Restaurant,
-} from "@/data/restaurants";
+import { QUICK_FILTERS } from "@/data/restaurants";
 import { useAuth } from "@/contexts/AuthContext";
 import {
   fetchSupabaseRestaurantById,
   fetchSupabaseRestaurantsByCompanyId,
   updateOwnedRestaurant,
+  updateOwnedRestaurantTags,
   type SupabaseRestaurantListItem,
+  type SupabaseRestaurantTag,
 } from "@/lib/restaurants-api";
-import { mapSupabaseRestaurantToRestaurant } from "@/lib/restaurant-mappers";
 
 type ProfileForm = {
   restaurantId: string;
@@ -29,6 +26,8 @@ type ProfileForm = {
   phone: string;
   isActive: boolean;
 };
+
+type ProfileTag = SupabaseRestaurantTag;
 
 function buildProfileForm(restaurant: SupabaseRestaurantListItem): ProfileForm {
   return {
@@ -49,9 +48,8 @@ function buildProfileForm(restaurant: SupabaseRestaurantListItem): ProfileForm {
 
 export function ProfileEditor() {
   const { profile } = useAuth();
-  const [restaurant, setRestaurant] = useState<Restaurant>(localRestaurants[0]);
   const [form, setForm] = useState<ProfileForm | null>(null);
-  const [tags, setTags] = useState<string[]>(localRestaurants[0].tags);
+  const [tags, setTags] = useState<ProfileTag[]>([]);
   const [saved, setSaved] = useState(false);
   const [saving, setSaving] = useState(false);
   const [loadingRestaurant, setLoadingRestaurant] = useState(true);
@@ -91,10 +89,8 @@ export function ProfileEditor() {
         return;
       }
 
-      const mapped = mapSupabaseRestaurantToRestaurant(data);
-      setRestaurant(mapped);
       setForm(buildProfileForm(data));
-      setTags(mapped.tags);
+      setTags(data.tags);
       setLoadingRestaurant(false);
     }
 
@@ -112,15 +108,19 @@ export function ProfileEditor() {
     };
   }, [profile?.current_company_id]);
 
-  const r = restaurant;
   const f = form;
 
   const updateForm = <K extends keyof ProfileForm>(key: K, value: ProfileForm[K]) => {
     setForm((current) => (current ? { ...current, [key]: value } : current));
   };
 
-  const toggle = (t: string) =>
-    setTags(tags.includes(t) ? tags.filter((x) => x !== t) : [...tags, t]);
+  const toggleTag = (tag: ProfileTag) => {
+    setTags((current) =>
+      current.some((item) => item.slug === tag.slug)
+        ? current.filter((item) => item.slug !== tag.slug)
+        : [...current, tag],
+    );
+  };
 
   const save = async () => {
     if (!f) {
@@ -148,9 +148,14 @@ export function ProfileEditor() {
         isActive: f.isActive,
       });
 
+      await updateOwnedRestaurantTags({
+        restaurantId: f.restaurantId,
+        tagSlugs: tags.map((tag) => tag.slug),
+      });
+
       setSaved(true);
       toast.success("Fiche enregistrée", {
-        description: "Les informations principales ont été sauvegardées en base.",
+        description: "Les informations principales et les tags ont été sauvegardés en base.",
       });
       setTimeout(() => setSaved(false), 2500);
     } catch (error) {
@@ -193,28 +198,28 @@ export function ProfileEditor() {
       <Section title="Informations générales">
         <Field label="Nom du restaurant">
           <input
-            value={f?.name ?? r.name}
+            value={f?.name ?? ""}
             onChange={(event) => updateForm("name", event.target.value)}
             className={inputCls}
           />
         </Field>
         <Field label="Catégorie">
           <input
-            value={f?.category ?? r.category}
+            value={f?.category ?? ""}
             onChange={(event) => updateForm("category", event.target.value)}
             className={inputCls}
           />
         </Field>
         <Field label="Type de cuisine">
           <input
-            value={f?.cuisineType ?? r.cuisineType}
+            value={f?.cuisineType ?? ""}
             onChange={(event) => updateForm("cuisineType", event.target.value)}
             className={inputCls}
           />
         </Field>
         <Field label="Niveau de prix">
           <select
-            value={f?.priceLabel ?? r.price}
+            value={f?.priceLabel ?? "€€"}
             onChange={(event) =>
               updateForm("priceLabel", event.target.value as ProfileForm["priceLabel"])
             }
@@ -227,7 +232,7 @@ export function ProfileEditor() {
         </Field>
         <Field label="Description" full>
           <textarea
-            value={f?.description ?? r.description}
+            value={f?.description ?? ""}
             onChange={(event) => updateForm("description", event.target.value)}
             className={`${inputCls} min-h-[110px]`}
           />
@@ -237,21 +242,21 @@ export function ProfileEditor() {
       <Section title="Coordonnées">
         <Field label="Adresse" full>
           <input
-            value={f?.address ?? r.address}
+            value={f?.address ?? ""}
             onChange={(event) => updateForm("address", event.target.value)}
             className={inputCls}
           />
         </Field>
         <Field label="Ville">
           <input
-            value={f?.city ?? r.city}
+            value={f?.city ?? ""}
             onChange={(event) => updateForm("city", event.target.value)}
             className={inputCls}
           />
         </Field>
         <Field label="Téléphone">
           <input
-            value={f?.phone ?? r.phone}
+            value={f?.phone ?? ""}
             onChange={(event) => updateForm("phone", event.target.value)}
             className={inputCls}
           />
@@ -260,54 +265,31 @@ export function ProfileEditor() {
 
       <Section title="Tags & filtres">
         <div className="md:col-span-2 flex flex-wrap gap-2">
-          {QUICK_FILTERS.map((t) => (
-            <button
-              key={t}
-              onClick={() => toggle(t)}
-              className={`rounded-full px-3 py-1.5 text-xs font-medium border transition ${tags.includes(t) ? "bg-foreground text-background border-foreground" : "bg-background border-border hover:border-foreground/40"}`}
-            >
-              {t}
-            </button>
-          ))}
-        </div>
-      </Section>
+          {QUICK_FILTERS.map((label) => {
+            const slug = label
+              .toLowerCase()
+              .normalize("NFD")
+              .replace(/[\u0300-\u036f]/g, "")
+              .replace(/[^a-z0-9]+/g, "-")
+              .replace(/^-+|-+$/g, "");
 
-      <Section title="Liens externes">
-        <Field label="Lien Google Maps">
-          <input defaultValue={r.googleMapsUrl} className={inputCls} />
-        </Field>
-        <Field label="Lien Waze">
-          <input defaultValue={r.wazeUrl} className={inputCls} />
-        </Field>
-        <Field label="Lien menu" full>
-          <input defaultValue={r.menuUrl} className={inputCls} />
-        </Field>
-      </Section>
+            const tag: ProfileTag = { label, slug };
+            const selected = tags.some((item) => item.slug === tag.slug);
 
-      <Section title="Photos">
-        <div className="md:col-span-2">
-          <div className="grid grid-cols-3 sm:grid-cols-4 gap-3">
-            {r.gallery.map((g, i) => (
-              <div
-                key={i}
-                className="relative aspect-square rounded-xl overflow-hidden bg-muted group"
+            return (
+              <button
+                key={tag.slug}
+                onClick={() => toggleTag(tag)}
+                className={`rounded-full px-3 py-1.5 text-xs font-medium border transition ${
+                  selected
+                    ? "bg-foreground text-background border-foreground"
+                    : "bg-background border-border hover:border-foreground/40"
+                }`}
               >
-                <img src={g} alt="" className="h-full w-full object-cover" />
-                <button
-                  onClick={() => toast("Photo supprimée")}
-                  className="absolute top-2 right-2 h-7 w-7 rounded-full bg-background/90 inline-flex items-center justify-center opacity-0 group-hover:opacity-100 transition"
-                >
-                  <X className="h-3.5 w-3.5" />
-                </button>
-              </div>
-            ))}
-            <button
-              onClick={() => toast.success("Photo ajoutée")}
-              className="aspect-square rounded-xl border-2 border-dashed border-border hover:border-foreground/40 inline-flex flex-col items-center justify-center gap-1.5 text-muted-foreground hover:text-foreground transition"
-            >
-              <Upload className="h-5 w-5" /> <span className="text-xs">Ajouter</span>
-            </button>
-          </div>
+                {label}
+              </button>
+            );
+          })}
         </div>
       </Section>
     </div>
