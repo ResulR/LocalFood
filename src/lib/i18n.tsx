@@ -2,28 +2,275 @@ import { createContext, useContext, useEffect, useMemo, useState } from "react";
 
 export type Language = "en" | "al" | "fr";
 
-type TranslationKey =
-  | "common.language"
-  | "common.close"
-  | "nav.home"
-  | "nav.restaurants"
-  | "nav.aiAssistant"
-  | "nav.forRestaurants"
-  | "nav.nearMe"
-  | "nav.favorites"
-  | "nav.proSpace"
-  | "nav.menu"
-  | "footer.tagline"
-  | "footer.discover"
-  | "footer.pro"
-  | "footer.about"
-  | "footer.partner"
-  | "footer.dashboard"
-  | "footer.concept"
-  | "footer.contact"
-  | "footer.legal"
-  | "footer.favorites"
-  | "footer.copyright";
+const translations = {
+  en: {
+    "common.language": "Language",
+    "common.close": "Close",
+    "common.reduce": "Minimize",
+    "common.send": "Send",
+    "common.loading": "Loading...",
+    "common.retry": "Try again",
+    "common.newSearch": "New search",
+    "common.km": "km",
+
+    "nav.home": "Home",
+    "nav.restaurants": "Restaurants",
+    "nav.aiAssistant": "AI Assistant",
+    "nav.forRestaurants": "For restaurants",
+    "nav.nearMe": "Near me",
+    "nav.favorites": "Favorites",
+    "nav.proSpace": "Pro area",
+    "nav.menu": "Menu",
+
+    "footer.tagline": "Find the best places to eat around you, based on what you want.",
+    "footer.discover": "Discover",
+    "footer.pro": "Pro",
+    "footer.about": "About",
+    "footer.partner": "Become a partner",
+    "footer.dashboard": "Dashboard",
+    "footer.concept": "Concept",
+    "footer.contact": "Contact",
+    "footer.legal": "Legal notice",
+    "footer.favorites": "My favorites",
+    "footer.copyright": "Discover the best places around you",
+
+    "restaurantCard.addedFavorite": "Added to favorites ❤",
+    "restaurantCard.removedFavorite": "Removed from favorites",
+    "restaurantCard.favorite": "Favorite",
+    "restaurantCard.linkUnavailable": "Link unavailable",
+    "restaurantCard.routeOpened": "Opening route",
+    "restaurantCard.phoneUnavailable": "Phone number unavailable",
+    "restaurantCard.callStarted": "Call started",
+    "restaurantCard.open": "Open",
+    "restaurantCard.closed": "Closed",
+    "restaurantCard.match": "Match",
+    "restaurantCard.viewDetails": "View details",
+    "restaurantCard.route": "Route",
+    "restaurantCard.call": "Call",
+
+    "floatingAi.title": "LocalFood Assistant",
+    "floatingAi.subtitle": "Describe what you want, I search active restaurants.",
+    "floatingAi.initialTitle": "What do you want to eat?",
+    "floatingAi.initialDescription":
+      "Example: halal, terrace, parking, brunch, dessert, cheap, open now…",
+    "floatingAi.loading": "Searching for the best restaurants…",
+    "floatingAi.unavailableTitle": "Assistant unavailable",
+    "floatingAi.unavailableFallback": "Assistant temporarily unavailable.",
+    "floatingAi.yourRequest": "Your request",
+    "floatingAi.noResult": "No active restaurant clearly matches this search.",
+    "floatingAi.placeholder": "Ex: cheap terrace brunch…",
+    "floatingAi.openFull": "Open full assistant →",
+    "floatingAi.openLabel": "Open AI assistant",
+    "floatingAi.closeLabel": "Close assistant",
+
+    "aiPage.titleBadge": "LocalFood AI Assistant",
+    "aiPage.heroTitle": "Tell us what you feel like eating.",
+    "aiPage.heroDescription":
+      "Our assistant analyzes your request and suggests LocalFood restaurants that really match your criteria.",
+    "aiPage.placeholder": "Ex: a date night restaurant with parking…",
+    "aiPage.submit": "Ask",
+    "aiPage.loading": "The assistant is analyzing your request…",
+    "aiPage.errorTitle": "Assistant temporarily unavailable",
+    "aiPage.emptyTitle": "Ask your question to get started",
+    "aiPage.emptyDescription":
+      "The LocalFood assistant only recommends active restaurants from our database. It filters by your criteria: craving, atmosphere, budget, practical needs.",
+    "aiPage.youAsked": "You asked",
+    "aiPage.detectedCriteria": "Detected criteria",
+    "aiPage.recommendations": "Recommendations",
+    "aiPage.noResult": "No active restaurant clearly matches this search right now.",
+    "aiPage.unavailableFallback": "Unable to contact the LocalFood assistant.",
+
+    "favorites.loading": "Loading your favorites...",
+    "favorites.title": "My favorites",
+    "favorites.emptyTitle": "No favorites yet",
+    "favorites.emptyDescription":
+      "Click the heart on a restaurant to add it to your favorites and find it here.",
+    "favorites.discover": "Discover restaurants",
+    "favorites.savedSingular": "restaurant saved.",
+    "favorites.savedPlural": "restaurants saved.",
+    "favorites.noActiveRestaurants": "No active restaurant is available right now.",
+    "favorites.loadError": "Unable to load restaurants from the database.",
+  },
+  al: {
+    "common.language": "Gjuha",
+    "common.close": "Mbyll",
+    "common.reduce": "Minimizo",
+    "common.send": "Dërgo",
+    "common.loading": "Duke u ngarkuar...",
+    "common.retry": "Provo përsëri",
+    "common.newSearch": "Kërkim i ri",
+    "common.km": "km",
+
+    "nav.home": "Ballina",
+    "nav.restaurants": "Restorantet",
+    "nav.aiAssistant": "Asistenti AI",
+    "nav.forRestaurants": "Për restorante",
+    "nav.nearMe": "Pranë meje",
+    "nav.favorites": "Të preferuarat",
+    "nav.proSpace": "Hapësira pro",
+    "nav.menu": "Menu",
+
+    "footer.tagline": "Gjeni vendet më të mira për të ngrënë rreth jush, sipas dëshirave tuaja.",
+    "footer.discover": "Zbulo",
+    "footer.pro": "Pro",
+    "footer.about": "Rreth nesh",
+    "footer.partner": "Bëhu partner",
+    "footer.dashboard": "Paneli",
+    "footer.concept": "Koncepti",
+    "footer.contact": "Kontakti",
+    "footer.legal": "Njoftime ligjore",
+    "footer.favorites": "Të preferuarat e mia",
+    "footer.copyright": "Zbuloni adresat më të mira rreth jush",
+
+    "restaurantCard.addedFavorite": "U shtua te të preferuarat ❤",
+    "restaurantCard.removedFavorite": "U hoq nga të preferuarat",
+    "restaurantCard.favorite": "I preferuar",
+    "restaurantCard.linkUnavailable": "Linku nuk është i disponueshëm",
+    "restaurantCard.routeOpened": "Hapja e itinerarit",
+    "restaurantCard.phoneUnavailable": "Numri nuk është i disponueshëm",
+    "restaurantCard.callStarted": "Thirrja u nis",
+    "restaurantCard.open": "Hapur",
+    "restaurantCard.closed": "Mbyllur",
+    "restaurantCard.match": "Përputhje",
+    "restaurantCard.viewDetails": "Shiko fichën",
+    "restaurantCard.route": "Itinerari",
+    "restaurantCard.call": "Telefono",
+
+    "floatingAi.title": "Asistenti LocalFood",
+    "floatingAi.subtitle": "Përshkruaj çfarë kërkon, unë kërkoj në restorantet aktive.",
+    "floatingAi.initialTitle": "Çfarë dëshiron të hash?",
+    "floatingAi.initialDescription":
+      "Shembull: halal, terrasë, parking, brunch, ëmbëlsirë, lirë, hapur tani…",
+    "floatingAi.loading": "Duke kërkuar restorantet më të mira…",
+    "floatingAi.unavailableTitle": "Asistenti nuk është i disponueshëm",
+    "floatingAi.unavailableFallback": "Asistenti përkohësisht nuk është i disponueshëm.",
+    "floatingAi.yourRequest": "Kërkesa jote",
+    "floatingAi.noResult": "Asnjë restorant aktiv nuk përputhet qartë me këtë kërkim.",
+    "floatingAi.placeholder": "P.sh.: brunch terrasë lirë…",
+    "floatingAi.openFull": "Hap asistentin e plotë →",
+    "floatingAi.openLabel": "Hap asistentin AI",
+    "floatingAi.closeLabel": "Mbyll asistentin",
+
+    "aiPage.titleBadge": "Asistenti AI LocalFood",
+    "aiPage.heroTitle": "Na thuaj çfarë dëshiron të hash.",
+    "aiPage.heroDescription":
+      "Asistenti analizon kërkesën dhe propozon restorante LocalFood që përputhen vërtet me kriteret e tua.",
+    "aiPage.placeholder": "P.sh.: një restorant për takim me parking…",
+    "aiPage.submit": "Pyet",
+    "aiPage.loading": "Asistenti po analizon kërkesën tënde…",
+    "aiPage.errorTitle": "Asistenti përkohësisht nuk është i disponueshëm",
+    "aiPage.emptyTitle": "Bëj një pyetje për të filluar",
+    "aiPage.emptyDescription":
+      "Asistenti LocalFood rekomandon vetëm restorante aktive nga baza jonë. Ai filtron sipas kritereve: dëshirë, atmosferë, buxhet, nevoja praktike.",
+    "aiPage.youAsked": "Ke kërkuar",
+    "aiPage.detectedCriteria": "Kritere të zbuluara",
+    "aiPage.recommendations": "Rekomandime",
+    "aiPage.noResult": "Asnjë restorant aktiv nuk përputhet qartë me këtë kërkim për momentin.",
+    "aiPage.unavailableFallback": "Nuk mund të kontaktohet asistenti LocalFood.",
+
+    "favorites.loading": "Duke ngarkuar të preferuarat...",
+    "favorites.title": "Të preferuarat e mia",
+    "favorites.emptyTitle": "Ende nuk ka të preferuara",
+    "favorites.emptyDescription":
+      "Kliko zemrën te një restorant për ta shtuar te të preferuarat dhe për ta gjetur këtu.",
+    "favorites.discover": "Zbulo restorantet",
+    "favorites.savedSingular": "restorant i ruajtur.",
+    "favorites.savedPlural": "restorante të ruajtura.",
+    "favorites.noActiveRestaurants": "Asnjë restorant aktiv nuk është i disponueshëm për momentin.",
+    "favorites.loadError": "Nuk mund të ngarkohen restorantet nga baza e të dhënave.",
+  },
+  fr: {
+    "common.language": "Langue",
+    "common.close": "Fermer",
+    "common.reduce": "Réduire",
+    "common.send": "Envoyer",
+    "common.loading": "Chargement...",
+    "common.retry": "Réessayer",
+    "common.newSearch": "Nouvelle recherche",
+    "common.km": "km",
+
+    "nav.home": "Accueil",
+    "nav.restaurants": "Restaurants",
+    "nav.aiAssistant": "Assistant IA",
+    "nav.forRestaurants": "Pour les restaurateurs",
+    "nav.nearMe": "Autour de moi",
+    "nav.favorites": "Favoris",
+    "nav.proSpace": "Espace pro",
+    "nav.menu": "Menu",
+
+    "footer.tagline": "Trouvez les meilleurs endroits où manger autour de vous selon vos envies.",
+    "footer.discover": "Découvrir",
+    "footer.pro": "Pro",
+    "footer.about": "À propos",
+    "footer.partner": "Devenir partenaire",
+    "footer.dashboard": "Tableau de bord",
+    "footer.concept": "Concept",
+    "footer.contact": "Contact",
+    "footer.legal": "Mentions légales",
+    "footer.favorites": "Mes favoris",
+    "footer.copyright": "Découvrez les meilleures adresses autour de vous",
+
+    "restaurantCard.addedFavorite": "Ajouté aux favoris ❤",
+    "restaurantCard.removedFavorite": "Retiré des favoris",
+    "restaurantCard.favorite": "Favori",
+    "restaurantCard.linkUnavailable": "Lien indisponible",
+    "restaurantCard.routeOpened": "Ouverture de l'itinéraire",
+    "restaurantCard.phoneUnavailable": "Numéro indisponible",
+    "restaurantCard.callStarted": "Appel lancé",
+    "restaurantCard.open": "Ouvert",
+    "restaurantCard.closed": "Fermé",
+    "restaurantCard.match": "Match",
+    "restaurantCard.viewDetails": "Voir la fiche",
+    "restaurantCard.route": "Itinéraire",
+    "restaurantCard.call": "Appeler",
+
+    "floatingAi.title": "Assistant LocalFood",
+    "floatingAi.subtitle": "Décris ton envie, je cherche dans les restaurants actifs.",
+    "floatingAi.initialTitle": "Que veux-tu manger ?",
+    "floatingAi.initialDescription":
+      "Exemple : halal, terrasse, parking, brunch, dessert, pas cher, ouvert maintenant…",
+    "floatingAi.loading": "Recherche des meilleurs restaurants…",
+    "floatingAi.unavailableTitle": "Assistant indisponible",
+    "floatingAi.unavailableFallback": "Assistant temporairement indisponible.",
+    "floatingAi.yourRequest": "Ta demande",
+    "floatingAi.noResult": "Aucun restaurant actif ne correspond clairement à cette recherche.",
+    "floatingAi.placeholder": "Ex : brunch terrasse pas cher…",
+    "floatingAi.openFull": "Ouvrir l'assistant complet →",
+    "floatingAi.openLabel": "Ouvrir l'assistant IA",
+    "floatingAi.closeLabel": "Fermer l'assistant",
+
+    "aiPage.titleBadge": "Assistant IA LocalFood",
+    "aiPage.heroTitle": "Dites-nous ce dont vous avez envie.",
+    "aiPage.heroDescription":
+      "Notre assistant analyse votre requête et vous propose les restaurants LocalFood qui correspondent vraiment à vos critères.",
+    "aiPage.placeholder": "Ex : un resto date night avec parking…",
+    "aiPage.submit": "Demander",
+    "aiPage.loading": "L'assistant analyse votre requête…",
+    "aiPage.errorTitle": "Assistant temporairement indisponible",
+    "aiPage.emptyTitle": "Posez votre question pour commencer",
+    "aiPage.emptyDescription":
+      "L'assistant LocalFood ne recommande que les restaurants actifs de notre base. Il filtre selon vos critères : envie, ambiance, budget, contraintes pratiques.",
+    "aiPage.youAsked": "Vous avez demandé",
+    "aiPage.detectedCriteria": "Critères détectés",
+    "aiPage.recommendations": "Recommandations",
+    "aiPage.noResult":
+      "Aucun restaurant actif ne correspond clairement à cette recherche pour le moment.",
+    "aiPage.unavailableFallback": "Impossible de contacter l'assistant LocalFood.",
+
+    "favorites.loading": "Chargement de vos favoris...",
+    "favorites.title": "Mes favoris",
+    "favorites.emptyTitle": "Aucun favori pour le moment",
+    "favorites.emptyDescription":
+      "Cliquez sur le cœur d'un restaurant pour l'ajouter à vos favoris et le retrouver ici.",
+    "favorites.discover": "Découvrir les restaurants",
+    "favorites.savedSingular": "restaurant enregistré.",
+    "favorites.savedPlural": "restaurants enregistrés.",
+    "favorites.noActiveRestaurants": "Aucun restaurant actif n’est disponible pour le moment.",
+    "favorites.loadError": "Impossible de charger les restaurants depuis la base de données.",
+  },
+} as const;
+
+type TranslationKey = keyof typeof translations.fr;
 
 type I18nContextValue = {
   language: Language;
@@ -37,78 +284,6 @@ const LANGUAGE_LABELS: Record<Language, string> = {
   en: "EN",
   al: "AL",
   fr: "FR",
-};
-
-const translations: Record<Language, Record<TranslationKey, string>> = {
-  en: {
-    "common.language": "Language",
-    "nav.home": "Home",
-    "nav.restaurants": "Restaurants",
-    "nav.aiAssistant": "AI Assistant",
-    "nav.forRestaurants": "For restaurants",
-    "nav.nearMe": "Near me",
-    "common.close": "Close",
-    "nav.favorites": "Favorites",
-    "nav.proSpace": "Pro area",
-    "nav.menu": "Menu",
-    "footer.tagline": "Find the best places to eat around you, based on what you want.",
-    "footer.discover": "Discover",
-    "footer.pro": "Pro",
-    "footer.about": "About",
-    "footer.partner": "Become a partner",
-    "footer.dashboard": "Dashboard",
-    "footer.concept": "Concept",
-    "footer.contact": "Contact",
-    "footer.legal": "Legal notice",
-    "footer.favorites": "My favorites",
-    "footer.copyright": "Discover the best places around you",
-  },
-  al: {
-    "common.language": "Gjuha",
-    "nav.home": "Ballina",
-    "common.close": "Close",
-    "nav.restaurants": "Restorantet",
-    "nav.aiAssistant": "Asistenti AI",
-    "nav.forRestaurants": "Për restorante",
-    "nav.nearMe": "Pranë meje",
-    "nav.favorites": "Të preferuarat",
-    "nav.proSpace": "Hapësira pro",
-    "nav.menu": "Menu",
-    "footer.tagline": "Gjeni vendet më të mira për të ngrënë rreth jush, sipas dëshirave tuaja.",
-    "footer.discover": "Zbulo",
-    "footer.pro": "Pro",
-    "footer.about": "Rreth nesh",
-    "footer.partner": "Bëhu partner",
-    "footer.dashboard": "Paneli",
-    "footer.concept": "Koncepti",
-    "footer.contact": "Kontakti",
-    "footer.legal": "Njoftime ligjore",
-    "footer.favorites": "Të preferuarat e mia",
-    "footer.copyright": "Zbuloni adresat më të mira rreth jush",
-  },
-  fr: {
-    "common.language": "Langue",
-    "nav.home": "Accueil",
-    "common.close": "Close",
-    "nav.restaurants": "Restaurants",
-    "nav.aiAssistant": "Assistant IA",
-    "nav.forRestaurants": "Pour les restaurateurs",
-    "nav.nearMe": "Autour de moi",
-    "nav.favorites": "Favoris",
-    "nav.proSpace": "Espace pro",
-    "nav.menu": "Menu",
-    "footer.tagline": "Trouvez les meilleurs endroits où manger autour de vous selon vos envies.",
-    "footer.discover": "Découvrir",
-    "footer.pro": "Pro",
-    "footer.about": "À propos",
-    "footer.partner": "Devenir partenaire",
-    "footer.dashboard": "Tableau de bord",
-    "footer.concept": "Concept",
-    "footer.contact": "Contact",
-    "footer.legal": "Mentions légales",
-    "footer.favorites": "Mes favoris",
-    "footer.copyright": "Découvrez les meilleures adresses autour de vous",
-  },
 };
 
 const I18nContext = createContext<I18nContextValue | null>(null);

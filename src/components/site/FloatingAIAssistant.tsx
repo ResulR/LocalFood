@@ -1,10 +1,8 @@
 import { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { ArrowUpRight, Minus, Send, Sparkles, X } from "lucide-react";
-import {
-  searchRestaurantsWithAI,
-  type AIRestaurantSearchResult,
-} from "@/lib/restaurants-api";
+import { searchRestaurantsWithAI, type AIRestaurantSearchResult } from "@/lib/restaurants-api";
+import { useI18n } from "@/lib/i18n";
 
 /**
  * FloatingAIAssistant
@@ -20,6 +18,7 @@ export function FloatingAIAssistant() {
   const [result, setResult] = useState<AIRestaurantSearchResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const { t } = useI18n();
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
@@ -41,9 +40,7 @@ export function FloatingAIAssistant() {
     } catch (error) {
       console.error("Failed to search restaurants from floating assistant:", error);
       setResult(null);
-      setErrorMessage(
-        error instanceof Error ? error.message : "Assistant temporairement indisponible.",
-      );
+      setErrorMessage(error instanceof Error ? error.message : t("floatingAi.unavailableFallback"));
     } finally {
       setLoading(false);
     }
@@ -63,7 +60,7 @@ export function FloatingAIAssistant() {
       {open && (
         <div
           role="dialog"
-          aria-label="Assistant LocalFood"
+          aria-label={t("floatingAi.title")}
           className="fixed z-40 bg-background border border-border shadow-elevated rounded-2xl flex flex-col overflow-hidden
                      bottom-[92px] left-4 right-4 max-h-[70vh]
                      sm:left-6 sm:right-auto sm:bottom-[96px] sm:w-[380px] sm:max-h-[520px]"
@@ -75,10 +72,10 @@ export function FloatingAIAssistant() {
               </span>
               <div className="min-w-0">
                 <div className="font-display text-sm font-semibold leading-tight">
-                  Assistant LocalFood
+                  {t("floatingAi.title")}
                 </div>
                 <div className="text-[11px] text-muted-foreground leading-tight truncate">
-                  Décris ton envie, je cherche dans les restaurants actifs.
+                  {t("floatingAi.subtitle")}
                 </div>
               </div>
             </div>
@@ -86,7 +83,7 @@ export function FloatingAIAssistant() {
               <button
                 onClick={() => setOpen(false)}
                 className="h-7 w-7 inline-flex items-center justify-center rounded-full hover:bg-secondary text-muted-foreground"
-                aria-label="Réduire"
+                aria-label={t("common.reduce")}
               >
                 <Minus className="h-3.5 w-3.5" />
               </button>
@@ -98,7 +95,7 @@ export function FloatingAIAssistant() {
                   setErrorMessage("");
                 }}
                 className="h-7 w-7 inline-flex items-center justify-center rounded-full hover:bg-secondary text-muted-foreground"
-                aria-label="Fermer"
+                aria-label={t("common.close")}
               >
                 <X className="h-3.5 w-3.5" />
               </button>
@@ -108,9 +105,9 @@ export function FloatingAIAssistant() {
           <div className="flex-1 overflow-y-auto px-4 py-3 space-y-3">
             {!result && !errorMessage && !loading && (
               <div className="rounded-xl bg-secondary/40 border border-border p-3">
-                <p className="text-sm font-medium">Que veux-tu manger ?</p>
+                <p className="text-sm font-medium">{t("floatingAi.initialTitle")}</p>
                 <p className="mt-1 text-xs text-muted-foreground">
-                  Exemple : halal, terrasse, parking, brunch, dessert, pas cher, ouvert maintenant…
+                  {t("floatingAi.initialDescription")}
                 </p>
               </div>
             )}
@@ -118,21 +115,19 @@ export function FloatingAIAssistant() {
             {loading && (
               <div className="rounded-xl border border-dashed border-border p-4 text-center">
                 <Sparkles className="h-5 w-5 mx-auto text-primary animate-pulse" />
-                <p className="mt-2 text-xs text-muted-foreground">
-                  Recherche des meilleurs restaurants…
-                </p>
+                <p className="mt-2 text-xs text-muted-foreground">{t("floatingAi.loading")}</p>
               </div>
             )}
 
             {!loading && errorMessage && (
               <div className="rounded-xl border border-destructive/30 bg-destructive/5 p-3">
-                <p className="text-sm font-medium">Assistant indisponible</p>
+                <p className="text-sm font-medium">{t("floatingAi.unavailableTitle")}</p>
                 <p className="mt-1 text-xs text-muted-foreground">{errorMessage}</p>
                 <button
                   onClick={resetConversation}
                   className="mt-2 text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2"
                 >
-                  Réessayer
+                  {t("common.retry")}
                 </button>
               </div>
             )}
@@ -141,7 +136,7 @@ export function FloatingAIAssistant() {
               <div className="space-y-3">
                 <div className="rounded-xl bg-secondary/50 p-3">
                   <div className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
-                    Ta demande
+                    {t("floatingAi.yourRequest")}
                   </div>
                   <div className="text-sm">{query}</div>
                   {result.detectedTags.length > 0 && (
@@ -196,7 +191,7 @@ export function FloatingAIAssistant() {
                   </div>
                 ) : (
                   <div className="rounded-xl border border-dashed border-border p-3 text-xs text-muted-foreground">
-                    Aucun restaurant actif ne correspond clairement à cette recherche.
+                    {t("floatingAi.noResult")}
                   </div>
                 )}
 
@@ -204,7 +199,7 @@ export function FloatingAIAssistant() {
                   onClick={resetConversation}
                   className="text-[11px] text-muted-foreground hover:text-foreground underline underline-offset-2"
                 >
-                  Nouvelle recherche
+                  {t("common.newSearch")}
                 </button>
               </div>
             )}
@@ -221,14 +216,14 @@ export function FloatingAIAssistant() {
               ref={inputRef}
               value={query}
               onChange={(event) => setQuery(event.target.value)}
-              placeholder="Ex : brunch terrasse pas cher…"
+              placeholder={t("floatingAi.placeholder")}
               className="flex-1 bg-secondary/50 rounded-full px-3.5 py-2 text-sm outline-none focus:bg-secondary focus:ring-1 focus:ring-primary/30 placeholder:text-muted-foreground/70"
             />
             <button
               type="submit"
               disabled={loading}
               className="h-9 w-9 inline-flex items-center justify-center rounded-full bg-foreground text-background hover:opacity-90 transition shrink-0 disabled:opacity-60"
-              aria-label="Envoyer"
+              aria-label={t("common.send")}
             >
               <Send className="h-3.5 w-3.5" />
             </button>
@@ -239,7 +234,7 @@ export function FloatingAIAssistant() {
             onClick={() => setOpen(false)}
             className="text-center text-[10px] text-muted-foreground hover:text-foreground py-1.5 border-t border-border"
           >
-            Ouvrir l'assistant complet →
+            {t("floatingAi.openFull")}
           </Link>
         </div>
       )}

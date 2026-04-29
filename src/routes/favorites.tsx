@@ -7,6 +7,7 @@ import { useFavorites } from "@/lib/favorites";
 import type { Restaurant } from "@/data/restaurants";
 import { fetchSupabaseRestaurants } from "@/lib/restaurants-api";
 import { mapSupabaseRestaurantsToRestaurants } from "@/lib/restaurant-mappers";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/favorites")({
   head: () => ({
@@ -20,6 +21,7 @@ export const Route = createFileRoute("/favorites")({
 
 function FavoritesPage() {
   const { ids } = useFavorites();
+  const { t } = useI18n();
   const [supabaseRestaurants, setSupabaseRestaurants] = useState<Restaurant[]>([]);
   const [loadingRestaurants, setLoadingRestaurants] = useState(true);
   const [restaurantsMessage, setRestaurantsMessage] = useState("");
@@ -38,7 +40,7 @@ function FavoritesPage() {
         setSupabaseRestaurants(mapped);
 
         if (mapped.length === 0) {
-          setRestaurantsMessage("Aucun restaurant actif n’est disponible pour le moment.");
+          setRestaurantsMessage(t("favorites.noActiveRestaurants"));
         }
       })
       .catch((error) => {
@@ -46,7 +48,7 @@ function FavoritesPage() {
 
         if (!cancelled) {
           setSupabaseRestaurants([]);
-          setRestaurantsMessage("Impossible de charger les restaurants depuis la base de données.");
+          setRestaurantsMessage(t("favorites.loadError"));
         }
       })
       .finally(() => {
@@ -72,7 +74,7 @@ function FavoritesPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
         {loadingRestaurants && (
           <div className="mb-6 rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
-            Chargement de vos favoris...
+            {t("favorites.loading")}
           </div>
         )}
 
@@ -86,12 +88,14 @@ function FavoritesPage() {
           <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
             <Heart className="h-5 w-5" />
           </span>
-          <h1 className="font-display text-3xl sm:text-4xl font-semibold">Mes favoris</h1>
+          <h1 className="font-display text-3xl sm:text-4xl font-semibold">
+            {t("favorites.title")}
+          </h1>
         </div>
 
         <p className="text-muted-foreground">
-          {favs.length} restaurant{favs.length > 1 ? "s" : ""} enregistré
-          {favs.length > 1 ? "s" : ""}.
+          {favs.length}{" "}
+          {favs.length > 1 ? t("favorites.savedPlural") : t("favorites.savedSingular")}
         </p>
 
         {favs.length === 0 ? (
@@ -99,15 +103,15 @@ function FavoritesPage() {
             <div className="mx-auto h-14 w-14 rounded-2xl bg-secondary inline-flex items-center justify-center mb-4">
               <Heart className="h-6 w-6 text-muted-foreground" />
             </div>
-            <h2 className="font-display text-xl font-semibold">Aucun favori pour le moment</h2>
+            <h2 className="font-display text-xl font-semibold">{t("favorites.emptyTitle")}</h2>
             <p className="text-muted-foreground mt-2 max-w-md mx-auto">
-              Cliquez sur le cœur d'un restaurant pour l'ajouter à vos favoris et le retrouver ici.
+              {t("favorites.emptyDescription")}
             </p>
             <Link
               to="/restaurants"
               className="mt-6 inline-flex items-center gap-2 rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-medium hover:opacity-90"
             >
-              <Search className="h-4 w-4" /> Découvrir les restaurants
+              <Search className="h-4 w-4" /> {t("favorites.discover")}
             </Link>
           </div>
         ) : (

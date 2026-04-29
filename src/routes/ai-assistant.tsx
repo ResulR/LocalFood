@@ -9,6 +9,7 @@ import {
   type AIRestaurantSearchResult,
   type RestaurantAIRecommendation,
 } from "@/lib/restaurants-api";
+import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/ai-assistant")({
   head: () => ({
@@ -122,6 +123,7 @@ function AIAssistantPage() {
   const [result, setResult] = useState<AIPageResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState("");
+  const { t } = useI18n();
 
   const submit = async (q: string) => {
     const value = q.trim();
@@ -155,10 +157,10 @@ function AIAssistantPage() {
       <section className="bg-gradient-warm border-b border-border">
         <div className="max-w-4xl mx-auto px-4 sm:px-6 pt-16 pb-12 text-center">
           <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary px-3 py-1.5 text-xs font-semibold">
-            <Sparkles className="h-3.5 w-3.5" /> Assistant IA LocalFood
+            <Sparkles className="h-3.5 w-3.5" /> {t("aiPage.titleBadge")}
           </span>
           <h1 className="mt-5 font-display text-4xl sm:text-5xl font-semibold leading-tight text-balance">
-            Dites-nous ce dont vous avez envie.
+            {t("aiPage.heroTitle")}
           </h1>
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
             Notre assistant analyse votre requête et vous propose les restaurants LocalFood qui
@@ -175,7 +177,7 @@ function AIAssistantPage() {
             <input
               value={query}
               onChange={(e) => setQuery(e.target.value)}
-              placeholder="Ex : un resto date night avec parking…"
+              placeholder={t("aiPage.placeholder")}
               className="flex-1 px-4 py-3 bg-transparent text-foreground outline-none text-sm"
             />
             <button
@@ -183,7 +185,7 @@ function AIAssistantPage() {
               disabled={loading}
               className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-primary text-primary-foreground px-5 py-3 text-sm font-semibold shadow-glow hover:opacity-95 disabled:opacity-60"
             >
-              <Send className="h-4 w-4" /> Demander
+              <Send className="h-4 w-4" /> {t("aiPage.submit")}
             </button>
           </form>
         </div>
@@ -193,16 +195,14 @@ function AIAssistantPage() {
         {loading && (
           <div className="rounded-3xl border border-dashed border-border p-12 text-center">
             <Wand2 className="h-6 w-6 mx-auto text-primary animate-pulse" />
-            <p className="text-sm text-muted-foreground mt-3">L'assistant analyse votre requête…</p>
+            <p className="text-sm text-muted-foreground mt-3">{t("aiPage.loading")}</p>
           </div>
         )}
 
         {!loading && errorMessage && (
           <div className="rounded-3xl border border-destructive/30 bg-destructive/5 p-10 text-center">
             <Sparkles className="h-7 w-7 mx-auto text-destructive" />
-            <h2 className="mt-4 font-display text-xl font-semibold">
-              Assistant temporairement indisponible
-            </h2>
+            <h2 className="mt-4 font-display text-xl font-semibold">{t("aiPage.errorTitle")}</h2>
             <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">{errorMessage}</p>
           </div>
         )}
@@ -210,9 +210,7 @@ function AIAssistantPage() {
         {!loading && !errorMessage && !result && (
           <div className="rounded-3xl bg-card border border-border p-10 text-center">
             <Sparkles className="h-7 w-7 mx-auto text-primary" />
-            <h2 className="mt-4 font-display text-xl font-semibold">
-              Posez votre question pour commencer
-            </h2>
+            <h2 className="mt-4 font-display text-xl font-semibold">{t("aiPage.emptyTitle")}</h2>
             <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
               L'assistant LocalFood ne recommande que les restaurants actifs de notre base. Il
               filtre selon vos critères : envie, ambiance, budget, contraintes pratiques.
@@ -228,13 +226,13 @@ function AIAssistantPage() {
                   <Sparkles className="h-5 w-5" />
                 </span>
                 <div className="flex-1">
-                  <p className="text-sm text-muted-foreground">Vous avez demandé</p>
+                  <p className="text-sm text-muted-foreground">{t("aiPage.youAsked")}</p>
                   <p className="font-display text-xl font-semibold">« {query} »</p>
                   <p className="mt-3 text-foreground/90">{result.answer}</p>
                   {result.detectedTags.length > 0 && (
                     <div className="mt-4">
                       <div className="text-xs font-semibold text-muted-foreground mb-2">
-                        Critères détectés
+                        {t("aiPage.detectedCriteria")}
                       </div>
                       <div className="flex flex-wrap gap-1.5">
                         {result.detectedTags.map((tag) => (
@@ -254,7 +252,9 @@ function AIAssistantPage() {
 
             {result.restaurants.length > 0 ? (
               <div>
-                <h3 className="font-display text-2xl font-semibold mb-5">Recommandations</h3>
+                <h3 className="font-display text-2xl font-semibold mb-5">
+                  {t("aiPage.recommendations")}
+                </h3>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                   {result.restaurants.map((restaurant) => (
                     <div key={restaurant.id}>
@@ -270,7 +270,7 @@ function AIAssistantPage() {
               </div>
             ) : (
               <div className="rounded-3xl border border-dashed border-border p-12 text-center text-muted-foreground">
-                Aucun restaurant actif ne correspond clairement à cette recherche pour le moment.
+                {t("aiPage.noResult")}
               </div>
             )}
           </div>

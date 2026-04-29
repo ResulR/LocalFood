@@ -4,16 +4,20 @@ import { toast } from "sonner";
 import type { Restaurant } from "@/data/restaurants";
 import { useFavorites } from "@/lib/favorites";
 import { trackRestaurantInteractionBySlug } from "@/lib/restaurants-api";
+import { useI18n } from "@/lib/i18n";
 
 export function RestaurantCard({ r, matchScore }: { r: Restaurant; matchScore?: number }) {
   const { has, toggle } = useFavorites();
+  const { t } = useI18n();
   const isFav = has(r.id);
   const score = matchScore ?? r.localFoodMatchScore;
 
   const handleFav = (e: React.MouseEvent) => {
     e.preventDefault();
     const added = toggle(r.id);
-    toast(added ? "Ajouté aux favoris ❤" : "Retiré des favoris", { description: r.name });
+    toast(added ? t("restaurantCard.addedFavorite") : t("restaurantCard.removedFavorite"), {
+      description: r.name,
+    });
   };
 
   const trackPublicCardInteraction = (action: string, interactionType: "Maps" | "Appel") => {
@@ -32,7 +36,7 @@ export function RestaurantCard({ r, matchScore }: { r: Restaurant; matchScore?: 
     e.stopPropagation();
 
     if (!url) {
-      toast.error("Lien indisponible", { description: r.name });
+      toast.error(t("restaurantCard.linkUnavailable"), { description: r.name });
       return;
     }
 
@@ -46,13 +50,13 @@ export function RestaurantCard({ r, matchScore }: { r: Restaurant; matchScore?: 
     e.stopPropagation();
 
     if (!r.phone) {
-      toast.error("Numéro indisponible", { description: r.name });
+      toast.error(t("restaurantCard.phoneUnavailable"), { description: r.name });
       return;
     }
 
     trackPublicCardInteraction("Appel depuis une carte", "Appel");
     window.location.href = `tel:${r.phone.replace(/\s/g, "")}`;
-    toast.success("Appel lancé", { description: r.name });
+    toast.success(t("restaurantCard.callStarted"), { description: r.name });
   };
 
   return (
@@ -88,7 +92,7 @@ export function RestaurantCard({ r, matchScore }: { r: Restaurant; matchScore?: 
         </div>
         <button
           onClick={handleFav}
-          aria-label="Favori"
+          aria-label={t("restaurantCard.favorite")}
           className="absolute top-3 right-3 h-9 w-9 rounded-full bg-background/95 backdrop-blur shadow-soft inline-flex items-center justify-center hover:scale-110 transition"
         >
           <Heart
@@ -99,10 +103,10 @@ export function RestaurantCard({ r, matchScore }: { r: Restaurant; matchScore?: 
           <span
             className={`rounded-full px-2.5 py-1 text-[11px] font-medium shadow-soft ${r.open ? "bg-success text-success-foreground" : "bg-muted text-muted-foreground"}`}
           >
-            {r.open ? "Ouvert" : "Fermé"}
+            {r.open ? t("restaurantCard.open") : t("restaurantCard.closed")}
           </span>
           <span className="rounded-full bg-background/95 backdrop-blur px-2.5 py-1 text-[11px] font-semibold shadow-soft inline-flex items-center gap-1">
-            <Sparkles className="h-3 w-3 text-primary" /> Match {score}%
+            <Sparkles className="h-3 w-3 text-primary" /> {t("restaurantCard.match")} {score}%
           </span>
         </div>
       </Link>
@@ -148,19 +152,19 @@ export function RestaurantCard({ r, matchScore }: { r: Restaurant; matchScore?: 
             params={{ id: r.id }}
             className="flex-1 inline-flex justify-center items-center rounded-full bg-foreground text-background px-3 py-2 text-xs font-medium hover:opacity-90 transition"
           >
-            Voir la fiche
+            {t("restaurantCard.viewDetails")}
           </Link>
           <button
-            onClick={(e) => openExternalAction(e, "Ouverture de l'itinéraire", r.googleMapsUrl)}
+            onClick={(e) => openExternalAction(e, t("restaurantCard.routeOpened"), r.googleMapsUrl)}
             className="inline-flex items-center justify-center h-9 w-9 rounded-full border border-border hover:bg-secondary transition"
-            title="Itinéraire"
+            title={t("restaurantCard.route")}
           >
             <Navigation className="h-4 w-4" />
           </button>
           <button
             onClick={callRestaurant}
             className="inline-flex items-center justify-center h-9 w-9 rounded-full border border-border hover:bg-secondary transition"
-            title="Appeler"
+            title={t("restaurantCard.call")}
           >
             <Phone className="h-4 w-4" />
           </button>
