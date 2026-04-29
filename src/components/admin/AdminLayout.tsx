@@ -79,7 +79,7 @@ export function AdminLayout() {
             </div>
             <div className="hidden sm:block text-xs leading-tight">
               <div className="font-medium">Maison Zayna</div>
-              <div className="text-muted-foreground">Plan Premium</div>
+              <div className="text-muted-foreground">Espace pro</div>
             </div>
           </div>
         </header>

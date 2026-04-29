@@ -211,7 +211,7 @@ function ForRestaurantsPage() {
               to="/restaurant-dashboard"
               className="inline-flex items-center gap-2 rounded-full bg-gradient-primary text-primary-foreground px-6 py-3 text-sm font-semibold shadow-glow hover:opacity-95"
             >
-              Voir la démo restaurateur <ArrowRight className="h-4 w-4" />
+              Voir l’espace restaurateur <ArrowRight className="h-4 w-4" />
             </Link>
             <Link
               to="/restaurants"

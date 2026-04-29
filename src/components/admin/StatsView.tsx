@@ -272,7 +272,7 @@ export function StatsView() {
 
       <div className="grid md:grid-cols-4 gap-3">
         {[
-          { l: "Total vues", v: String(totalViews), c: "Supabase" },
+          { l: "Total vues", v: String(totalViews), c: "Fiche restaurant" },
           { l: "Clics itinéraire", v: String(itineraryClicks), c: "Maps + Waze" },
           { l: "Appels", v: String(calls), c: "Fiche restaurant" },
           { l: "Conversion", v: conversionRate, c: "J’y vais / vues" },

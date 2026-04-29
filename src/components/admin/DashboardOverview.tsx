@@ -170,10 +170,10 @@ export function DashboardOverview() {
 
   const kpis: KpiItem[] = [
     { label: "Vues de fiche", value: String(views), change: "7 jours", icon: Eye },
-    { label: "Clics Google Maps", value: String(maps), change: "Supabase", icon: Navigation },
-    { label: "Clics Waze", value: String(waze), change: "Supabase", icon: MapPin },
-    { label: "Appels", value: String(calls), change: "Supabase", icon: Phone },
-    { label: "Voir le menu", value: String(menu), change: "Supabase", icon: MenuSquare },
+    { label: "Clics Google Maps", value: String(maps), change: "7 jours", icon: Navigation },
+    { label: "Clics Waze", value: String(waze), change: "7 jours", icon: MapPin },
+    { label: "Appels", value: String(calls), change: "7 jours", icon: Phone },
+    { label: "Voir le menu", value: String(menu), change: "7 jours", icon: MenuSquare },
     { label: "« J'y vais »", value: String(intent), change: "Conversion", icon: Heart },
     { label: "Clics depuis IA", value: String(ai), change: "Assistant", icon: Bot },
     { label: "Avis reçus", value: String(reviews), change: `${offers} offre(s)`, icon: Star },
@@ -221,7 +221,7 @@ export function DashboardOverview() {
           <div className="flex items-center justify-between mb-5">
             <div>
               <h2 className="font-display text-lg font-semibold">Vues & interactions</h2>
-              <p className="text-xs text-muted-foreground">7 derniers jours · Supabase</p>
+              <p className="text-xs text-muted-foreground">7 derniers jours</p>
             </div>
             <Link
               to="/restaurant-dashboard/statistiques"
@@ -305,7 +305,7 @@ export function DashboardOverview() {
       <div className="rounded-2xl bg-card border border-border overflow-hidden">
         <div className="p-6 pb-3 flex items-center justify-between">
           <h2 className="font-display text-lg font-semibold">Dernières interactions</h2>
-          <span className="text-xs text-muted-foreground">Données Supabase</span>
+          <span className="text-xs text-muted-foreground">Mises à jour récentes</span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
