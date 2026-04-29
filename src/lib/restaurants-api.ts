@@ -594,6 +594,18 @@ export async function updateOwnedRestaurant(payload: UpdateOwnedRestaurantPayloa
   return data;
 }
 
+export async function deleteOwnedRestaurantPhoto(photoId: string) {
+  const { data, error } = await supabase.rpc("delete_owned_restaurant_photo", {
+    _photo_id: photoId,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data;
+}
+
 export type SupabaseCompanyRestaurant = {
   id: string;
   name: string;

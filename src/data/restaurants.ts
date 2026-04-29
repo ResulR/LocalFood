@@ -56,6 +56,7 @@ export type PhotoCategory =
   | "Parking";
 
 export type RestaurantPhoto = {
+  id?: string;
   url: string;
   category: PhotoCategory;
   byClient?: boolean;

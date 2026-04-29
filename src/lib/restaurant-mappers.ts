@@ -89,6 +89,7 @@ function buildPhotos(restaurant: SupabaseRestaurantListItem): RestaurantPhoto[] 
     .slice()
     .sort((a, b) => a.sort_order - b.sort_order)
     .map((photo) => ({
+      id: photo.id,
       url: photo.url,
       category: toPhotoCategory(photo.category),
       byClient: photo.is_client_photo,

@@ -9,6 +9,7 @@ import {
 } from "@/data/restaurants";
 import { useAuth } from "@/contexts/AuthContext";
 import {
+  deleteOwnedRestaurantPhoto,
   fetchSupabaseRestaurantById,
   fetchSupabaseRestaurantsByCompanyId,
 } from "@/lib/restaurants-api";
@@ -20,6 +21,7 @@ export function PhotosView() {
   const [filter, setFilter] = useState<PhotoCategory | "Toutes">("Toutes");
   const [loadingPhotos, setLoadingPhotos] = useState(true);
   const [photosMessage, setPhotosMessage] = useState("");
+  const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -77,6 +79,32 @@ export function PhotosView() {
       cancelled = true;
     };
   }, [profile?.current_company_id]);
+
+  const deletePhoto = async (photo: RestaurantPhoto) => {
+    if (!photo.id) {
+      toast.error("Suppression impossible", {
+        description: "Cette photo n’a pas d’identifiant Supabase.",
+      });
+      return;
+    }
+
+    setDeletingPhotoId(photo.id);
+
+    try {
+      await deleteOwnedRestaurantPhoto(photo.id);
+      setPhotos((current) => current.filter((item) => item.id !== photo.id));
+      toast.success("Photo supprimée", {
+        description: "La photo a été retirée de la galerie.",
+      });
+    } catch (error) {
+      console.error("Failed to delete restaurant photo:", error);
+      toast.error("Suppression impossible", {
+        description: "La base de données a refusé la suppression.",
+      });
+    } finally {
+      setDeletingPhotoId(null);
+    }
+  };
 
   const all = photos;
   const filtered = filter === "Toutes" ? all : all.filter((p) => p.category === filter);
@@ -156,8 +184,9 @@ export function PhotosView() {
                     <Eye className="h-4 w-4" />
                   </button>
                   <button
-                    onClick={() => toast("Photo supprimée")}
-                    className="h-9 w-9 rounded-full bg-background inline-flex items-center justify-center text-destructive"
+                    onClick={() => deletePhoto(p)}
+                    disabled={deletingPhotoId === p.id}
+                    className="h-9 w-9 rounded-full bg-background inline-flex items-center justify-center text-destructive disabled:cursor-not-allowed disabled:opacity-60"
                   >
                     <Trash2 className="h-4 w-4" />
                   </button>
