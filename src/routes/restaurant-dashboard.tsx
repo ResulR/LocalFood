@@ -2,6 +2,7 @@ import { createFileRoute, Navigate } from "@tanstack/react-router";
 import { Loader2 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { useAuth } from "@/contexts/AuthContext";
+import { RestaurantDashboardProvider } from "@/contexts/RestaurantDashboardContext";
 
 export const Route = createFileRoute("/restaurant-dashboard")({
   head: () => ({ meta: [{ title: "Espace restaurateur — LocalFood" }] }),
@@ -39,5 +40,9 @@ function ProtectedRestaurantDashboard() {
     );
   }
 
-  return <AdminLayout />;
+  return (
+    <RestaurantDashboardProvider>
+      <AdminLayout />
+    </RestaurantDashboardProvider>
+  );
 }

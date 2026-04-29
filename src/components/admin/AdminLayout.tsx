@@ -15,8 +15,7 @@ import {
   Shield,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
-import { fetchSupabaseRestaurantsByCompanyId } from "@/lib/restaurants-api";
-import { useEffect, useState } from "react";
+import { useRestaurantDashboard } from "@/contexts/RestaurantDashboardContext";
 
 type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
 const NAV: NavItem[] = [
@@ -32,40 +31,24 @@ const NAV: NavItem[] = [
 export function AdminLayout() {
   const loc = useLocation();
   const navigate = useNavigate();
-  const { profile, role, signOut } = useAuth();
-  const [restaurantName, setRestaurantName] = useState("Espace pro");
+  const { role, signOut } = useAuth();
+  const {
+    restaurants,
+    selectedRestaurant,
+    selectedRestaurantId,
+    loadingRestaurants,
+    restaurantMessage,
+    setSelectedRestaurantId,
+  } = useRestaurantDashboard();
+
+  const restaurantName =
+    selectedRestaurant?.name ??
+    (loadingRestaurants ? "Chargement..." : restaurantMessage || "Espace pro");
 
   const handleSignOut = async () => {
     await signOut();
     navigate({ to: "/login" });
   };
-
-  useEffect(() => {
-    let cancelled = false;
-
-    if (!profile?.current_company_id) {
-      setRestaurantName("Aucune entreprise");
-      return;
-    }
-
-    fetchSupabaseRestaurantsByCompanyId(profile.current_company_id)
-      .then((restaurants) => {
-        if (cancelled) return;
-
-        setRestaurantName(restaurants[0]?.name ?? "Aucun restaurant");
-      })
-      .catch((error) => {
-        console.error("Failed to load dashboard restaurant name:", error);
-
-        if (!cancelled) {
-          setRestaurantName("Espace pro");
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [profile?.current_company_id]);
 
   return (
     <div className="min-h-screen bg-secondary/30 flex">
@@ -125,6 +108,21 @@ export function AdminLayout() {
             <Bell className="h-4 w-4" />
             <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary" />
           </button>
+          {restaurants.length > 1 && selectedRestaurantId && (
+            <select
+              value={selectedRestaurantId}
+              onChange={(event) => setSelectedRestaurantId(event.target.value)}
+              className="hidden md:block max-w-52 rounded-full border border-border bg-background px-3 py-2 text-xs font-medium outline-none focus:border-ring"
+              aria-label="Choisir un restaurant"
+            >
+              {restaurants.map((restaurant) => (
+                <option key={restaurant.id} value={restaurant.id}>
+                  {restaurant.name}
+                </option>
+              ))}
+            </select>
+          )}
+
           <div className="flex items-center gap-2">
             <div className="h-9 w-9 rounded-full bg-gradient-primary text-primary-foreground inline-flex items-center justify-center text-sm font-semibold">
               {restaurantName

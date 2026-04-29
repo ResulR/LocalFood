@@ -24,11 +24,9 @@ import {
 } from "recharts";
 import { interactions as localInteractions } from "@/data/mockStats";
 import { TOP_AI_QUERIES } from "@/data/mockAI";
-import { useAuth } from "@/contexts/AuthContext";
+import { useRestaurantDashboard } from "@/contexts/RestaurantDashboardContext";
 import {
   fetchSupabaseRestaurantInteractionsBySlug,
-  fetchSupabaseRestaurantsByCompanyId,
-  type SupabaseCompanyRestaurant,
   type SupabaseRestaurantInteraction,
   type SupabaseRestaurantInteractionType,
 } from "@/lib/restaurants-api";
@@ -124,10 +122,8 @@ function countType(
 }
 
 export function DashboardOverview() {
-  const { profile } = useAuth();
-  const [currentRestaurant, setCurrentRestaurant] = useState<SupabaseCompanyRestaurant | null>(
-    null,
-  );
+  const { selectedRestaurant, loadingRestaurants, restaurantMessage } = useRestaurantDashboard();
+  const currentRestaurant = selectedRestaurant;
   const [interactions, setInteractions] = useState<SupabaseRestaurantInteraction[]>([]);
   const [loadingDashboard, setLoadingDashboard] = useState(true);
   const [dashboardMessage, setDashboardMessage] = useState("");
@@ -138,29 +134,19 @@ export function DashboardOverview() {
     async function loadDashboard() {
       setLoadingDashboard(true);
       setDashboardMessage("");
-      setCurrentRestaurant(null);
       setInteractions([]);
 
-      if (!profile?.current_company_id) {
-        setDashboardMessage("Aucune entreprise n’est liée à votre profil.");
+      if (loadingRestaurants) {
+        return;
+      }
+
+      if (!currentRestaurant) {
+        setDashboardMessage(restaurantMessage || "Aucun restaurant n’est sélectionné.");
         setLoadingDashboard(false);
         return;
       }
 
-      const restaurants = await fetchSupabaseRestaurantsByCompanyId(profile.current_company_id);
-      const restaurant = restaurants[0] ?? null;
-
-      if (cancelled) return;
-
-      if (!restaurant) {
-        setDashboardMessage("Aucun restaurant n’est encore lié à votre entreprise.");
-        setLoadingDashboard(false);
-        return;
-      }
-
-      setCurrentRestaurant(restaurant);
-
-      const data = await fetchSupabaseRestaurantInteractionsBySlug(restaurant.slug);
+      const data = await fetchSupabaseRestaurantInteractionsBySlug(currentRestaurant.slug);
 
       if (cancelled) return;
 
@@ -181,7 +167,7 @@ export function DashboardOverview() {
     return () => {
       cancelled = true;
     };
-  }, [profile?.current_company_id]);
+  }, [currentRestaurant, loadingRestaurants, restaurantMessage]);
 
   const last7dInteractions = useMemo(() => {
     const now = new Date();
