@@ -1,16 +1,6 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useMemo, useState } from "react";
-import {
-  Search,
-  MapPin,
-  ArrowRight,
-  Sparkles,
-  Star,
-  Compass,
-  Tag,
-  Clock,
-  Plus,
-} from "lucide-react";
+import { Search, ArrowRight, Sparkles, Star, Compass, Tag, Clock, Plus } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
 import { RestaurantCard } from "@/components/site/RestaurantCard";
 import {
@@ -124,26 +114,23 @@ function HomePage() {
               en un clic.
             </p>
 
-            <div className="mt-8 bg-background rounded-2xl shadow-elevated p-2 flex flex-col sm:flex-row gap-2 max-w-2xl">
-              <div className="flex items-center flex-1 px-3">
-                <Search className="h-5 w-5 text-muted-foreground" />
-                <input
-                  placeholder="Restaurant, cuisine, ville, envie…"
-                  className="flex-1 px-3 py-3 bg-transparent text-foreground outline-none text-sm"
-                />
-              </div>
-              <button className="inline-flex items-center justify-center gap-2 rounded-xl bg-secondary text-secondary-foreground px-4 py-3 text-sm font-medium hover:bg-secondary/80">
-                <MapPin className="h-4 w-4" /> Autour de moi
-              </button>
+            <div className="mt-8 flex flex-col sm:flex-row gap-3">
               <Link
                 to="/restaurants"
-                className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-primary text-primary-foreground px-5 py-3 text-sm font-semibold shadow-glow hover:opacity-95"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-primary text-primary-foreground px-6 py-3 text-sm font-semibold shadow-glow hover:opacity-95"
               >
-                Rechercher <ArrowRight className="h-4 w-4" />
+                Voir les restaurants <ArrowRight className="h-4 w-4" />
+              </Link>
+
+              <Link
+                to="/ai-assistant"
+                className="inline-flex items-center justify-center gap-2 rounded-full bg-background/10 backdrop-blur px-6 py-3 text-sm font-semibold border border-background/20 hover:bg-background/20 transition"
+              >
+                Essayer l'assistant IA <Sparkles className="h-4 w-4" />
               </Link>
             </div>
 
-            <div className="mt-6 flex flex-wrap gap-2">
+            <div className="mt-6 flex flex-wrap gap-2" aria-label="Envies populaires">
               {QUICK_FILTERS.slice(0, 8).map((t) => (
                 <Link
                   key={t}
