@@ -165,6 +165,39 @@ function SuperAdminRestaurantsPage() {
     await loadRestaurants();
   };
 
+  const changeRestaurantStatus = async (row: RestaurantListRow, nextIsActive: boolean) => {
+    if (row.isActive === nextIsActive) {
+      return;
+    }
+
+    setSavingRestaurantId(row.id);
+
+    const { error } = await supabase
+      .from("restaurants")
+      .update({
+        is_active: nextIsActive,
+      })
+      .eq("id", row.id)
+      .select("id")
+      .single();
+
+    if (error) {
+      setSavingRestaurantId(null);
+      toast.error("Impossible de modifier le statut du restaurant", {
+        description: error.message,
+      });
+      await loadRestaurants();
+      return;
+    }
+
+    toast.success("Statut mis à jour", {
+      description: `${row.name} est maintenant ${nextIsActive ? "actif" : "inactif"}.`,
+    });
+
+    setSavingRestaurantId(null);
+    await loadRestaurants();
+  };
+
   return (
     <div className="max-w-[1400px] space-y-6">
       <div className="flex items-end justify-between gap-4 flex-wrap">
@@ -272,15 +305,21 @@ function SuperAdminRestaurantsPage() {
                         </div>
                       </td>
                       <td className="px-5 py-4">
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                        <select
+                          value={row.isActive ? "active" : "inactive"}
+                          disabled={isSaving}
+                          onChange={(event) =>
+                            changeRestaurantStatus(row, event.target.value === "active")
+                          }
+                          className={`w-fit rounded-full border px-3 py-1.5 text-xs font-medium outline-none disabled:cursor-not-allowed disabled:opacity-60 ${
                             row.isActive
-                              ? "bg-success/15 text-success"
-                              : "bg-destructive/10 text-destructive"
+                              ? "border-success/30 bg-success/15 text-success"
+                              : "border-destructive/30 bg-destructive/10 text-destructive"
                           }`}
                         >
-                          {row.isActive ? "Actif" : "Inactif"}
-                        </span>
+                          <option value="active">Actif</option>
+                          <option value="inactive">Inactif</option>
+                        </select>
                       </td>
                     </tr>
                   );
@@ -292,8 +331,9 @@ function SuperAdminRestaurantsPage() {
       )}
 
       <div className="rounded-2xl border border-border bg-secondary/40 p-5 text-sm text-muted-foreground">
-        Cette page permet d’assigner un restaurant à une entreprise. Une entreprise pourra donc
-        gérer plusieurs restaurants ou plusieurs localisations.
+        Cette page permet d’assigner un restaurant à une entreprise et d’activer/désactiver sa
+        visibilité publique. Une entreprise pourra donc gérer plusieurs restaurants ou plusieurs
+        localisations.
       </div>
     </div>
   );
