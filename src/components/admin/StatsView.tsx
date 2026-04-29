@@ -9,14 +9,10 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
-import { topActionsBreakdown, peakHours } from "@/data/mockStats";
-import { TOP_AI_QUERIES } from "@/data/mockAI";
 import { Sparkles } from "lucide-react";
-import { useAuth } from "@/contexts/AuthContext";
+import { useRestaurantDashboard } from "@/contexts/RestaurantDashboardContext";
 import {
   fetchSupabaseRestaurantInteractionsBySlug,
-  fetchSupabaseRestaurantsByCompanyId,
-  type SupabaseCompanyRestaurant,
   type SupabaseRestaurantInteraction,
   type SupabaseRestaurantInteractionType,
 } from "@/lib/restaurants-api";
@@ -165,12 +161,28 @@ function buildActionBreakdown(interactions: SupabaseRestaurantInteraction[]): Ac
     .sort((a, b) => b.v - a.v);
 }
 
+function buildPeakHours(interactions: SupabaseRestaurantInteraction[]): ActionBreakdownRow[] {
+  const hourCounts = new Map<number, number>();
+
+  interactions.forEach((interaction) => {
+    const hour = new Date(interaction.created_at).getHours();
+    hourCounts.set(hour, (hourCounts.get(hour) ?? 0) + 1);
+  });
+
+  return Array.from(hourCounts.entries())
+    .map(([hour, count]) => ({
+      l: `${String(hour).padStart(2, "0")}:00 - ${String(hour + 1).padStart(2, "0")}:00`,
+      v: count,
+      p: 0,
+    }))
+    .sort((a, b) => b.v - a.v)
+    .slice(0, 5);
+}
+
 export function StatsView() {
-  const { profile } = useAuth();
+  const { selectedRestaurant, loadingRestaurants, restaurantMessage } = useRestaurantDashboard();
+  const currentRestaurant = selectedRestaurant;
   const [range, setRange] = useState<Range>("7d");
-  const [currentRestaurant, setCurrentRestaurant] = useState<SupabaseCompanyRestaurant | null>(
-    null,
-  );
   const [interactions, setInteractions] = useState<SupabaseRestaurantInteraction[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
   const [statsMessage, setStatsMessage] = useState("");
@@ -181,29 +193,19 @@ export function StatsView() {
     async function loadStats() {
       setLoadingStats(true);
       setStatsMessage("");
-      setCurrentRestaurant(null);
       setInteractions([]);
 
-      if (!profile?.current_company_id) {
-        setStatsMessage("Aucune entreprise n’est liée à votre profil.");
+      if (loadingRestaurants) {
+        return;
+      }
+
+      if (!currentRestaurant) {
+        setStatsMessage(restaurantMessage || "Aucun restaurant n’est sélectionné.");
         setLoadingStats(false);
         return;
       }
 
-      const restaurants = await fetchSupabaseRestaurantsByCompanyId(profile.current_company_id);
-      const restaurant = restaurants[0] ?? null;
-
-      if (cancelled) return;
-
-      if (!restaurant) {
-        setStatsMessage("Aucun restaurant n’est encore lié à votre entreprise.");
-        setLoadingStats(false);
-        return;
-      }
-
-      setCurrentRestaurant(restaurant);
-
-      const data = await fetchSupabaseRestaurantInteractionsBySlug(restaurant.slug);
+      const data = await fetchSupabaseRestaurantInteractionsBySlug(currentRestaurant.slug);
 
       if (cancelled) return;
 
@@ -224,7 +226,7 @@ export function StatsView() {
     return () => {
       cancelled = true;
     };
-  }, [profile?.current_company_id]);
+  }, [currentRestaurant, loadingRestaurants, restaurantMessage]);
 
   const rangeInteractions = useMemo(
     () => interactions.filter((interaction) => isInsideRange(interaction.created_at, range)),
@@ -266,6 +268,8 @@ export function StatsView() {
     () => buildActionBreakdown(rangeInteractions),
     [rangeInteractions],
   );
+
+  const peakHourRows = useMemo(() => buildPeakHours(rangeInteractions), [rangeInteractions]);
 
   return (
     <div className="space-y-6 max-w-[1400px]">
@@ -340,30 +344,43 @@ export function StatsView() {
         <div className="rounded-2xl bg-card border border-border p-6">
           <h3 className="font-display text-base font-semibold mb-4">Répartition des actions</h3>
           <div className="space-y-3">
-            {(actionBreakdown.length > 0 ? actionBreakdown : topActionsBreakdown).map((row) => (
-              <div key={row.l}>
-                <div className="flex justify-between text-sm">
-                  <span>{row.l}</span>
-                  <span className="text-muted-foreground">{row.v}</span>
-                </div>
-                <div className="mt-1.5 h-2 rounded-full bg-secondary overflow-hidden">
-                  <div className="h-full bg-gradient-primary" style={{ width: `${row.p}%` }} />
-                </div>
+            {actionBreakdown.length === 0 ? (
+              <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+                Aucune action enregistrée pour ce restaurant sur la période sélectionnée.
               </div>
-            ))}
+            ) : (
+              actionBreakdown.map((row) => (
+                <div key={row.l}>
+                  <div className="flex justify-between text-sm">
+                    <span>{row.l}</span>
+                    <span className="text-muted-foreground">{row.v}</span>
+                  </div>
+                  <div className="mt-1.5 h-2 rounded-full bg-secondary overflow-hidden">
+                    <div className="h-full bg-gradient-primary" style={{ width: `${row.p}%` }} />
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
 
         <div className="rounded-2xl bg-card border border-border p-6">
           <h3 className="font-display text-base font-semibold mb-4">Pics d'activité</h3>
-          <ul className="space-y-3 text-sm">
-            {peakHours.map((p) => (
-              <li key={p.l} className="flex justify-between">
-                <span>{p.l}</span>
-                <span className="text-muted-foreground">{p.v}</span>
-              </li>
-            ))}
-          </ul>
+
+          {peakHourRows.length === 0 ? (
+            <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+              Aucun pic d’activité enregistré pour ce restaurant sur la période sélectionnée.
+            </div>
+          ) : (
+            <ul className="space-y-3 text-sm">
+              {peakHourRows.map((p) => (
+                <li key={p.l} className="flex justify-between">
+                  <span>{p.l}</span>
+                  <span className="text-muted-foreground">{p.v}</span>
+                </li>
+              ))}
+            </ul>
+          )}
         </div>
       </div>
 
@@ -374,16 +391,9 @@ export function StatsView() {
             Top recherches IA ayant affiché votre restaurant
           </h3>
         </div>
-        <div className="grid sm:grid-cols-2 gap-3">
-          {TOP_AI_QUERIES.map((q) => (
-            <div
-              key={q.q}
-              className="flex items-center justify-between rounded-xl bg-secondary/40 p-3 text-sm"
-            >
-              <span>« {q.q} »</span>
-              <span className="text-xs text-muted-foreground">{q.count} fois</span>
-            </div>
-          ))}
+
+        <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+          Aucune donnée IA réelle n’est encore disponible pour ce restaurant.
         </div>
       </div>
     </div>
