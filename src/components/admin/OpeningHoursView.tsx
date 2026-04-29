@@ -1,14 +1,12 @@
 import { useEffect, useState } from "react";
 import { Clock, Loader2, Save } from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
+import { useRestaurantDashboard } from "@/contexts/RestaurantDashboardContext";
 import {
   fetchOwnedRestaurantOpeningHours,
-  fetchSupabaseRestaurantsByCompanyId,
   upsertOwnedRestaurantOpeningHours,
   type OwnedRestaurantOpeningHour,
   type OwnedRestaurantOpeningHourInput,
-  type SupabaseCompanyRestaurant,
 } from "@/lib/restaurants-api";
 
 type OpeningHourFormRow = {
@@ -48,10 +46,8 @@ function mergeExistingHours(existingHours: OwnedRestaurantOpeningHour[]): Openin
 }
 
 export function OpeningHoursView() {
-  const { profile } = useAuth();
-  const [currentRestaurant, setCurrentRestaurant] = useState<SupabaseCompanyRestaurant | null>(
-    null,
-  );
+  const { selectedRestaurant, loadingRestaurants, restaurantMessage } = useRestaurantDashboard();
+  const currentRestaurant = selectedRestaurant;
   const [hours, setHours] = useState<OpeningHourFormRow[]>(defaultHours);
   const [loadingHours, setLoadingHours] = useState(true);
   const [hoursMessage, setHoursMessage] = useState("");
@@ -63,29 +59,19 @@ export function OpeningHoursView() {
     async function loadOpeningHours() {
       setLoadingHours(true);
       setHoursMessage("");
-      setCurrentRestaurant(null);
       setHours(defaultHours);
 
-      if (!profile?.current_company_id) {
-        setHoursMessage("Aucune entreprise n’est liée à votre profil.");
+      if (loadingRestaurants) {
+        return;
+      }
+
+      if (!currentRestaurant) {
+        setHoursMessage(restaurantMessage || "Aucun restaurant n’est sélectionné.");
         setLoadingHours(false);
         return;
       }
 
-      const restaurants = await fetchSupabaseRestaurantsByCompanyId(profile.current_company_id);
-      const restaurant = restaurants[0] ?? null;
-
-      if (cancelled) return;
-
-      if (!restaurant) {
-        setHoursMessage("Aucun restaurant n’est encore lié à votre entreprise.");
-        setLoadingHours(false);
-        return;
-      }
-
-      setCurrentRestaurant(restaurant);
-
-      const data = await fetchOwnedRestaurantOpeningHours(restaurant.id);
+      const data = await fetchOwnedRestaurantOpeningHours(currentRestaurant.id);
 
       if (cancelled) return;
 
@@ -106,7 +92,7 @@ export function OpeningHoursView() {
     return () => {
       cancelled = true;
     };
-  }, [profile?.current_company_id]);
+  }, [currentRestaurant, loadingRestaurants, restaurantMessage]);
 
   const updateHour = <K extends keyof OpeningHourFormRow>(
     dayOfWeek: number,
