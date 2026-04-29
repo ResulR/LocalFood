@@ -2,10 +2,9 @@ import { useEffect, useState } from "react";
 import { Save } from "lucide-react";
 import { toast } from "sonner";
 import { QUICK_FILTERS } from "@/data/restaurants";
-import { useAuth } from "@/contexts/AuthContext";
+import { useRestaurantDashboard } from "@/contexts/RestaurantDashboardContext";
 import {
   fetchSupabaseRestaurantById,
-  fetchSupabaseRestaurantsByCompanyId,
   updateOwnedRestaurant,
   updateOwnedRestaurantTags,
   type SupabaseRestaurantListItem,
@@ -55,7 +54,7 @@ function buildProfileForm(restaurant: SupabaseRestaurantListItem): ProfileForm {
 }
 
 export function ProfileEditor() {
-  const { profile } = useAuth();
+  const { selectedRestaurant, loadingRestaurants, restaurantMessage } = useRestaurantDashboard();
   const [form, setForm] = useState<ProfileForm | null>(null);
   const [tags, setTags] = useState<ProfileTag[]>([]);
   const [saved, setSaved] = useState(false);
@@ -69,25 +68,20 @@ export function ProfileEditor() {
     async function loadProfileRestaurant() {
       setLoadingRestaurant(true);
       setProfileMessage("");
+      setForm(null);
+      setTags([]);
 
-      if (!profile?.current_company_id) {
-        setProfileMessage("Aucune entreprise n’est liée à votre profil.");
+      if (loadingRestaurants) {
+        return;
+      }
+
+      if (!selectedRestaurant) {
+        setProfileMessage(restaurantMessage || "Aucun restaurant n’est sélectionné.");
         setLoadingRestaurant(false);
         return;
       }
 
-      const restaurants = await fetchSupabaseRestaurantsByCompanyId(profile.current_company_id);
-      const companyRestaurant = restaurants[0] ?? null;
-
-      if (cancelled) return;
-
-      if (!companyRestaurant) {
-        setProfileMessage("Aucun restaurant n’est encore lié à votre entreprise.");
-        setLoadingRestaurant(false);
-        return;
-      }
-
-      const data = await fetchSupabaseRestaurantById(companyRestaurant.id);
+      const data = await fetchSupabaseRestaurantById(selectedRestaurant.id);
 
       if (cancelled) return;
 
@@ -114,7 +108,7 @@ export function ProfileEditor() {
     return () => {
       cancelled = true;
     };
-  }, [profile?.current_company_id]);
+  }, [selectedRestaurant, loadingRestaurants, restaurantMessage]);
 
   const f = form;
 
