@@ -1,9 +1,10 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Search, Shield, Users } from "lucide-react";
+import { Loader2, Search, Shield, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import type { AppRole } from "@/contexts/AuthContext";
+import { createAdminUser } from "@/lib/admin-users-api";
 
 export const Route = createFileRoute("/super-admin/users")({
   head: () => ({ meta: [{ title: "Utilisateurs — SuperAdmin LocalFood" }] }),
@@ -11,6 +12,7 @@ export const Route = createFileRoute("/super-admin/users")({
 });
 
 const ROLES: AppRole[] = ["superadmin", "admin", "user"];
+const CLIENT_ROLES = ["admin", "user"] as const;
 
 type ProfileRow = {
   id: string;
@@ -51,6 +53,11 @@ function SuperAdminUsersPage() {
   const [savingUserId, setSavingUserId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [search, setSearch] = useState("");
+  const [newUserEmail, setNewUserEmail] = useState("");
+  const [newUserFullName, setNewUserFullName] = useState("");
+  const [newUserRole, setNewUserRole] = useState<(typeof CLIENT_ROLES)[number]>("user");
+  const [newUserCompanyId, setNewUserCompanyId] = useState("");
+  const [creatingUser, setCreatingUser] = useState(false);
 
   const loadUsers = useCallback(async () => {
     setLoadingUsers(true);
@@ -254,6 +261,46 @@ function SuperAdminUsersPage() {
     await loadUsers();
   };
 
+  const handleCreateUser = async (event: React.FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+
+    if (!newUserCompanyId) {
+      toast.error("Entreprise obligatoire", {
+        description: "Choisissez l’entreprise à laquelle l’utilisateur sera lié.",
+      });
+      return;
+    }
+
+    setCreatingUser(true);
+
+    try {
+      const createdUser = await createAdminUser({
+        email: newUserEmail,
+        fullName: newUserFullName,
+        role: newUserRole,
+        companyId: newUserCompanyId,
+      });
+
+      toast.success("Utilisateur invité", {
+        description: `${createdUser.email} a été lié à ${createdUser.companyName}.`,
+      });
+
+      setNewUserEmail("");
+      setNewUserFullName("");
+      setNewUserRole("user");
+      setNewUserCompanyId("");
+
+      await loadUsers();
+    } catch (error) {
+      console.error("Failed to create admin user:", error);
+      toast.error("Création impossible", {
+        description: error instanceof Error ? error.message : "Le backend a refusé la création.",
+      });
+    } finally {
+      setCreatingUser(false);
+    }
+  };
+
   return (
     <div className="max-w-[1400px] space-y-6">
       <div className="flex items-end justify-between gap-4 flex-wrap">
@@ -273,6 +320,83 @@ function SuperAdminUsersPage() {
           <div className="font-display text-2xl font-semibold">{rows.length}</div>
         </div>
       </div>
+
+      <form onSubmit={handleCreateUser} className="rounded-2xl border border-border bg-card p-5">
+        <div className="mb-4 flex items-center gap-2">
+          <UserPlus className="h-4 w-4 text-primary" />
+          <h2 className="font-display text-lg font-semibold">Ajouter un utilisateur client</h2>
+        </div>
+
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+          <label className="block">
+            <span className="text-xs font-medium text-muted-foreground">Nom complet</span>
+            <input
+              value={newUserFullName}
+              onChange={(event) => setNewUserFullName(event.target.value)}
+              required
+              className="mt-1.5 w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm outline-none focus:border-ring"
+              placeholder="Ex : Jean Dupont"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-xs font-medium text-muted-foreground">Email</span>
+            <input
+              type="email"
+              value={newUserEmail}
+              onChange={(event) => setNewUserEmail(event.target.value)}
+              required
+              className="mt-1.5 w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm outline-none focus:border-ring"
+              placeholder="client@example.com"
+            />
+          </label>
+
+          <label className="block">
+            <span className="text-xs font-medium text-muted-foreground">Rôle</span>
+            <select
+              value={newUserRole}
+              onChange={(event) => setNewUserRole(event.target.value as typeof newUserRole)}
+              className="mt-1.5 w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm outline-none focus:border-ring"
+            >
+              {CLIENT_ROLES.map((role) => (
+                <option key={role} value={role}>
+                  {role}
+                </option>
+              ))}
+            </select>
+          </label>
+
+          <label className="block">
+            <span className="text-xs font-medium text-muted-foreground">Entreprise</span>
+            <select
+              value={newUserCompanyId}
+              onChange={(event) => setNewUserCompanyId(event.target.value)}
+              required
+              className="mt-1.5 w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm outline-none focus:border-ring"
+            >
+              <option value="">Choisir une entreprise</option>
+              {companies
+                .filter((company) => company.is_active)
+                .map((company) => (
+                  <option key={company.id} value={company.id}>
+                    {company.name}
+                  </option>
+                ))}
+            </select>
+          </label>
+        </div>
+
+        <div className="mt-4 flex justify-end">
+          <button
+            type="submit"
+            disabled={creatingUser}
+            className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            {creatingUser && <Loader2 className="h-4 w-4 animate-spin" />}
+            {creatingUser ? "Invitation..." : "Inviter l’utilisateur"}
+          </button>
+        </div>
+      </form>
 
       <div className="rounded-2xl border border-border bg-card p-4">
         <div className="relative max-w-md">
