@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Building2, Loader2, Plus, Search, Shield } from "lucide-react";
+import { Building2, Edit3, Loader2, Plus, Save, Search, Shield, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
@@ -38,6 +38,13 @@ type CompanyListRow = {
   usersCount: number;
 };
 
+type EditingCompany = {
+  id: string;
+  name: string;
+  description: string;
+  isActive: boolean;
+};
+
 function normalizeSlug(value: string) {
   return value
     .trim()
@@ -73,6 +80,8 @@ function SuperAdminCompaniesPage() {
   const [companyUsers, setCompanyUsers] = useState<CompanyUserRow[]>([]);
   const [loadingCompanies, setLoadingCompanies] = useState(true);
   const [creatingCompany, setCreatingCompany] = useState(false);
+  const [savingCompanyId, setSavingCompanyId] = useState<string | null>(null);
+  const [editingCompany, setEditingCompany] = useState<EditingCompany | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [search, setSearch] = useState("");
   const [newCompanyName, setNewCompanyName] = useState("");
@@ -195,6 +204,58 @@ function SuperAdminCompaniesPage() {
     setNewCompanyName("");
     setNewCompanyDescription("");
     setCreatingCompany(false);
+    await loadCompanies();
+  };
+
+  const startEditingCompany = (row: CompanyListRow) => {
+    setEditingCompany({
+      id: row.id,
+      name: row.name,
+      description: row.description === "Aucune description" ? "" : row.description,
+      isActive: row.isActive,
+    });
+  };
+
+  const cancelEditingCompany = () => {
+    setEditingCompany(null);
+  };
+
+  const saveCompany = async () => {
+    if (!editingCompany) {
+      return;
+    }
+
+    const name = editingCompany.name.trim();
+    const description = editingCompany.description.trim();
+
+    if (!name) {
+      toast.error("Le nom de l’entreprise est obligatoire");
+      return;
+    }
+
+    setSavingCompanyId(editingCompany.id);
+
+    const { error } = await supabase
+      .from("companies")
+      .update({
+        name,
+        description: description || null,
+        is_active: editingCompany.isActive,
+      })
+      .eq("id", editingCompany.id);
+
+    if (error) {
+      setSavingCompanyId(null);
+      toast.error("Impossible de modifier l’entreprise", { description: error.message });
+      return;
+    }
+
+    toast.success("Entreprise mise à jour", {
+      description: `${name} a été modifiée.`,
+    });
+
+    setEditingCompany(null);
+    setSavingCompanyId(null);
     await loadCompanies();
   };
 
@@ -326,33 +387,123 @@ function SuperAdminCompaniesPage() {
                   <th className="px-5 py-3 text-left font-medium">Restaurants</th>
                   <th className="px-5 py-3 text-left font-medium">Utilisateurs</th>
                   <th className="px-5 py-3 text-left font-medium">Statut</th>
+                  <th className="px-5 py-3 text-right font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
-                {filteredRows.map((row) => (
-                  <tr key={row.id} className="border-b border-border last:border-0">
-                    <td className="px-5 py-4">
-                      <div className="font-medium">{row.name}</div>
-                      <div className="max-w-sm truncate text-xs text-muted-foreground">
-                        {row.description}
-                      </div>
-                    </td>
-                    <td className="px-5 py-4 text-muted-foreground">{row.slug}</td>
-                    <td className="px-5 py-4 font-medium">{row.restaurantsCount}</td>
-                    <td className="px-5 py-4 font-medium">{row.usersCount}</td>
-                    <td className="px-5 py-4">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                          row.isActive
-                            ? "bg-success/15 text-success"
-                            : "bg-destructive/10 text-destructive"
-                        }`}
-                      >
-                        {row.isActive ? "Active" : "Inactive"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {filteredRows.map((row) => {
+                  const isEditing = editingCompany?.id === row.id;
+                  const isSaving = savingCompanyId === row.id;
+
+                  return (
+                    <tr key={row.id} className="border-b border-border last:border-0">
+                      <td className="px-5 py-4">
+                        {isEditing ? (
+                          <div className="space-y-2">
+                            <input
+                              value={editingCompany.name}
+                              onChange={(event) =>
+                                setEditingCompany({
+                                  ...editingCompany,
+                                  name: event.target.value,
+                                })
+                              }
+                              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-ring"
+                            />
+                            <input
+                              value={editingCompany.description}
+                              onChange={(event) =>
+                                setEditingCompany({
+                                  ...editingCompany,
+                                  description: event.target.value,
+                                })
+                              }
+                              placeholder="Description optionnelle"
+                              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-ring"
+                            />
+                          </div>
+                        ) : (
+                          <>
+                            <div className="font-medium">{row.name}</div>
+                            <div className="max-w-sm truncate text-xs text-muted-foreground">
+                              {row.description}
+                            </div>
+                          </>
+                        )}
+                      </td>
+
+                      <td className="px-5 py-4 text-muted-foreground">{row.slug}</td>
+                      <td className="px-5 py-4 font-medium">{row.restaurantsCount}</td>
+                      <td className="px-5 py-4 font-medium">{row.usersCount}</td>
+
+                      <td className="px-5 py-4">
+                        {isEditing ? (
+                          <select
+                            value={editingCompany.isActive ? "active" : "inactive"}
+                            onChange={(event) =>
+                              setEditingCompany({
+                                ...editingCompany,
+                                isActive: event.target.value === "active",
+                              })
+                            }
+                            className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium outline-none"
+                          >
+                            <option value="active">Active</option>
+                            <option value="inactive">Inactive</option>
+                          </select>
+                        ) : (
+                          <span
+                            className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                              row.isActive
+                                ? "bg-success/15 text-success"
+                                : "bg-destructive/10 text-destructive"
+                            }`}
+                          >
+                            {row.isActive ? "Active" : "Inactive"}
+                          </span>
+                        )}
+                      </td>
+
+                      <td className="px-5 py-4">
+                        <div className="flex justify-end gap-2">
+                          {isEditing ? (
+                            <>
+                              <button
+                                onClick={saveCompany}
+                                disabled={isSaving}
+                                className="inline-flex items-center gap-1 rounded-full bg-foreground px-3 py-1.5 text-xs font-medium text-background hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {isSaving ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Save className="h-3.5 w-3.5" />
+                                )}
+                                Sauver
+                              </button>
+
+                              <button
+                                onClick={cancelEditingCompany}
+                                disabled={isSaving}
+                                className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                                Annuler
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => startEditingCompany(row)}
+                              className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary"
+                            >
+                              <Edit3 className="h-3.5 w-3.5" />
+                              Modifier
+                            </button>
+                          )}
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -360,8 +511,8 @@ function SuperAdminCompaniesPage() {
       )}
 
       <div className="rounded-2xl border border-border bg-secondary/40 p-5 text-sm text-muted-foreground">
-        Vous pouvez créer une entreprise avec un nom simple. Le slug reste technique et est calculé
-        automatiquement pour éviter les doublons.
+        Vous pouvez créer et modifier les entreprises. Le slug reste stable après création pour
+        éviter de casser de futures URLs ou relations.
       </div>
     </div>
   );
