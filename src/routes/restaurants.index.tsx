@@ -21,7 +21,14 @@ import {
 import { fetchSupabaseRestaurants } from "@/lib/restaurants-api";
 import { mapSupabaseRestaurantsToRestaurants } from "@/lib/restaurant-mappers";
 
+type RestaurantsSearch = {
+  tag?: string;
+};
+
 export const Route = createFileRoute("/restaurants/")({
+  validateSearch: (search: Record<string, unknown>): RestaurantsSearch => ({
+    tag: typeof search.tag === "string" ? search.tag : undefined,
+  }),
   head: () => ({
     meta: [
       { title: "Restaurants près de vous — LocalFood" },
@@ -37,7 +44,12 @@ export const Route = createFileRoute("/restaurants/")({
 type Sort = "near" | "rating" | "popular" | "open";
 type LocationStatus = "idle" | "loading" | "success" | "error";
 
+function isRestaurantTag(value: string | null): value is RestaurantTag {
+  return QUICK_FILTERS.includes(value as RestaurantTag);
+}
+
 function RestaurantsPage() {
+  const { tag: initialTag } = Route.useSearch();
   const [active, setActive] = useState<Set<RestaurantTag>>(new Set());
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<Sort>("near");
@@ -61,6 +73,21 @@ function RestaurantsPage() {
 
     setActive(n);
   };
+
+  useEffect(() => {
+    if (!initialTag) {
+      return;
+    }
+
+    if (isRestaurantTag(initialTag)) {
+      setActive(new Set([initialTag]));
+    }
+
+    const url = new URL(window.location.href);
+    url.searchParams.delete("tag");
+
+    window.history.replaceState(null, "", `${url.pathname}${url.search}${url.hash}`);
+  }, [initialTag]);
 
   useEffect(() => {
     const savedLocation = getSavedUserLocation();

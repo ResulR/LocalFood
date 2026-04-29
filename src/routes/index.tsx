@@ -33,6 +33,14 @@ export const Route = createFileRoute("/")({
   component: HomePage,
 });
 
+const CATEGORY_TAGS: Record<string, string | undefined> = {
+  snack: "Snack",
+  brunch: "Brunch",
+  dessert: "Dessert",
+  vegan: "Vegan",
+  halal: "Halal",
+};
+
 function HomePage() {
   const [supabaseRestaurants, setSupabaseRestaurants] = useState<Restaurant[]>([]);
   const [restaurantsSource, setRestaurantsSource] = useState<"supabase" | "local">("local");
@@ -135,6 +143,7 @@ function HomePage() {
                 <Link
                   key={t}
                   to="/restaurants"
+                  search={{ tag: t }}
                   className="rounded-full bg-background/10 backdrop-blur px-3 py-1.5 text-xs border border-background/20 hover:bg-background/20 transition"
                 >
                   {t}
@@ -198,6 +207,7 @@ function HomePage() {
             <Link
               key={c.id}
               to="/restaurants"
+              search={CATEGORY_TAGS[c.id] ? { tag: CATEGORY_TAGS[c.id] } : undefined}
               className="group rounded-2xl bg-card border border-border p-4 text-center hover:shadow-soft hover:-translate-y-0.5 transition"
             >
               <div className="text-3xl">{c.icon}</div>
