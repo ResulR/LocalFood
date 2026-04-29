@@ -1,12 +1,14 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useState } from "react";
 import { Sparkles, Send, Wand2 } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
 import { RestaurantCard } from "@/components/site/RestaurantCard";
-import { runMockAIQuery, SUGGESTED_PROMPTS, type AIResult } from "@/data/mockAI";
-import { restaurants as localRestaurants, type Restaurant } from "@/data/restaurants";
-import { fetchSupabaseRestaurants } from "@/lib/restaurants-api";
-import { mapSupabaseRestaurantsToRestaurants } from "@/lib/restaurant-mappers";
+import type { Restaurant } from "@/data/restaurants";
+import {
+  searchRestaurantsWithAI,
+  type AIRestaurantSearchResult,
+  type RestaurantAIRecommendation,
+} from "@/lib/restaurants-api";
 
 export const Route = createFileRoute("/ai-assistant")({
   head: () => ({
@@ -22,60 +24,130 @@ export const Route = createFileRoute("/ai-assistant")({
   component: AIAssistantPage,
 });
 
+type AIPageRestaurant = Restaurant & {
+  matchReason?: string;
+};
+
+type AIPageResult = AIRestaurantSearchResult & {
+  restaurants: AIPageRestaurant[];
+};
+
+function mapAIRecommendationToRestaurant(
+  recommendation: RestaurantAIRecommendation,
+): AIPageRestaurant {
+  const tagLabels = recommendation.tags.map((tag) => tag.label);
+  const badgeLabels = recommendation.badges.map((badge) => badge.label);
+  const primaryReason = recommendation.matchReasons[0];
+
+  return {
+    id: recommendation.slug,
+    slug: recommendation.slug,
+    name: recommendation.name,
+    category: recommendation.category,
+    cuisineType: recommendation.cuisineType,
+    description: recommendation.description,
+    image: recommendation.imageUrl ?? "",
+    gallery: recommendation.imageUrl ? [recommendation.imageUrl] : [],
+    photos: [],
+    rating: recommendation.rating,
+    reviewsCount: recommendation.reviewsCount,
+    detailedRating: {
+      food: recommendation.rating,
+      welcome: recommendation.rating,
+      price: recommendation.rating,
+      cleanliness: recommendation.rating,
+      ambiance: recommendation.rating,
+      waitTime: recommendation.rating,
+    },
+    distanceKm: 0,
+    latitude: undefined,
+    longitude: undefined,
+    price: recommendation.priceLabel,
+    priceLevel: recommendation.priceLabel.length as 1 | 2 | 3,
+    open: recommendation.isOpen,
+    hours: recommendation.hoursSummary ?? "Horaires non renseignés",
+    openingHours: {},
+    tags: tagLabels as Restaurant["tags"],
+    badges: badgeLabels as Restaurant["badges"],
+    address: `${recommendation.address}, ${recommendation.city}`,
+    city: recommendation.city,
+    phone: recommendation.phone ?? "",
+    reviews: [],
+    isNew: false,
+    hasOffer: Boolean(recommendation.offer),
+    offer: recommendation.offer
+      ? {
+          code: recommendation.offer.code,
+          title: recommendation.offer.title,
+          description: recommendation.offer.description,
+          conditions: recommendation.offer.conditions ?? undefined,
+        }
+      : undefined,
+    localFoodMatchScore: recommendation.matchScore,
+    menuUrl: recommendation.menuUrl ?? "",
+    googleMapsUrl: recommendation.googleMapsUrl ?? "",
+    wazeUrl: recommendation.wazeUrl ?? "",
+
+    hasParking: tagLabels.includes("Parking"),
+    hasTerrace: tagLabels.includes("Terrasse"),
+    isHalal: tagLabels.includes("Halal"),
+    isVeganFriendly: tagLabels.includes("Vegan"),
+    isChildFriendly: tagLabels.includes("Enfant"),
+    hasDelivery: tagLabels.includes("Livraison"),
+    hasTakeaway: tagLabels.includes("À emporter"),
+    isCheap: tagLabels.includes("Pas cher"),
+    isDateNight: tagLabels.includes("Date night"),
+    isSnack: tagLabels.includes("Snack"),
+    isBrunch: tagLabels.includes("Brunch"),
+    isDessert: tagLabels.includes("Dessert"),
+
+    matchReason: primaryReason,
+    stats: {
+      views: 0,
+      googleMaps: 0,
+      waze: 0,
+      calls: 0,
+      menu: 0,
+      going: 0,
+      reviewsReceived: 0,
+      photosAdded: 0,
+      aiClicks: 0,
+      aiAppearances: 0,
+    },
+  };
+}
+
 function AIAssistantPage() {
   const [query, setQuery] = useState("");
-  const [result, setResult] = useState<AIResult | null>(null);
+  const [result, setResult] = useState<AIPageResult | null>(null);
   const [loading, setLoading] = useState(false);
-  const [supabaseRestaurants, setSupabaseRestaurants] = useState<Restaurant[]>([]);
-  const [restaurantsSource, setRestaurantsSource] = useState<"supabase" | "local">("local");
+  const [errorMessage, setErrorMessage] = useState("");
 
-  useEffect(() => {
-    let cancelled = false;
+  const submit = async (q: string) => {
+    const value = q.trim();
 
-    fetchSupabaseRestaurants()
-      .then((data) => {
-        if (cancelled) return;
+    if (!value) return;
 
-        const mapped = mapSupabaseRestaurantsToRestaurants(data);
-
-        if (mapped.length > 0) {
-          setSupabaseRestaurants(mapped);
-          setRestaurantsSource("supabase");
-        } else {
-          setSupabaseRestaurants([]);
-          setRestaurantsSource("local");
-        }
-      })
-      .catch((error) => {
-        console.error("Failed to load assistant restaurants from Supabase:", error);
-
-        if (!cancelled) {
-          setSupabaseRestaurants([]);
-          setRestaurantsSource("local");
-        }
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, []);
-
-  const sourceRestaurants = useMemo(
-    () =>
-      restaurantsSource === "supabase" && supabaseRestaurants.length > 0
-        ? supabaseRestaurants
-        : localRestaurants,
-    [restaurantsSource, supabaseRestaurants],
-  );
-
-  const submit = (q: string) => {
-    if (!q.trim()) return;
-    setQuery(q);
+    setQuery(value);
     setLoading(true);
-    setTimeout(() => {
-      setResult(runMockAIQuery(q, sourceRestaurants));
+    setErrorMessage("");
+
+    try {
+      const data = await searchRestaurantsWithAI(value);
+
+      setResult({
+        ...data,
+        restaurants: data.recommendations.map(mapAIRecommendationToRestaurant),
+      });
+    } catch (error) {
+      console.error("Failed to search restaurants with AI:", error);
+      setResult(null);
+      setErrorMessage(
+        error instanceof Error ? error.message : "Impossible de contacter l'assistant LocalFood.",
+      );
+    } finally {
       setLoading(false);
-    }, 700);
+    }
   };
 
   return (
@@ -108,23 +180,12 @@ function AIAssistantPage() {
             />
             <button
               type="submit"
-              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-primary text-primary-foreground px-5 py-3 text-sm font-semibold shadow-glow hover:opacity-95"
+              disabled={loading}
+              className="inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-primary text-primary-foreground px-5 py-3 text-sm font-semibold shadow-glow hover:opacity-95 disabled:opacity-60"
             >
               <Send className="h-4 w-4" /> Demander
             </button>
           </form>
-
-          <div className="mt-5 flex flex-wrap gap-2 justify-center">
-            {SUGGESTED_PROMPTS.map((p) => (
-              <button
-                key={p}
-                onClick={() => submit(p)}
-                className="rounded-full border border-border bg-background/70 backdrop-blur px-3 py-1.5 text-xs hover:border-foreground/40 transition"
-              >
-                {p}
-              </button>
-            ))}
-          </div>
         </div>
       </section>
 
@@ -136,20 +197,30 @@ function AIAssistantPage() {
           </div>
         )}
 
-        {!loading && !result && (
+        {!loading && errorMessage && (
+          <div className="rounded-3xl border border-destructive/30 bg-destructive/5 p-10 text-center">
+            <Sparkles className="h-7 w-7 mx-auto text-destructive" />
+            <h2 className="mt-4 font-display text-xl font-semibold">
+              Assistant temporairement indisponible
+            </h2>
+            <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">{errorMessage}</p>
+          </div>
+        )}
+
+        {!loading && !errorMessage && !result && (
           <div className="rounded-3xl bg-card border border-border p-10 text-center">
             <Sparkles className="h-7 w-7 mx-auto text-primary" />
             <h2 className="mt-4 font-display text-xl font-semibold">
               Posez votre question pour commencer
             </h2>
             <p className="text-sm text-muted-foreground mt-2 max-w-md mx-auto">
-              L'assistant LocalFood ne recommande que les restaurants de notre base. Il filtre selon
-              vos critères : envie, ambiance, budget, contraintes pratiques.
+              L'assistant LocalFood ne recommande que les restaurants actifs de notre base. Il
+              filtre selon vos critères : envie, ambiance, budget, contraintes pratiques.
             </p>
           </div>
         )}
 
-        {!loading && result && (
+        {!loading && !errorMessage && result && (
           <div className="space-y-8">
             <div className="rounded-3xl bg-card border border-border p-6 sm:p-8 shadow-soft">
               <div className="flex items-start gap-4">
@@ -159,19 +230,19 @@ function AIAssistantPage() {
                 <div className="flex-1">
                   <p className="text-sm text-muted-foreground">Vous avez demandé</p>
                   <p className="font-display text-xl font-semibold">« {query} »</p>
-                  <p className="mt-3 text-foreground/90">{result.explanation}</p>
+                  <p className="mt-3 text-foreground/90">{result.answer}</p>
                   {result.detectedTags.length > 0 && (
                     <div className="mt-4">
                       <div className="text-xs font-semibold text-muted-foreground mb-2">
                         Critères détectés
                       </div>
                       <div className="flex flex-wrap gap-1.5">
-                        {result.detectedTags.map((t) => (
+                        {result.detectedTags.map((tag) => (
                           <span
-                            key={t}
+                            key={tag.slug}
                             className="rounded-full bg-primary/10 text-primary px-2.5 py-1 text-[11px] font-medium"
                           >
-                            {t}
+                            {tag.label}
                           </span>
                         ))}
                       </div>
@@ -181,22 +252,25 @@ function AIAssistantPage() {
               </div>
             </div>
 
-            {result.results.length > 0 ? (
+            {result.restaurants.length > 0 ? (
               <div>
                 <h3 className="font-display text-2xl font-semibold mb-5">Recommandations</h3>
                 <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
-                  {result.results.map((r) => (
-                    <div key={r.id}>
-                      <RestaurantCard r={r} matchScore={r.matchScore} />
-                      <p className="mt-2 text-xs text-muted-foreground italic">{r.matchReason}</p>
+                  {result.restaurants.map((restaurant) => (
+                    <div key={restaurant.id}>
+                      <RestaurantCard r={restaurant} matchScore={restaurant.localFoodMatchScore} />
+                      {restaurant.matchReason && (
+                        <p className="mt-2 text-xs text-muted-foreground italic">
+                          {restaurant.matchReason}
+                        </p>
+                      )}
                     </div>
                   ))}
                 </div>
               </div>
             ) : (
               <div className="rounded-3xl border border-dashed border-border p-12 text-center text-muted-foreground">
-                Essayez une autre formulation. LocalFood propose actuellement{" "}
-                {SUGGESTED_PROMPTS.length} exemples de recherches pour vous aider à démarrer.
+                Aucun restaurant actif ne correspond clairement à cette recherche pour le moment.
               </div>
             )}
           </div>

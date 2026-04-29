@@ -8,6 +8,63 @@ type SupabaseRpcClient = {
 
 const supabaseRpc = supabase as SupabaseRpcClient;
 
+export type AIRestaurantSearchResult = {
+  answer: string;
+  detectedTags: {
+    label: string;
+    slug: string;
+  }[];
+  recommendations: RestaurantAIRecommendation[];
+};
+
+export type RestaurantAIRecommendation = {
+  id: string;
+  slug: string;
+  name: string;
+  category: string;
+  cuisineType: string;
+  description: string;
+  imageUrl: string | null;
+  rating: number;
+  reviewsCount: number;
+  priceLabel: "€" | "€€" | "€€€";
+  isOpen: boolean;
+  hoursSummary: string | null;
+  address: string;
+  city: string;
+  phone: string | null;
+  menuUrl: string | null;
+  googleMapsUrl: string | null;
+  wazeUrl: string | null;
+  tags: SupabaseRestaurantTag[];
+  badges: SupabaseRestaurantBadge[];
+  offer: SupabaseRestaurantOffer | null;
+  matchScore: number;
+  matchReasons: string[];
+};
+
+export async function searchRestaurantsWithAI(message: string): Promise<AIRestaurantSearchResult> {
+  const response = await fetch(`${apiBaseUrl}/api/public/ai/restaurant-search`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ message }),
+  });
+
+  const payload = (await response.json()) as {
+    ok: boolean;
+    data?: AIRestaurantSearchResult;
+    message?: string;
+  };
+
+  if (!response.ok || !payload.ok || !payload.data) {
+    throw new Error(payload.message ?? "Impossible de contacter l'assistant LocalFood.");
+  }
+
+  return payload.data;
+}
+
 export type SupabaseRestaurantTag = {
   label: string;
   slug: string;
