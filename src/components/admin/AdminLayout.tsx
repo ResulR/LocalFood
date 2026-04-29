@@ -1,4 +1,4 @@
-import { Link, Outlet, useLocation } from "@tanstack/react-router";
+import { Link, Outlet, useLocation, useNavigate } from "@tanstack/react-router";
 import {
   LayoutDashboard,
   Store,
@@ -9,7 +9,9 @@ import {
   Bell,
   Search,
   ArrowLeft,
+  LogOut,
 } from "lucide-react";
+import { useAuth } from "@/contexts/AuthContext";
 
 type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; exact?: boolean };
 const NAV: NavItem[] = [
@@ -22,6 +24,14 @@ const NAV: NavItem[] = [
 
 export function AdminLayout() {
   const loc = useLocation();
+  const navigate = useNavigate();
+  const { signOut } = useAuth();
+
+  const handleSignOut = async () => {
+    await signOut();
+    navigate({ to: "/login" });
+  };
+
   return (
     <div className="min-h-screen bg-secondary/30 flex">
       <aside className="hidden lg:flex flex-col w-64 bg-sidebar border-r border-sidebar-border sticky top-0 h-screen">
@@ -80,6 +90,15 @@ export function AdminLayout() {
               <div className="text-muted-foreground">Espace pro</div>
             </div>
           </div>
+
+          <button
+            onClick={handleSignOut}
+            className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border hover:bg-secondary"
+            title="Se déconnecter"
+            aria-label="Se déconnecter"
+          >
+            <LogOut className="h-4 w-4" />
+          </button>
         </header>
         <div className="p-4 sm:p-8">
           <Outlet />
