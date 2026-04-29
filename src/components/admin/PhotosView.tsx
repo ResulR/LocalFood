@@ -7,18 +7,17 @@ import {
   type PhotoCategory,
   type RestaurantPhoto,
 } from "@/data/restaurants";
-import { useAuth } from "@/contexts/AuthContext";
+import { useRestaurantDashboard } from "@/contexts/RestaurantDashboardContext";
 import {
   addOwnedRestaurantPhoto,
   deleteOwnedRestaurantPhoto,
   fetchSupabaseRestaurantById,
-  fetchSupabaseRestaurantsByCompanyId,
   uploadRestaurantPhotoFile,
 } from "@/lib/restaurants-api";
 import { mapSupabaseRestaurantToRestaurant } from "@/lib/restaurant-mappers";
 
 export function PhotosView() {
-  const { profile } = useAuth();
+  const { selectedRestaurant, loadingRestaurants, restaurantMessage } = useRestaurantDashboard();
   const [photos, setPhotos] = useState<RestaurantPhoto[]>(localRestaurants[0].photos);
   const [filter, setFilter] = useState<PhotoCategory | "Toutes">("Toutes");
   const [loadingPhotos, setLoadingPhotos] = useState(true);
@@ -36,28 +35,22 @@ export function PhotosView() {
     async function loadRestaurantPhotos() {
       setLoadingPhotos(true);
       setPhotosMessage("");
+      setPhotos([]);
+      setCurrentRestaurantId(null);
 
-      if (!profile?.current_company_id) {
-        setPhotos([]);
-        setPhotosMessage("Aucune entreprise n’est liée à votre profil.");
+      if (loadingRestaurants) {
+        return;
+      }
+
+      if (!selectedRestaurant) {
+        setPhotosMessage(restaurantMessage || "Aucun restaurant n’est sélectionné.");
         setLoadingPhotos(false);
         return;
       }
 
-      const restaurants = await fetchSupabaseRestaurantsByCompanyId(profile.current_company_id);
-      const companyRestaurant = restaurants[0] ?? null;
-      setCurrentRestaurantId(companyRestaurant?.id ?? null);
+      setCurrentRestaurantId(selectedRestaurant.id);
 
-      if (cancelled) return;
-
-      if (!companyRestaurant) {
-        setPhotos([]);
-        setPhotosMessage("Aucun restaurant n’est encore lié à votre entreprise.");
-        setLoadingPhotos(false);
-        return;
-      }
-
-      const data = await fetchSupabaseRestaurantById(companyRestaurant.id);
+      const data = await fetchSupabaseRestaurantById(selectedRestaurant.id);
 
       if (cancelled) return;
 
@@ -78,6 +71,7 @@ export function PhotosView() {
 
       if (!cancelled) {
         setPhotos([]);
+        setCurrentRestaurantId(null);
         setPhotosMessage("Impossible de charger les photos.");
         setLoadingPhotos(false);
       }
@@ -86,7 +80,7 @@ export function PhotosView() {
     return () => {
       cancelled = true;
     };
-  }, [profile?.current_company_id]);
+  }, [selectedRestaurant, loadingRestaurants, restaurantMessage]);
 
   const addPhoto = async () => {
     if (!currentRestaurantId) {
