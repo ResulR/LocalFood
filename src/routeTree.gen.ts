@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as SuperAdminRouteImport } from './routes/super-admin'
 import { Route as RestaurantsRouteImport } from './routes/restaurants'
 import { Route as RestaurantDashboardRouteImport } from './routes/restaurant-dashboard'
 import { Route as LoginRouteImport } from './routes/login'
@@ -18,6 +19,7 @@ import { Route as AiAssistantRouteImport } from './routes/ai-assistant'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RestaurantsIndexRouteImport } from './routes/restaurants.index'
 import { Route as RestaurantDashboardIndexRouteImport } from './routes/restaurant-dashboard.index'
+import { Route as SuperAdminUsersRouteImport } from './routes/super-admin.users'
 import { Route as RestaurantsIdRouteImport } from './routes/restaurants.$id'
 import { Route as RestaurantDashboardSubscriptionRouteImport } from './routes/restaurant-dashboard.subscription'
 import { Route as RestaurantDashboardStatsRouteImport } from './routes/restaurant-dashboard.stats'
@@ -29,6 +31,11 @@ import { Route as RestaurantDashboardFicheRouteImport } from './routes/restauran
 import { Route as RestaurantDashboardAvisRouteImport } from './routes/restaurant-dashboard.avis'
 import { Route as RestaurantDashboardAbonnementRouteImport } from './routes/restaurant-dashboard.abonnement'
 
+const SuperAdminRoute = SuperAdminRouteImport.update({
+  id: '/super-admin',
+  path: '/super-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const RestaurantsRoute = RestaurantsRouteImport.update({
   id: '/restaurants',
   path: '/restaurants',
@@ -75,6 +82,11 @@ const RestaurantDashboardIndexRoute =
     path: '/',
     getParentRoute: () => RestaurantDashboardRoute,
   } as any)
+const SuperAdminUsersRoute = SuperAdminUsersRouteImport.update({
+  id: '/users',
+  path: '/users',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
 const RestaurantsIdRoute = RestaurantsIdRouteImport.update({
   id: '/$id',
   path: '/$id',
@@ -142,6 +154,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/restaurant-dashboard': typeof RestaurantDashboardRouteWithChildren
   '/restaurants': typeof RestaurantsRouteWithChildren
+  '/super-admin': typeof SuperAdminRouteWithChildren
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
   '/restaurant-dashboard/avis': typeof RestaurantDashboardAvisRoute
   '/restaurant-dashboard/fiche': typeof RestaurantDashboardFicheRoute
@@ -152,6 +165,7 @@ export interface FileRoutesByFullPath {
   '/restaurant-dashboard/stats': typeof RestaurantDashboardStatsRoute
   '/restaurant-dashboard/subscription': typeof RestaurantDashboardSubscriptionRoute
   '/restaurants/$id': typeof RestaurantsIdRoute
+  '/super-admin/users': typeof SuperAdminUsersRoute
   '/restaurant-dashboard/': typeof RestaurantDashboardIndexRoute
   '/restaurants/': typeof RestaurantsIndexRoute
 }
@@ -161,6 +175,7 @@ export interface FileRoutesByTo {
   '/favorites': typeof FavoritesRoute
   '/for-restaurants': typeof ForRestaurantsRoute
   '/login': typeof LoginRoute
+  '/super-admin': typeof SuperAdminRouteWithChildren
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
   '/restaurant-dashboard/avis': typeof RestaurantDashboardAvisRoute
   '/restaurant-dashboard/fiche': typeof RestaurantDashboardFicheRoute
@@ -171,6 +186,7 @@ export interface FileRoutesByTo {
   '/restaurant-dashboard/stats': typeof RestaurantDashboardStatsRoute
   '/restaurant-dashboard/subscription': typeof RestaurantDashboardSubscriptionRoute
   '/restaurants/$id': typeof RestaurantsIdRoute
+  '/super-admin/users': typeof SuperAdminUsersRoute
   '/restaurant-dashboard': typeof RestaurantDashboardIndexRoute
   '/restaurants': typeof RestaurantsIndexRoute
 }
@@ -183,6 +199,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/restaurant-dashboard': typeof RestaurantDashboardRouteWithChildren
   '/restaurants': typeof RestaurantsRouteWithChildren
+  '/super-admin': typeof SuperAdminRouteWithChildren
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
   '/restaurant-dashboard/avis': typeof RestaurantDashboardAvisRoute
   '/restaurant-dashboard/fiche': typeof RestaurantDashboardFicheRoute
@@ -193,6 +210,7 @@ export interface FileRoutesById {
   '/restaurant-dashboard/stats': typeof RestaurantDashboardStatsRoute
   '/restaurant-dashboard/subscription': typeof RestaurantDashboardSubscriptionRoute
   '/restaurants/$id': typeof RestaurantsIdRoute
+  '/super-admin/users': typeof SuperAdminUsersRoute
   '/restaurant-dashboard/': typeof RestaurantDashboardIndexRoute
   '/restaurants/': typeof RestaurantsIndexRoute
 }
@@ -206,6 +224,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/restaurant-dashboard'
     | '/restaurants'
+    | '/super-admin'
     | '/restaurant-dashboard/abonnement'
     | '/restaurant-dashboard/avis'
     | '/restaurant-dashboard/fiche'
@@ -216,6 +235,7 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard/stats'
     | '/restaurant-dashboard/subscription'
     | '/restaurants/$id'
+    | '/super-admin/users'
     | '/restaurant-dashboard/'
     | '/restaurants/'
   fileRoutesByTo: FileRoutesByTo
@@ -225,6 +245,7 @@ export interface FileRouteTypes {
     | '/favorites'
     | '/for-restaurants'
     | '/login'
+    | '/super-admin'
     | '/restaurant-dashboard/abonnement'
     | '/restaurant-dashboard/avis'
     | '/restaurant-dashboard/fiche'
@@ -235,6 +256,7 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard/stats'
     | '/restaurant-dashboard/subscription'
     | '/restaurants/$id'
+    | '/super-admin/users'
     | '/restaurant-dashboard'
     | '/restaurants'
   id:
@@ -246,6 +268,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/restaurant-dashboard'
     | '/restaurants'
+    | '/super-admin'
     | '/restaurant-dashboard/abonnement'
     | '/restaurant-dashboard/avis'
     | '/restaurant-dashboard/fiche'
@@ -256,6 +279,7 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard/stats'
     | '/restaurant-dashboard/subscription'
     | '/restaurants/$id'
+    | '/super-admin/users'
     | '/restaurant-dashboard/'
     | '/restaurants/'
   fileRoutesById: FileRoutesById
@@ -268,10 +292,18 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   RestaurantDashboardRoute: typeof RestaurantDashboardRouteWithChildren
   RestaurantsRoute: typeof RestaurantsRouteWithChildren
+  SuperAdminRoute: typeof SuperAdminRouteWithChildren
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/super-admin': {
+      id: '/super-admin'
+      path: '/super-admin'
+      fullPath: '/super-admin'
+      preLoaderRoute: typeof SuperAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/restaurants': {
       id: '/restaurants'
       path: '/restaurants'
@@ -334,6 +366,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/restaurant-dashboard/'
       preLoaderRoute: typeof RestaurantDashboardIndexRouteImport
       parentRoute: typeof RestaurantDashboardRoute
+    }
+    '/super-admin/users': {
+      id: '/super-admin/users'
+      path: '/users'
+      fullPath: '/super-admin/users'
+      preLoaderRoute: typeof SuperAdminUsersRouteImport
+      parentRoute: typeof SuperAdminRoute
     }
     '/restaurants/$id': {
       id: '/restaurants/$id'
@@ -451,6 +490,18 @@ const RestaurantsRouteWithChildren = RestaurantsRoute._addFileChildren(
   RestaurantsRouteChildren,
 )
 
+interface SuperAdminRouteChildren {
+  SuperAdminUsersRoute: typeof SuperAdminUsersRoute
+}
+
+const SuperAdminRouteChildren: SuperAdminRouteChildren = {
+  SuperAdminUsersRoute: SuperAdminUsersRoute,
+}
+
+const SuperAdminRouteWithChildren = SuperAdminRoute._addFileChildren(
+  SuperAdminRouteChildren,
+)
+
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AiAssistantRoute: AiAssistantRoute,
@@ -459,6 +510,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   RestaurantDashboardRoute: RestaurantDashboardRouteWithChildren,
   RestaurantsRoute: RestaurantsRouteWithChildren,
+  SuperAdminRoute: SuperAdminRouteWithChildren,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
