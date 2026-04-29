@@ -1,9 +1,12 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { useEffect, useMemo, useState } from "react";
 import { Heart, Search } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
 import { RestaurantCard } from "@/components/site/RestaurantCard";
 import { useFavorites } from "@/lib/favorites";
-import { restaurants } from "@/data/restaurants";
+import { restaurants as localRestaurants, type Restaurant } from "@/data/restaurants";
+import { fetchSupabaseRestaurants } from "@/lib/restaurants-api";
+import { mapSupabaseRestaurantsToRestaurants } from "@/lib/restaurant-mappers";
 
 export const Route = createFileRoute("/favorites")({
   head: () => ({
@@ -17,17 +20,75 @@ export const Route = createFileRoute("/favorites")({
 
 function FavoritesPage() {
   const { ids } = useFavorites();
-  const favs = restaurants.filter((r) => ids.includes(r.id));
+  const [supabaseRestaurants, setSupabaseRestaurants] = useState<Restaurant[]>([]);
+  const [loadingRestaurants, setLoadingRestaurants] = useState(true);
+  const [restaurantsSource, setRestaurantsSource] = useState<"supabase" | "local">("local");
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchSupabaseRestaurants()
+      .then((data) => {
+        if (cancelled) return;
+
+        const mapped = mapSupabaseRestaurantsToRestaurants(data);
+
+        if (mapped.length > 0) {
+          setSupabaseRestaurants(mapped);
+          setRestaurantsSource("supabase");
+        } else {
+          setSupabaseRestaurants([]);
+          setRestaurantsSource("local");
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load favorite restaurants from Supabase:", error);
+
+        if (!cancelled) {
+          setSupabaseRestaurants([]);
+          setRestaurantsSource("local");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingRestaurants(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const sourceRestaurants = useMemo(
+    () =>
+      restaurantsSource === "supabase" && supabaseRestaurants.length > 0
+        ? supabaseRestaurants
+        : localRestaurants,
+    [restaurantsSource, supabaseRestaurants],
+  );
+
+  const favs = useMemo(
+    () => sourceRestaurants.filter((restaurant) => ids.includes(restaurant.id)),
+    [ids, sourceRestaurants],
+  );
 
   return (
     <SiteShell>
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-12">
+        {loadingRestaurants && (
+          <div className="mb-6 rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+            Chargement de vos favoris...
+          </div>
+        )}
+
         <div className="flex items-center gap-3 mb-2">
           <span className="inline-flex h-11 w-11 items-center justify-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
             <Heart className="h-5 w-5" />
           </span>
           <h1 className="font-display text-3xl sm:text-4xl font-semibold">Mes favoris</h1>
         </div>
+
         <p className="text-muted-foreground">
           {favs.length} restaurant{favs.length > 1 ? "s" : ""} enregistré
           {favs.length > 1 ? "s" : ""}.
