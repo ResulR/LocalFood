@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Upload, Trash2, Eye } from "lucide-react";
 import { toast } from "sonner";
 import {
@@ -9,9 +9,11 @@ import {
 } from "@/data/restaurants";
 import { useAuth } from "@/contexts/AuthContext";
 import {
+  addOwnedRestaurantPhoto,
   deleteOwnedRestaurantPhoto,
   fetchSupabaseRestaurantById,
   fetchSupabaseRestaurantsByCompanyId,
+  uploadRestaurantPhotoFile,
 } from "@/lib/restaurants-api";
 import { mapSupabaseRestaurantToRestaurant } from "@/lib/restaurant-mappers";
 
@@ -22,6 +24,11 @@ export function PhotosView() {
   const [loadingPhotos, setLoadingPhotos] = useState(true);
   const [photosMessage, setPhotosMessage] = useState("");
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
+  const [currentRestaurantId, setCurrentRestaurantId] = useState<string | null>(null);
+  const [selectedPhotoFile, setSelectedPhotoFile] = useState<File | null>(null);
+  const [newPhotoCategory, setNewPhotoCategory] = useState<PhotoCategory>("Plats");
+  const [addingPhoto, setAddingPhoto] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -39,6 +46,7 @@ export function PhotosView() {
 
       const restaurants = await fetchSupabaseRestaurantsByCompanyId(profile.current_company_id);
       const companyRestaurant = restaurants[0] ?? null;
+      setCurrentRestaurantId(companyRestaurant?.id ?? null);
 
       if (cancelled) return;
 
@@ -79,6 +87,69 @@ export function PhotosView() {
       cancelled = true;
     };
   }, [profile?.current_company_id]);
+
+  const addPhoto = async () => {
+    if (!currentRestaurantId) {
+      toast.error("Ajout impossible", {
+        description: "Aucun restaurant n’est chargé.",
+      });
+      return;
+    }
+
+    if (!selectedPhotoFile) {
+      toast.error("Photo manquante", {
+        description: "Choisissez une photo avant d’enregistrer.",
+      });
+      return;
+    }
+
+    setAddingPhoto(true);
+
+    try {
+      const publicUrl = await uploadRestaurantPhotoFile({
+        restaurantId: currentRestaurantId,
+        file: selectedPhotoFile,
+      });
+
+      const insertedPhotos = await addOwnedRestaurantPhoto({
+        restaurantId: currentRestaurantId,
+        url: publicUrl,
+        category: newPhotoCategory,
+      });
+
+      const insertedPhoto = insertedPhotos[0];
+
+      if (insertedPhoto) {
+        setPhotos((current) => [
+          ...current,
+          {
+            id: insertedPhoto.id,
+            url: insertedPhoto.url,
+            category: insertedPhoto.category as PhotoCategory,
+            byClient: insertedPhoto.is_client_photo,
+            author: insertedPhoto.author_name ?? undefined,
+          },
+        ]);
+      }
+
+      setSelectedPhotoFile(null);
+      setNewPhotoCategory("Plats");
+
+      if (fileInputRef.current) {
+        fileInputRef.current.value = "";
+      }
+      toast.success("Photo ajoutée", {
+        description: "La photo a été ajoutée à la galerie.",
+      });
+    } catch (error) {
+      console.error("Failed to add restaurant photo:", error);
+      toast.error("Ajout impossible", {
+        description: "La base de données a refusé l’ajout.",
+      });
+    } finally {
+      setAddingPhoto(false);
+    }
+  };
 
   const deletePhoto = async (photo: RestaurantPhoto) => {
     if (!photo.id) {
@@ -129,12 +200,31 @@ export function PhotosView() {
             Photos officielles et photos partagées par vos clients.
           </p>
         </div>
-        <button
-          onClick={() => toast.success("Photos ajoutées")}
-          className="inline-flex items-center gap-2 rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-medium hover:opacity-90"
-        >
-          <Upload className="h-4 w-4" /> Ajouter des photos
-        </button>
+        <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
+          <input
+            ref={fileInputRef}
+            type="file"
+            accept="image/*"
+            onChange={(event) => setSelectedPhotoFile(event.target.files?.[0] ?? null)}
+            className="min-w-0 sm:w-80 rounded-full border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-ring file:mr-3 file:rounded-full file:border-0 file:bg-secondary file:px-3 file:py-1 file:text-xs file:font-medium"
+          />
+          <select
+            value={newPhotoCategory}
+            onChange={(event) => setNewPhotoCategory(event.target.value as PhotoCategory)}
+            className="rounded-full border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-ring"
+          >
+            {PHOTO_CATEGORIES.map((category) => (
+              <option key={category}>{category}</option>
+            ))}
+          </select>
+          <button
+            onClick={addPhoto}
+            disabled={addingPhoto || !currentRestaurantId || !selectedPhotoFile}
+            className="inline-flex items-center justify-center gap-2 rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-medium hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+          >
+            <Upload className="h-4 w-4" /> {addingPhoto ? "Ajout..." : "Ajouter"}
+          </button>
+        </div>
       </div>
 
       <div className="flex flex-wrap gap-2">

@@ -594,6 +594,57 @@ export async function updateOwnedRestaurant(payload: UpdateOwnedRestaurantPayloa
   return data;
 }
 
+export async function uploadRestaurantPhotoFile({
+  restaurantId,
+  file,
+}: {
+  restaurantId: string;
+  file: File;
+}) {
+  const safeFileName = file.name
+    .toLowerCase()
+    .replace(/[^a-z0-9.-]/g, "-")
+    .replace(/-+/g, "-");
+
+  const filePath = `${restaurantId}/${Date.now()}-${safeFileName}`;
+
+  const { error } = await supabase.storage.from("restaurant-photos").upload(filePath, file, {
+    cacheControl: "3600",
+    upsert: false,
+    contentType: file.type,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  const { data } = supabase.storage.from("restaurant-photos").getPublicUrl(filePath);
+
+  return data.publicUrl;
+}
+
+export async function addOwnedRestaurantPhoto({
+  restaurantId,
+  url,
+  category,
+}: {
+  restaurantId: string;
+  url: string;
+  category: string;
+}) {
+  const { data, error } = await supabase.rpc("add_owned_restaurant_photo", {
+    _restaurant_id: restaurantId,
+    _url: url,
+    _category: category,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data as SupabaseRestaurantPhoto[];
+}
+
 export async function deleteOwnedRestaurantPhoto(photoId: string) {
   const { data, error } = await supabase.rpc("delete_owned_restaurant_photo", {
     _photo_id: photoId,
