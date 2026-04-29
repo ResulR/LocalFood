@@ -6,6 +6,7 @@ import { RestaurantCard } from "@/components/site/RestaurantCard";
 import { categories, QUICK_FILTERS, type Restaurant } from "@/data/restaurants";
 import { fetchSupabaseRestaurants } from "@/lib/restaurants-api";
 import { mapSupabaseRestaurantsToRestaurants } from "@/lib/restaurant-mappers";
+import { useI18n } from "@/lib/i18n";
 import heroFood from "@/assets/hero-food.jpg";
 
 export const Route = createFileRoute("/")({
@@ -38,6 +39,7 @@ const CATEGORY_TAGS: Record<string, string | undefined> = {
 function HomePage() {
   const [supabaseRestaurants, setSupabaseRestaurants] = useState<Restaurant[]>([]);
   const [restaurantsMessage, setRestaurantsMessage] = useState("");
+  const { t } = useI18n();
 
   useEffect(() => {
     let cancelled = false;
@@ -52,7 +54,7 @@ function HomePage() {
         setSupabaseRestaurants(mapped);
 
         if (mapped.length === 0) {
-          setRestaurantsMessage("Aucun restaurant actif n’est disponible pour le moment.");
+          setRestaurantsMessage(t("home.noActiveRestaurants"));
         }
       })
       .catch((error) => {
@@ -60,7 +62,7 @@ function HomePage() {
 
         if (!cancelled) {
           setSupabaseRestaurants([]);
-          setRestaurantsMessage("Impossible de charger les restaurants depuis la base de données.");
+          setRestaurantsMessage(t("home.loadError"));
         }
       });
 
@@ -102,10 +104,10 @@ function HomePage() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-20 pb-28 sm:pt-28 sm:pb-36 text-primary-foreground">
           <div className="max-w-3xl">
             <span className="inline-flex items-center gap-2 rounded-full bg-background/10 backdrop-blur px-3 py-1.5 text-xs font-medium border border-background/20">
-              <Sparkles className="h-3.5 w-3.5" /> Nouveau · découverte locale
+              <Sparkles className="h-3.5 w-3.5" /> {t("home.badge")}
             </span>
             <h1 className="mt-5 font-display text-4xl sm:text-6xl font-semibold leading-[1.05] text-balance">
-              Trouvez où manger autour de vous selon vos envies.
+              {t("home.heroTitle")}
             </h1>
             <p className="mt-5 text-lg text-primary-foreground/85 max-w-xl">
               Restaurants, snacks, brunchs, desserts… Comparez, choisissez, et lancez l'itinéraire
@@ -117,18 +119,18 @@ function HomePage() {
                 to="/restaurants"
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-gradient-primary text-primary-foreground px-6 py-3 text-sm font-semibold shadow-glow hover:opacity-95"
               >
-                Voir les restaurants <ArrowRight className="h-4 w-4" />
+                {t("home.viewRestaurants")} <ArrowRight className="h-4 w-4" />
               </Link>
 
               <Link
                 to="/ai-assistant"
                 className="inline-flex items-center justify-center gap-2 rounded-full bg-background/10 backdrop-blur px-6 py-3 text-sm font-semibold border border-background/20 hover:bg-background/20 transition"
               >
-                Essayer l'assistant IA <Sparkles className="h-4 w-4" />
+                {t("home.tryAi")} <Sparkles className="h-4 w-4" />
               </Link>
             </div>
 
-            <div className="mt-6 flex flex-wrap gap-2" aria-label="Envies populaires">
+            <div className="mt-6 flex flex-wrap gap-2" aria-label={t("home.popularCravings")}>
               {QUICK_FILTERS.slice(0, 8).map((t) => (
                 <Link
                   key={t}
@@ -153,11 +155,9 @@ function HomePage() {
             </span>
             <div className="flex-1 min-w-[260px]">
               <div className="text-xs font-semibold text-primary uppercase tracking-wider">
-                Assistant IA LocalFood
+                {t("home.aiBadge")}
               </div>
-              <h2 className="font-display text-2xl font-semibold mt-1">
-                Décrivez votre envie, on s'occupe du reste.
-              </h2>
+              <h2 className="font-display text-2xl font-semibold mt-1">{t("home.aiTitle")}</h2>
               <p className="text-muted-foreground text-sm mt-2">
                 Notre assistant analyse votre requête et trouve les restaurants qui correspondent
                 vraiment à vos critères.
@@ -171,7 +171,7 @@ function HomePage() {
               to="/ai-assistant"
               className="inline-flex items-center gap-2 rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:opacity-90"
             >
-              Essayer l'assistant <ArrowRight className="h-4 w-4" />
+              {t("home.tryAssistant")} <ArrowRight className="h-4 w-4" />
             </Link>
           </div>
         </div>
@@ -181,8 +181,8 @@ function HomePage() {
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-16">
         <div className="flex items-end justify-between mb-8">
           <div>
-            <h2 className="font-display text-3xl font-semibold">Catégories</h2>
-            <p className="text-muted-foreground mt-1">Explorez par envie.</p>
+            <h2 className="font-display text-3xl font-semibold">{t("home.categoriesTitle")}</h2>
+            <p className="text-muted-foreground mt-1">{t("home.categoriesSubtitle")}</p>
           </div>
         </div>
         <div className="grid grid-cols-2 sm:grid-cols-4 lg:grid-cols-8 gap-3">
@@ -210,15 +210,15 @@ function HomePage() {
 
       {/* POPULAR */}
       <SectionWithCarousel
-        title="Populaires près de vous"
-        subtitle="Les adresses adorées par la communauté."
+        title={t("home.popularTitle")}
+        subtitle={t("home.popularSubtitle")}
         items={popular}
       />
 
       {/* OPEN NOW */}
       <SectionWithCarousel
-        title="Ouverts maintenant"
-        subtitle="Vous avez faim ? Ces adresses sont ouvertes."
+        title={t("home.openNowTitle")}
+        subtitle={t("home.openNowSubtitle")}
         items={openNow}
         icon={Clock}
       />
@@ -226,8 +226,8 @@ function HomePage() {
       {/* NEW */}
       {newOnes.length > 0 && (
         <SectionWithCarousel
-          title="Nouveaux restaurants"
-          subtitle="Les dernières adresses à découvrir."
+          title={t("home.newTitle")}
+          subtitle={t("home.newSubtitle")}
           items={newOnes}
           icon={Plus}
         />
@@ -239,14 +239,10 @@ function HomePage() {
           <div className="flex items-end justify-between mb-8">
             <div>
               <div className="inline-flex items-center gap-2 text-xs font-semibold text-primary uppercase tracking-wider">
-                <Tag className="h-3 w-3" /> Bons plans
+                <Tag className="h-3 w-3" /> {t("home.dealsBadge")}
               </div>
-              <h2 className="font-display text-3xl font-semibold mt-1">
-                Offres traçables LocalFood
-              </h2>
-              <p className="text-muted-foreground mt-1">
-                Code à présenter en caisse, suivi automatique.
-              </p>
+              <h2 className="font-display text-3xl font-semibold mt-1">{t("home.dealsTitle")}</h2>
+              <p className="text-muted-foreground mt-1">{t("home.dealsSubtitle")}</p>
             </div>
           </div>
           <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
@@ -283,32 +279,34 @@ function HomePage() {
       {/* HOW IT WORKS */}
       <section className="max-w-7xl mx-auto px-4 sm:px-6 py-20">
         <div className="text-center max-w-2xl mx-auto mb-12">
-          <h2 className="font-display text-3xl sm:text-4xl font-semibold">En 3 étapes simples</h2>
-          <p className="text-muted-foreground mt-3">Du craving à la table, en quelques secondes.</p>
+          <h2 className="font-display text-3xl sm:text-4xl font-semibold">{t("home.howTitle")}</h2>
+          <p className="text-muted-foreground mt-3">{t("home.howSubtitle")}</p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
           {[
             {
               icon: Search,
-              title: "Cherchez selon vos envies",
-              desc: "Halal, vegan, brunch, terrasse… filtrez selon ce qui compte vraiment pour vous.",
+              title: t("home.step1Title"),
+              desc: t("home.step1Desc"),
             },
             {
               icon: Star,
-              title: "Comparez les restaurants",
-              desc: "Notes, avis, photos, prix : trouvez l'endroit parfait en un coup d'œil.",
+              title: t("home.step2Title"),
+              desc: t("home.step2Desc"),
             },
             {
               icon: Compass,
-              title: "Lancez l'itinéraire",
-              desc: "Google Maps, Waze, ou un coup de fil : un clic suffit pour y aller.",
+              title: t("home.step3Title"),
+              desc: t("home.step3Desc"),
             },
           ].map((s, i) => (
             <div key={i} className="rounded-2xl bg-card border border-border p-7 shadow-soft">
               <div className="inline-flex h-11 w-11 items-center justify-center rounded-xl bg-gradient-primary text-primary-foreground mb-5">
                 <s.icon className="h-5 w-5" />
               </div>
-              <div className="text-xs font-semibold text-primary mb-1">ÉTAPE {i + 1}</div>
+              <div className="text-xs font-semibold text-primary mb-1">
+                {t("home.step")} {i + 1}
+              </div>
               <h3 className="font-display text-xl font-semibold">{s.title}</h3>
               <p className="text-sm text-muted-foreground mt-2">{s.desc}</p>
             </div>
@@ -323,11 +321,17 @@ function HomePage() {
           <div className="relative grid md:grid-cols-2 gap-6 items-center">
             <div>
               <span className="text-xs font-semibold uppercase tracking-wider opacity-80">
-                Pour les restaurateurs
+                {t("home.restaurantCtaBadge")}
               </span>
               <h2 className="font-display text-3xl sm:text-4xl font-semibold mt-3 leading-tight">
-                Vous êtes restaurateur ?<br />
-                Rejoignez LocalFood.
+                {t("home.restaurantCtaTitle")
+                  .split("\\n")
+                  .map((line) => (
+                    <span key={line}>
+                      {line}
+                      <br />
+                    </span>
+                  ))}
               </h2>
               <p className="mt-4 opacity-90 max-w-md">
                 Gagnez en visibilité locale, suivez vos performances et attirez plus de clients
@@ -339,13 +343,13 @@ function HomePage() {
                 to="/for-restaurants"
                 className="inline-flex items-center gap-2 rounded-full bg-background text-foreground px-6 py-3 text-sm font-semibold hover:bg-background/90 transition"
               >
-                En savoir plus <ArrowRight className="h-4 w-4" />
+                {t("home.learnMore")} <ArrowRight className="h-4 w-4" />
               </Link>
               <Link
                 to="/restaurant-dashboard"
                 className="inline-flex items-center gap-2 rounded-full border border-primary-foreground/40 px-6 py-3 text-sm font-semibold hover:bg-primary-foreground/10 transition"
               >
-                Démo dashboard
+                {t("home.dashboardDemo")}
               </Link>
             </div>
           </div>
@@ -380,12 +384,12 @@ function SectionWithCarousel({
           to="/restaurants"
           className="hidden sm:inline-flex items-center gap-1 text-sm font-medium text-primary hover:underline"
         >
-          Voir tout <ArrowRight className="h-4 w-4" />
+          {t("home.viewAll")} <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
       {items.length === 0 ? (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-          Aucun restaurant à afficher dans cette section pour le moment.
+          {t("home.emptySection")}
         </div>
       ) : (
         <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
