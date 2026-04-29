@@ -616,6 +616,10 @@ export type UpdateOwnedRestaurantPayload = {
   country: string;
   phone: string;
   isActive: boolean;
+  hoursSummary: string;
+  menuUrl: string;
+  googleMapsUrl: string;
+  wazeUrl: string;
 };
 
 export async function updateOwnedRestaurant(payload: UpdateOwnedRestaurantPayload) {
@@ -632,6 +636,10 @@ export async function updateOwnedRestaurant(payload: UpdateOwnedRestaurantPayloa
     _country: payload.country,
     _phone: payload.phone,
     _is_active: payload.isActive,
+    _hours_summary: payload.hoursSummary,
+    _menu_url: payload.menuUrl,
+    _google_maps_url: payload.googleMapsUrl,
+    _waze_url: payload.wazeUrl,
   });
 
   if (error) {

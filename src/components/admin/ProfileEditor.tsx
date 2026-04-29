@@ -25,6 +25,10 @@ type ProfileForm = {
   country: string;
   phone: string;
   isActive: boolean;
+  hoursSummary: string;
+  menuUrl: string;
+  googleMapsUrl: string;
+  wazeUrl: string;
 };
 
 type ProfileTag = SupabaseRestaurantTag;
@@ -43,6 +47,10 @@ function buildProfileForm(restaurant: SupabaseRestaurantListItem): ProfileForm {
     country: restaurant.country,
     phone: restaurant.phone ?? "",
     isActive: restaurant.is_active,
+    hoursSummary: restaurant.hours_summary ?? "",
+    menuUrl: restaurant.menu_url ?? "",
+    googleMapsUrl: restaurant.google_maps_url ?? "",
+    wazeUrl: restaurant.waze_url ?? "",
   };
 }
 
@@ -146,6 +154,10 @@ export function ProfileEditor() {
         country: f.country,
         phone: f.phone,
         isActive: f.isActive,
+        hoursSummary: f.hoursSummary,
+        menuUrl: f.menuUrl,
+        googleMapsUrl: f.googleMapsUrl,
+        wazeUrl: f.wazeUrl,
       });
 
       await updateOwnedRestaurantTags({
@@ -155,7 +167,7 @@ export function ProfileEditor() {
 
       setSaved(true);
       toast.success("Fiche enregistrée", {
-        description: "Les informations principales et les tags ont été sauvegardés en base.",
+        description: "Les informations principales, liens externes et tags ont été sauvegardés.",
       });
       setTimeout(() => setSaved(false), 2500);
     } catch (error) {
@@ -259,6 +271,44 @@ export function ProfileEditor() {
             value={f?.phone ?? ""}
             onChange={(event) => updateForm("phone", event.target.value)}
             className={inputCls}
+          />
+        </Field>
+      </Section>
+
+      <Section title="Horaires & liens externes">
+        <Field label="Résumé horaires" full>
+          <input
+            value={f?.hoursSummary ?? ""}
+            onChange={(event) => updateForm("hoursSummary", event.target.value)}
+            className={inputCls}
+            placeholder="Ex : Ouvert aujourd’hui jusqu’à 22:30"
+          />
+        </Field>
+
+        <Field label="Lien menu" full>
+          <input
+            value={f?.menuUrl ?? ""}
+            onChange={(event) => updateForm("menuUrl", event.target.value)}
+            className={inputCls}
+            placeholder="https://..."
+          />
+        </Field>
+
+        <Field label="Lien Google Maps" full>
+          <input
+            value={f?.googleMapsUrl ?? ""}
+            onChange={(event) => updateForm("googleMapsUrl", event.target.value)}
+            className={inputCls}
+            placeholder="https://maps.google.com/..."
+          />
+        </Field>
+
+        <Field label="Lien Waze" full>
+          <input
+            value={f?.wazeUrl ?? ""}
+            onChange={(event) => updateForm("wazeUrl", event.target.value)}
+            className={inputCls}
+            placeholder="https://waze.com/..."
           />
         </Field>
       </Section>
