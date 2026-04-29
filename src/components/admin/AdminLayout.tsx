@@ -5,7 +5,6 @@ import {
   BarChart3,
   Star,
   Images,
-  CreditCard,
   UtensilsCrossed,
   Bell,
   Search,
@@ -19,7 +18,6 @@ const NAV: NavItem[] = [
   { to: "/restaurant-dashboard/stats", label: "Statistiques", icon: BarChart3 },
   { to: "/restaurant-dashboard/reviews", label: "Avis clients", icon: Star },
   { to: "/restaurant-dashboard/photos", label: "Photos", icon: Images },
-  { to: "/restaurant-dashboard/subscription", label: "Abonnement", icon: CreditCard },
 ];
 
 export function AdminLayout() {
