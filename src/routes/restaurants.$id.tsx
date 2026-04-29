@@ -18,6 +18,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { SiteShell } from "@/components/site/SiteShell";
+import { useI18n } from "@/lib/i18n";
 import { RestaurantCard } from "@/components/site/RestaurantCard";
 import { PHOTO_CATEGORIES, type PhotoCategory } from "@/data/restaurants";
 import { useFavorites } from "@/lib/favorites";
@@ -66,18 +67,26 @@ export const Route = createFileRoute("/restaurants/$id")({
         ]
       : [],
   }),
-  notFoundComponent: () => (
+  notFoundComponent: RestaurantNotFoundComponent,
+  component: RestaurantPage,
+});
+
+function RestaurantNotFoundComponent() {
+  const { t } = useI18n();
+
+  return (
     <SiteShell>
       <div className="max-w-3xl mx-auto px-4 py-20 text-center">
-        <h1 className="font-display text-3xl font-semibold">Restaurant introuvable</h1>
+        <h1 className="font-display text-3xl font-semibold">
+          {t("restaurantDetail.notFoundTitle")}
+        </h1>
         <Link to="/restaurants" className="inline-block mt-4 text-primary hover:underline">
-          Retour aux restaurants
+          {t("restaurantDetail.backToRestaurants")}
         </Link>
       </div>
     </SiteShell>
-  ),
-  component: RestaurantPage,
-});
+  );
+}
 
 function RestaurantPage() {
   const loaderData = Route.useLoaderData();
@@ -85,6 +94,7 @@ function RestaurantPage() {
   const hasTrackedView = useRef(false);
   const { has, toggle } = useFavorites();
   const isFav = has(r.id);
+  const { t } = useI18n();
 
   const similar = loaderData.similar;
 
@@ -115,15 +125,17 @@ function RestaurantPage() {
 
   const submit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (rating === 0) return toast.error("Choisissez une note");
-    toast.success("Avis publié ✓", { description: "Merci pour votre contribution." });
+    if (rating === 0) return toast.error(t("restaurantDetail.chooseRating"));
+    toast.success(t("restaurantDetail.reviewPublished"), {
+      description: t("restaurantDetail.reviewThanks"),
+    });
     setRating(0);
     setComment("");
   };
 
   const trackClick = (label: string, target?: string) => {
     toast.success(label, {
-      description: target ?? "Interaction enregistrée dans les statistiques.",
+      description: target ?? t("restaurantDetail.statsSaved"),
     });
   };
 
@@ -153,7 +165,7 @@ function RestaurantPage() {
 
     if (type === "call") {
       if (!r.phone) {
-        toast.error("Numéro indisponible", { description: r.name });
+        toast.error(t("restaurantDetail.phoneUnavailable"), { description: r.name });
         return;
       }
 
@@ -173,7 +185,7 @@ function RestaurantPage() {
             : "";
 
     if (!url) {
-      toast.error("Lien indisponible", { description: r.name });
+      toast.error(t("restaurantDetail.linkUnavailable"), { description: r.name });
       return;
     }
 
@@ -194,7 +206,9 @@ function RestaurantPage() {
 
   const handleFav = () => {
     const added = toggle(r.id);
-    toast(added ? "Ajouté aux favoris ❤" : "Retiré des favoris", { description: r.name });
+    toast(added ? t("restaurantCard.addedFavorite") : t("restaurantCard.removedFavorite"), {
+      description: r.name,
+    });
   };
 
   return (
@@ -208,7 +222,7 @@ function RestaurantPage() {
             to="/restaurants"
             className="inline-flex items-center gap-2 rounded-full bg-background/90 backdrop-blur px-3 py-1.5 text-xs font-medium hover:bg-background"
           >
-            <ArrowLeft className="h-3.5 w-3.5" /> Retour
+            <ArrowLeft className="h-3.5 w-3.5" /> {t("restaurantDetail.back")}
           </Link>
         </div>
         <div className="absolute bottom-0 inset-x-0 px-4 sm:px-6 pb-8 text-primary-foreground">
@@ -233,7 +247,7 @@ function RestaurantPage() {
               </span>
               <span className="inline-flex items-center gap-1">
                 <Star className="h-4 w-4 fill-warning text-warning" /> {r.rating.toFixed(1)} (
-                {r.reviewsCount} avis)
+                {r.reviewsCount} {t("restaurantDetail.reviews")})
               </span>
               <span className="inline-flex items-center gap-1">
                 <MapPin className="h-4 w-4" /> {r.distanceKm} km · {r.city}
@@ -241,7 +255,7 @@ function RestaurantPage() {
               <span
                 className={`rounded-full px-2 py-0.5 text-[11px] font-medium ${r.open ? "bg-success text-success-foreground" : "bg-muted text-muted-foreground"}`}
               >
-                {r.open ? "Ouvert maintenant" : "Fermé"}
+                {r.open ? t("restaurantDetail.openNow") : t("restaurantDetail.closed")}
               </span>
             </div>
           </div>
@@ -255,28 +269,28 @@ function RestaurantPage() {
             <ActionBtn
               icon={Navigation}
               label="Maps"
-              onClick={() => openRestaurantAction("maps", "Ouverture Google Maps")}
+              onClick={() => openRestaurantAction("maps", t("restaurantDetail.mapsOpened"))}
             />
             <ActionBtn
               icon={Navigation}
               label="Waze"
-              onClick={() => openRestaurantAction("waze", "Ouverture Waze")}
+              onClick={() => openRestaurantAction("waze", t("restaurantDetail.wazeOpened"))}
             />
             <ActionBtn
               icon={Phone}
-              label="Appeler"
-              onClick={() => openRestaurantAction("call", "Appel lancé")}
+              label={t("restaurantDetail.call")}
+              onClick={() => openRestaurantAction("call", t("restaurantDetail.callStarted"))}
             />
             <ActionBtn
               icon={MenuIcon}
               label="Menu"
-              onClick={() => openRestaurantAction("menu", "Menu consulté")}
+              onClick={() => openRestaurantAction("menu", t("restaurantDetail.menuViewed"))}
             />
             <ActionBtn
               icon={Heart}
-              label="J'y vais"
+              label={t("restaurantDetail.going")}
               primary
-              onClick={() => openRestaurantAction("intent", "Clic « J'y vais » enregistré")}
+              onClick={() => openRestaurantAction("intent", t("restaurantDetail.intentSaved"))}
             />
           </div>
 
@@ -288,7 +302,7 @@ function RestaurantPage() {
                 </span>
                 <div className="flex-1 min-w-[240px]">
                   <div className="text-xs font-semibold text-primary uppercase tracking-wider">
-                    Offre LocalFood
+                    {t("restaurantDetail.localfoodOffer")}
                   </div>
                   <h3 className="font-display text-xl font-semibold mt-1">{r.offer.title}</h3>
                   <p className="text-sm text-muted-foreground mt-1">{r.offer.description}</p>
@@ -302,24 +316,28 @@ function RestaurantPage() {
                   onClick={() => {
                     setOfferOpen(true);
                     trackPublicDetailInteraction("Offre débloquée depuis la fiche", "Offre");
-                    trackClick("Offre débloquée", r.offer!.code);
+                    trackClick(t("restaurantDetail.offerUnlocked"), r.offer!.code);
                   }}
                   className="rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:opacity-90"
                 >
-                  Débloquer l'offre
+                  {t("restaurantDetail.unlockOffer")}
                 </button>
               </div>
             </section>
           )}
 
           <section>
-            <h2 className="font-display text-2xl font-semibold mb-4">À propos</h2>
+            <h2 className="font-display text-2xl font-semibold mb-4">
+              {t("restaurantDetail.about")}
+            </h2>
             <p className="text-muted-foreground leading-relaxed">{r.description}</p>
           </section>
 
           <section>
             <div className="flex items-end justify-between mb-4 flex-wrap gap-3">
-              <h2 className="font-display text-2xl font-semibold">Galerie</h2>
+              <h2 className="font-display text-2xl font-semibold">
+                {t("restaurantDetail.gallery")}
+              </h2>
             </div>
             <div className="flex flex-wrap gap-2 mb-4">
               {(["Toutes", ...PHOTO_CATEGORIES] as const).map((c) => (
@@ -328,13 +346,13 @@ function RestaurantPage() {
                   onClick={() => setPhotoCat(c as PhotoCategory | "Toutes")}
                   className={`rounded-full px-3 py-1.5 text-xs font-medium border transition ${photoCat === c ? "bg-foreground text-background border-foreground" : "bg-background border-border hover:border-foreground/40"}`}
                 >
-                  {c}
+                  {c === "Toutes" ? t("restaurantDetail.allPhotos") : c}
                 </button>
               ))}
             </div>
             {filteredPhotos.length === 0 ? (
               <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
-                Aucune photo dans cette catégorie pour le moment.
+                {t("restaurantDetail.noPhotoInCategory")}
               </div>
             ) : (
               <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
@@ -364,7 +382,9 @@ function RestaurantPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-2xl font-semibold mb-4">Infos pratiques</h2>
+            <h2 className="font-display text-2xl font-semibold mb-4">
+              {t("restaurantDetail.practicalInfo")}
+            </h2>
             <div className="grid sm:grid-cols-2 gap-3">
               {r.tags.map((t) => (
                 <div
@@ -378,15 +398,17 @@ function RestaurantPage() {
           </section>
 
           <section>
-            <h2 className="font-display text-2xl font-semibold mb-4">Notes détaillées</h2>
+            <h2 className="font-display text-2xl font-semibold mb-4">
+              {t("restaurantDetail.detailedRatings")}
+            </h2>
             <div className="grid sm:grid-cols-2 gap-x-8 gap-y-3">
               {[
-                { l: "Nourriture", v: r.detailedRating.food },
-                { l: "Accueil", v: r.detailedRating.welcome },
-                { l: "Prix", v: r.detailedRating.price },
-                { l: "Propreté", v: r.detailedRating.cleanliness },
-                { l: "Ambiance", v: r.detailedRating.ambiance },
-                { l: "Temps d'attente", v: r.detailedRating.waitTime },
+                { l: t("restaurantDetail.food"), v: r.detailedRating.food },
+                { l: t("restaurantDetail.welcome"), v: r.detailedRating.welcome },
+                { l: t("restaurantDetail.price"), v: r.detailedRating.price },
+                { l: t("restaurantDetail.cleanliness"), v: r.detailedRating.cleanliness },
+                { l: t("restaurantDetail.ambiance"), v: r.detailedRating.ambiance },
+                { l: t("restaurantDetail.waitTime"), v: r.detailedRating.waitTime },
               ].map((c) => (
                 <div key={c.l}>
                   <div className="flex justify-between text-sm">
@@ -407,7 +429,9 @@ function RestaurantPage() {
           {/* Reviews */}
           <section>
             <div className="flex items-end justify-between mb-5">
-              <h2 className="font-display text-2xl font-semibold">Avis clients</h2>
+              <h2 className="font-display text-2xl font-semibold">
+                {t("restaurantDetail.customerReviews")}
+              </h2>
               <div className="text-sm text-muted-foreground">
                 {r.reviewsCount} avis · {r.rating.toFixed(1)} ★
               </div>
@@ -443,9 +467,11 @@ function RestaurantPage() {
             </div>
 
             <form onSubmit={submit} className="mt-8 rounded-2xl border border-border bg-card p-6">
-              <h3 className="font-display text-xl font-semibold">Laisser un avis</h3>
+              <h3 className="font-display text-xl font-semibold">
+                {t("restaurantDetail.leaveReview")}
+              </h3>
               <div className="mt-4">
-                <div className="text-sm font-medium mb-2">Votre note</div>
+                <div className="text-sm font-medium mb-2">{t("restaurantDetail.yourRating")}</div>
                 <div className="flex gap-1">
                   {Array.from({ length: 5 }).map((_, i) => (
                     <button type="button" key={i} onClick={() => setRating(i + 1)}>
@@ -459,7 +485,7 @@ function RestaurantPage() {
               <textarea
                 value={comment}
                 onChange={(e) => setComment(e.target.value)}
-                placeholder="Partagez votre expérience…"
+                placeholder={t("restaurantDetail.reviewPlaceholder")}
                 className="mt-4 w-full rounded-xl border border-border bg-background p-3 text-sm outline-none focus:border-ring min-h-[100px]"
               />
               <div className="mt-3 flex justify-end">
@@ -467,7 +493,7 @@ function RestaurantPage() {
                   type="submit"
                   className="rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-medium hover:opacity-90"
                 >
-                  Publier l'avis
+                  {t("restaurantDetail.publishReview")}
                 </button>
               </div>
             </form>
@@ -476,7 +502,9 @@ function RestaurantPage() {
           {/* Similar */}
           {similar.length > 0 && (
             <section>
-              <h2 className="font-display text-2xl font-semibold mb-5">Restaurants similaires</h2>
+              <h2 className="font-display text-2xl font-semibold mb-5">
+                {t("restaurantDetail.similarRestaurants")}
+              </h2>
               <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-5">
                 {similar.map((s) => (
                   <RestaurantCard key={s.id} r={s} />
@@ -499,48 +527,48 @@ function RestaurantPage() {
                 <ActionBtn
                   icon={Navigation}
                   label="Google Maps"
-                  onClick={() => openRestaurantAction("maps", "Ouverture Google Maps")}
+                  onClick={() => openRestaurantAction("maps", t("restaurantDetail.mapsOpened"))}
                 />
                 <ActionBtn
                   icon={Navigation}
                   label="Waze"
-                  onClick={() => openRestaurantAction("waze", "Ouverture Waze")}
+                  onClick={() => openRestaurantAction("waze", t("restaurantDetail.wazeOpened"))}
                 />
                 <ActionBtn
                   icon={Phone}
-                  label="Appeler"
-                  onClick={() => openRestaurantAction("call", "Appel lancé")}
+                  label={t("restaurantDetail.call")}
+                  onClick={() => openRestaurantAction("call", t("restaurantDetail.callStarted"))}
                 />
                 <ActionBtn
                   icon={MenuIcon}
-                  label="Voir le menu"
-                  onClick={() => openRestaurantAction("menu", "Menu consulté")}
+                  label={t("restaurantDetail.viewMenu")}
+                  onClick={() => openRestaurantAction("menu", t("restaurantDetail.menuViewed"))}
                 />
               </div>
               <button
-                onClick={() => openRestaurantAction("intent", "Clic « J'y vais » enregistré")}
+                onClick={() => openRestaurantAction("intent", t("restaurantDetail.intentSaved"))}
                 className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl bg-gradient-primary text-primary-foreground px-4 py-3 text-sm font-semibold shadow-glow hover:opacity-95"
               >
-                <Heart className="h-4 w-4" /> J'y vais
+                <Heart className="h-4 w-4" /> {t("restaurantDetail.going")}
               </button>
               <button
                 onClick={handleFav}
                 className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm hover:bg-secondary"
               >
                 <Heart className={`h-4 w-4 ${isFav ? "fill-destructive text-destructive" : ""}`} />{" "}
-                {isFav ? "Retirer des favoris" : "Ajouter aux favoris"}
+                {isFav ? t("restaurantDetail.removeFavorite") : t("restaurantDetail.addFavorite")}
               </button>
               <button
-                onClick={() => toast("Lien copié")}
+                onClick={() => toast(t("restaurantDetail.linkCopied"))}
                 className="mt-2 w-full inline-flex items-center justify-center gap-2 rounded-xl border border-border px-4 py-2.5 text-sm hover:bg-secondary"
               >
-                <Share2 className="h-4 w-4" /> Partager
+                <Share2 className="h-4 w-4" /> {t("restaurantDetail.share")}
               </button>
             </div>
 
             <div className="rounded-2xl border border-border bg-card p-6 shadow-soft">
               <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-3">
-                Horaires
+                {t("restaurantDetail.openingHours")}
               </div>
               <ul className="space-y-1.5 text-sm">
                 {Object.entries(r.openingHours).map(([d, h]) => (
@@ -578,19 +606,21 @@ function RestaurantPage() {
               <h3 className="font-display text-2xl font-semibold">{r.offer.title}</h3>
               <p className="text-sm text-muted-foreground mt-2">{r.offer.description}</p>
               <div className="mt-6 rounded-2xl border-2 border-dashed border-primary p-5">
-                <div className="text-xs text-muted-foreground">Votre code</div>
+                <div className="text-xs text-muted-foreground">
+                  {t("restaurantDetail.yourCode")}
+                </div>
                 <div className="font-mono text-3xl font-bold tracking-widest text-primary mt-1">
                   {r.offer.code}
                 </div>
               </div>
               <p className="text-xs text-muted-foreground mt-4">
-                Présentez ce code en caisse pour bénéficier de l'offre.
+                {t("restaurantDetail.offerCodeHelp")}
               </p>
               <button
                 onClick={() => setOfferOpen(false)}
                 className="mt-6 w-full rounded-full bg-foreground text-background px-5 py-3 text-sm font-medium"
               >
-                J'ai compris
+                {t("restaurantDetail.understood")}
               </button>
             </div>
           </div>
