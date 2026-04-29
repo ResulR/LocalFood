@@ -3,13 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Search, ArrowRight, Sparkles, Star, Compass, Tag, Clock, Plus } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
 import { RestaurantCard } from "@/components/site/RestaurantCard";
-import {
-  restaurants as localRestaurants,
-  categories,
-  QUICK_FILTERS,
-  type Restaurant,
-} from "@/data/restaurants";
-import { SUGGESTED_PROMPTS } from "@/data/mockAI";
+import { categories, QUICK_FILTERS, type Restaurant } from "@/data/restaurants";
 import { fetchSupabaseRestaurants } from "@/lib/restaurants-api";
 import { mapSupabaseRestaurantsToRestaurants } from "@/lib/restaurant-mappers";
 import heroFood from "@/assets/hero-food.jpg";
@@ -43,23 +37,22 @@ const CATEGORY_TAGS: Record<string, string | undefined> = {
 
 function HomePage() {
   const [supabaseRestaurants, setSupabaseRestaurants] = useState<Restaurant[]>([]);
-  const [restaurantsSource, setRestaurantsSource] = useState<"supabase" | "local">("local");
+  const [restaurantsMessage, setRestaurantsMessage] = useState("");
 
   useEffect(() => {
     let cancelled = false;
+
+    setRestaurantsMessage("");
 
     fetchSupabaseRestaurants()
       .then((data) => {
         if (cancelled) return;
 
         const mapped = mapSupabaseRestaurantsToRestaurants(data);
+        setSupabaseRestaurants(mapped);
 
-        if (mapped.length > 0) {
-          setSupabaseRestaurants(mapped);
-          setRestaurantsSource("supabase");
-        } else {
-          setSupabaseRestaurants([]);
-          setRestaurantsSource("local");
+        if (mapped.length === 0) {
+          setRestaurantsMessage("Aucun restaurant actif n’est disponible pour le moment.");
         }
       })
       .catch((error) => {
@@ -67,7 +60,7 @@ function HomePage() {
 
         if (!cancelled) {
           setSupabaseRestaurants([]);
-          setRestaurantsSource("local");
+          setRestaurantsMessage("Impossible de charger les restaurants depuis la base de données.");
         }
       });
 
@@ -76,10 +69,7 @@ function HomePage() {
     };
   }, []);
 
-  const sourceRestaurants =
-    restaurantsSource === "supabase" && supabaseRestaurants.length > 0
-      ? supabaseRestaurants
-      : localRestaurants;
+  const sourceRestaurants = supabaseRestaurants;
 
   const popular = useMemo(
     () => [...sourceRestaurants].sort((a, b) => b.reviewsCount - a.reviewsCount).slice(0, 4),
@@ -172,16 +162,9 @@ function HomePage() {
                 Notre assistant analyse votre requête et trouve les restaurants qui correspondent
                 vraiment à vos critères.
               </p>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {SUGGESTED_PROMPTS.slice(0, 3).map((p) => (
-                  <Link
-                    key={p}
-                    to="/ai-assistant"
-                    className="rounded-full border border-border bg-secondary/40 hover:bg-secondary px-3 py-1.5 text-xs transition"
-                  >
-                    « {p} »
-                  </Link>
-                ))}
+              <div className="mt-4 rounded-2xl border border-dashed border-border bg-secondary/30 p-4 text-sm text-muted-foreground">
+                L’assistant IA sera branché sur les données réelles LocalFood avant la mise en
+                production.
               </div>
             </div>
             <Link
@@ -216,6 +199,14 @@ function HomePage() {
           ))}
         </div>
       </section>
+
+      {restaurantsMessage && (
+        <section className="max-w-7xl mx-auto px-4 sm:px-6 py-6">
+          <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
+            {restaurantsMessage}
+          </div>
+        </section>
+      )}
 
       {/* POPULAR */}
       <SectionWithCarousel
@@ -392,11 +383,17 @@ function SectionWithCarousel({
           Voir tout <ArrowRight className="h-4 w-4" />
         </Link>
       </div>
-      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
-        {items.map((r) => (
-          <RestaurantCard key={r.id} r={r} />
-        ))}
-      </div>
+      {items.length === 0 ? (
+        <div className="rounded-2xl border border-dashed border-border p-10 text-center text-sm text-muted-foreground">
+          Aucun restaurant à afficher dans cette section pour le moment.
+        </div>
+      ) : (
+        <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-5">
+          {items.map((r) => (
+            <RestaurantCard key={r.id} r={r} />
+          ))}
+        </div>
+      )}
     </section>
   );
 }
