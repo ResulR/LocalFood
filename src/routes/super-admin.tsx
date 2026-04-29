@@ -6,7 +6,7 @@ import {
   useLocation,
   useNavigate,
 } from "@tanstack/react-router";
-import { ArrowLeft, Building2, Loader2, LogOut, Shield, Users } from "lucide-react";
+import { ArrowLeft, Building2, Loader2, LogOut, Shield, Store, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
 export const Route = createFileRoute("/super-admin")({
@@ -24,6 +24,11 @@ const NAV = [
     to: "/super-admin/companies",
     label: "Entreprises",
     icon: Building2,
+  },
+  {
+    to: "/super-admin/restaurants",
+    label: "Restaurants",
+    icon: Store,
   },
 ];
 
