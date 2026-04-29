@@ -4,7 +4,7 @@ import { Heart, Search } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
 import { RestaurantCard } from "@/components/site/RestaurantCard";
 import { useFavorites } from "@/lib/favorites";
-import { restaurants as localRestaurants, type Restaurant } from "@/data/restaurants";
+import type { Restaurant } from "@/data/restaurants";
 import { fetchSupabaseRestaurants } from "@/lib/restaurants-api";
 import { mapSupabaseRestaurantsToRestaurants } from "@/lib/restaurant-mappers";
 
@@ -22,23 +22,23 @@ function FavoritesPage() {
   const { ids } = useFavorites();
   const [supabaseRestaurants, setSupabaseRestaurants] = useState<Restaurant[]>([]);
   const [loadingRestaurants, setLoadingRestaurants] = useState(true);
-  const [restaurantsSource, setRestaurantsSource] = useState<"supabase" | "local">("local");
+  const [restaurantsMessage, setRestaurantsMessage] = useState("");
 
   useEffect(() => {
     let cancelled = false;
+
+    setLoadingRestaurants(true);
+    setRestaurantsMessage("");
 
     fetchSupabaseRestaurants()
       .then((data) => {
         if (cancelled) return;
 
         const mapped = mapSupabaseRestaurantsToRestaurants(data);
+        setSupabaseRestaurants(mapped);
 
-        if (mapped.length > 0) {
-          setSupabaseRestaurants(mapped);
-          setRestaurantsSource("supabase");
-        } else {
-          setSupabaseRestaurants([]);
-          setRestaurantsSource("local");
+        if (mapped.length === 0) {
+          setRestaurantsMessage("Aucun restaurant actif n’est disponible pour le moment.");
         }
       })
       .catch((error) => {
@@ -46,7 +46,7 @@ function FavoritesPage() {
 
         if (!cancelled) {
           setSupabaseRestaurants([]);
-          setRestaurantsSource("local");
+          setRestaurantsMessage("Impossible de charger les restaurants depuis la base de données.");
         }
       })
       .finally(() => {
@@ -60,13 +60,7 @@ function FavoritesPage() {
     };
   }, []);
 
-  const sourceRestaurants = useMemo(
-    () =>
-      restaurantsSource === "supabase" && supabaseRestaurants.length > 0
-        ? supabaseRestaurants
-        : localRestaurants,
-    [restaurantsSource, supabaseRestaurants],
-  );
+  const sourceRestaurants = supabaseRestaurants;
 
   const favs = useMemo(
     () => sourceRestaurants.filter((restaurant) => ids.includes(restaurant.id)),
@@ -79,6 +73,12 @@ function FavoritesPage() {
         {loadingRestaurants && (
           <div className="mb-6 rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
             Chargement de vos favoris...
+          </div>
+        )}
+
+        {restaurantsMessage && (
+          <div className="mb-6 rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+            {restaurantsMessage}
           </div>
         )}
 
