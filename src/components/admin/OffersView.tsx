@@ -1,14 +1,12 @@
 import { useEffect, useMemo, useState } from "react";
 import { BadgePercent, Loader2, Pencil, Plus, Power } from "lucide-react";
 import { toast } from "sonner";
-import { useAuth } from "@/contexts/AuthContext";
+import { useRestaurantDashboard } from "@/contexts/RestaurantDashboardContext";
 import {
   fetchOwnedRestaurantOffers,
-  fetchSupabaseRestaurantsByCompanyId,
   updateOwnedRestaurantOfferStatus,
   upsertOwnedRestaurantOffer,
   type OwnedRestaurantOffer,
-  type SupabaseCompanyRestaurant,
 } from "@/lib/restaurants-api";
 
 type OfferForm = {
@@ -30,10 +28,8 @@ const emptyForm: OfferForm = {
 };
 
 export function OffersView() {
-  const { profile } = useAuth();
-  const [currentRestaurant, setCurrentRestaurant] = useState<SupabaseCompanyRestaurant | null>(
-    null,
-  );
+  const { selectedRestaurant, loadingRestaurants, restaurantMessage } = useRestaurantDashboard();
+  const currentRestaurant = selectedRestaurant;
   const [offers, setOffers] = useState<OwnedRestaurantOffer[]>([]);
   const [form, setForm] = useState<OfferForm>(emptyForm);
   const [loadingOffers, setLoadingOffers] = useState(true);
@@ -47,29 +43,20 @@ export function OffersView() {
     async function loadOffers() {
       setLoadingOffers(true);
       setOffersMessage("");
-      setCurrentRestaurant(null);
       setOffers([]);
+      resetForm();
 
-      if (!profile?.current_company_id) {
-        setOffersMessage("Aucune entreprise n’est liée à votre profil.");
+      if (loadingRestaurants) {
+        return;
+      }
+
+      if (!currentRestaurant) {
+        setOffersMessage(restaurantMessage || "Aucun restaurant n’est sélectionné.");
         setLoadingOffers(false);
         return;
       }
 
-      const restaurants = await fetchSupabaseRestaurantsByCompanyId(profile.current_company_id);
-      const restaurant = restaurants[0] ?? null;
-
-      if (cancelled) return;
-
-      if (!restaurant) {
-        setOffersMessage("Aucun restaurant n’est encore lié à votre entreprise.");
-        setLoadingOffers(false);
-        return;
-      }
-
-      setCurrentRestaurant(restaurant);
-
-      const data = await fetchOwnedRestaurantOffers(restaurant.id);
+      const data = await fetchOwnedRestaurantOffers(currentRestaurant.id);
 
       if (cancelled) return;
 
@@ -90,7 +77,7 @@ export function OffersView() {
     return () => {
       cancelled = true;
     };
-  }, [profile?.current_company_id]);
+  }, [currentRestaurant, loadingRestaurants, restaurantMessage]);
 
   const activeOffersCount = useMemo(
     () => offers.filter((offer) => offer.is_active).length,
