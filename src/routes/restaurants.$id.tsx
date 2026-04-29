@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import {
   Star,
   MapPin,
@@ -23,25 +23,48 @@ import { RestaurantCard } from "@/components/site/RestaurantCard";
 import {
   getRestaurant,
   getSimilar,
+  restaurants as localRestaurants,
   PHOTO_CATEGORIES,
   type PhotoCategory,
 } from "@/data/restaurants";
 import { useFavorites } from "@/lib/favorites";
+import { fetchSupabaseRestaurantBySlug } from "@/lib/restaurants-api";
+import { mapSupabaseRestaurantToRestaurant } from "@/lib/restaurant-mappers";
 
 export const Route = createFileRoute("/restaurants/$id")({
-  loader: ({ params }) => {
-    const r = getRestaurant(params.id);
-    if (!r) throw notFound();
-    return r;
+  loader: async ({ params }) => {
+    try {
+      const supabaseRestaurant = await fetchSupabaseRestaurantBySlug(params.id);
+
+      if (supabaseRestaurant) {
+        return {
+          restaurant: mapSupabaseRestaurantToRestaurant(supabaseRestaurant),
+          source: "supabase" as const,
+        };
+      }
+    } catch (error) {
+      console.error("Failed to load restaurant from Supabase:", error);
+    }
+
+    const localRestaurant = getRestaurant(params.id);
+
+    if (!localRestaurant) {
+      throw notFound();
+    }
+
+    return {
+      restaurant: localRestaurant,
+      source: "local" as const,
+    };
   },
   head: ({ loaderData }) => ({
     meta: loaderData
       ? [
-          { title: `${loaderData.name} — LocalFood` },
-          { name: "description", content: loaderData.description },
-          { property: "og:title", content: `${loaderData.name} — LocalFood` },
-          { property: "og:description", content: loaderData.description },
-          { property: "og:image", content: loaderData.image },
+          { title: `${loaderData.restaurant.name} — LocalFood` },
+          { name: "description", content: loaderData.restaurant.description },
+          { property: "og:title", content: `${loaderData.restaurant.name} — LocalFood` },
+          { property: "og:description", content: loaderData.restaurant.description },
+          { property: "og:image", content: loaderData.restaurant.image },
         ]
       : [],
   }),
@@ -59,10 +82,18 @@ export const Route = createFileRoute("/restaurants/$id")({
 });
 
 function RestaurantPage() {
-  const r = Route.useLoaderData();
+  const loaderData = Route.useLoaderData();
+  const r = loaderData.restaurant;
   const { has, toggle } = useFavorites();
   const isFav = has(r.id);
-  const similar = getSimilar(r.id);
+
+  const similar = useMemo(() => {
+    if (loaderData.source === "supabase") {
+      return localRestaurants.filter((restaurant) => restaurant.id !== r.id).slice(0, 3);
+    }
+
+    return getSimilar(r.id);
+  }, [loaderData.source, r.id]);
 
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");

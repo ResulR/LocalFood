@@ -16,6 +16,7 @@ import { Route as FavoritesRouteImport } from './routes/favorites'
 import { Route as DevSupabaseTestRouteImport } from './routes/dev-supabase-test'
 import { Route as AiAssistantRouteImport } from './routes/ai-assistant'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as RestaurantsIndexRouteImport } from './routes/restaurants.index'
 import { Route as RestaurantDashboardIndexRouteImport } from './routes/restaurant-dashboard.index'
 import { Route as RestaurantsIdRouteImport } from './routes/restaurants.$id'
 import { Route as RestaurantDashboardSubscriptionRouteImport } from './routes/restaurant-dashboard.subscription'
@@ -62,6 +63,11 @@ const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
+} as any)
+const RestaurantsIndexRoute = RestaurantsIndexRouteImport.update({
+  id: '/',
+  path: '/',
+  getParentRoute: () => RestaurantsRoute,
 } as any)
 const RestaurantDashboardIndexRoute =
   RestaurantDashboardIndexRouteImport.update({
@@ -147,6 +153,7 @@ export interface FileRoutesByFullPath {
   '/restaurant-dashboard/subscription': typeof RestaurantDashboardSubscriptionRoute
   '/restaurants/$id': typeof RestaurantsIdRoute
   '/restaurant-dashboard/': typeof RestaurantDashboardIndexRoute
+  '/restaurants/': typeof RestaurantsIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -154,7 +161,6 @@ export interface FileRoutesByTo {
   '/dev-supabase-test': typeof DevSupabaseTestRoute
   '/favorites': typeof FavoritesRoute
   '/for-restaurants': typeof ForRestaurantsRoute
-  '/restaurants': typeof RestaurantsRouteWithChildren
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
   '/restaurant-dashboard/avis': typeof RestaurantDashboardAvisRoute
   '/restaurant-dashboard/fiche': typeof RestaurantDashboardFicheRoute
@@ -166,6 +172,7 @@ export interface FileRoutesByTo {
   '/restaurant-dashboard/subscription': typeof RestaurantDashboardSubscriptionRoute
   '/restaurants/$id': typeof RestaurantsIdRoute
   '/restaurant-dashboard': typeof RestaurantDashboardIndexRoute
+  '/restaurants': typeof RestaurantsIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -187,6 +194,7 @@ export interface FileRoutesById {
   '/restaurant-dashboard/subscription': typeof RestaurantDashboardSubscriptionRoute
   '/restaurants/$id': typeof RestaurantsIdRoute
   '/restaurant-dashboard/': typeof RestaurantDashboardIndexRoute
+  '/restaurants/': typeof RestaurantsIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -209,6 +217,7 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard/subscription'
     | '/restaurants/$id'
     | '/restaurant-dashboard/'
+    | '/restaurants/'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -216,7 +225,6 @@ export interface FileRouteTypes {
     | '/dev-supabase-test'
     | '/favorites'
     | '/for-restaurants'
-    | '/restaurants'
     | '/restaurant-dashboard/abonnement'
     | '/restaurant-dashboard/avis'
     | '/restaurant-dashboard/fiche'
@@ -228,6 +236,7 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard/subscription'
     | '/restaurants/$id'
     | '/restaurant-dashboard'
+    | '/restaurants'
   id:
     | '__root__'
     | '/'
@@ -248,6 +257,7 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard/subscription'
     | '/restaurants/$id'
     | '/restaurant-dashboard/'
+    | '/restaurants/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -310,6 +320,13 @@ declare module '@tanstack/react-router' {
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
+    }
+    '/restaurants/': {
+      id: '/restaurants/'
+      path: '/'
+      fullPath: '/restaurants/'
+      preLoaderRoute: typeof RestaurantsIndexRouteImport
+      parentRoute: typeof RestaurantsRoute
     }
     '/restaurant-dashboard/': {
       id: '/restaurant-dashboard/'
@@ -422,10 +439,12 @@ const RestaurantDashboardRouteWithChildren =
 
 interface RestaurantsRouteChildren {
   RestaurantsIdRoute: typeof RestaurantsIdRoute
+  RestaurantsIndexRoute: typeof RestaurantsIndexRoute
 }
 
 const RestaurantsRouteChildren: RestaurantsRouteChildren = {
   RestaurantsIdRoute: RestaurantsIdRoute,
+  RestaurantsIndexRoute: RestaurantsIndexRoute,
 }
 
 const RestaurantsRouteWithChildren = RestaurantsRoute._addFileChildren(

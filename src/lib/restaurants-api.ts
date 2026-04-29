@@ -203,3 +203,84 @@ export async function fetchSupabaseRestaurants() {
 
   return (data as unknown as SupabaseRestaurantRow[]).map(normalizeRestaurant);
 }
+
+export async function fetchSupabaseRestaurantBySlug(slug: string) {
+  const { data, error } = await supabase
+    .from("restaurants")
+    .select(
+      `
+        id,
+        name,
+        slug,
+        category,
+        cuisine_type,
+        description,
+        main_image_url,
+        rating,
+        reviews_count,
+        distance_km,
+        price_level,
+        price_label,
+        is_open,
+        hours_summary,
+        address,
+        city,
+        country,
+        phone,
+        menu_url,
+        google_maps_url,
+        waze_url,
+        localfood_match_score,
+        is_new,
+        is_active,
+        restaurant_tags (
+          tags (
+            label,
+            slug
+          )
+        ),
+        restaurant_badges (
+          badges (
+            label,
+            slug
+          )
+        ),
+        restaurant_photos (
+          id,
+          url,
+          category,
+          is_client_photo,
+          author_name,
+          sort_order
+        ),
+        restaurant_opening_hours (
+          id,
+          day_of_week,
+          day_label,
+          hours_text,
+          is_closed
+        ),
+        restaurant_offers (
+          id,
+          code,
+          title,
+          description,
+          conditions,
+          is_active
+        )
+      `,
+    )
+    .eq("slug", slug)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return normalizeRestaurant(data as unknown as SupabaseRestaurantRow);
+}
