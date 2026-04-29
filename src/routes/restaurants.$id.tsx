@@ -332,12 +332,6 @@ function RestaurantPage() {
           <section>
             <div className="flex items-end justify-between mb-4 flex-wrap gap-3">
               <h2 className="font-display text-2xl font-semibold">Galerie</h2>
-              <button
-                onClick={() => toast.success("Photo ajoutée")}
-                className="inline-flex items-center gap-2 text-sm text-primary hover:underline"
-              >
-                <Camera className="h-4 w-4" /> Ajouter une photo
-              </button>
             </div>
             <div className="flex flex-wrap gap-2 mb-4">
               {(["Toutes", ...PHOTO_CATEGORIES] as const).map((c) => (
@@ -480,14 +474,7 @@ function RestaurantPage() {
                 placeholder="Partagez votre expérience…"
                 className="mt-4 w-full rounded-xl border border-border bg-background p-3 text-sm outline-none focus:border-ring min-h-[100px]"
               />
-              <div className="mt-3 flex items-center justify-between gap-3 flex-wrap">
-                <button
-                  type="button"
-                  onClick={() => toast.success("Photo ajoutée")}
-                  className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"
-                >
-                  <Camera className="h-4 w-4" /> Ajouter une photo
-                </button>
+              <div className="mt-3 flex justify-end">
                 <button
                   type="submit"
                   className="rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-medium hover:opacity-90"
