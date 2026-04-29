@@ -5,8 +5,10 @@ import { useAuth } from "@/contexts/AuthContext";
 import {
   fetchSupabaseRestaurantReviewsByRestaurantId,
   fetchSupabaseRestaurantsByCompanyId,
+  updateOwnedRestaurantReviewStatus,
   type SupabaseCompanyRestaurant,
   type SupabaseRestaurantReview,
+  type SupabaseRestaurantReviewStatus,
 } from "@/lib/restaurants-api";
 
 type AdminReviewStatus = "publié" | "en attente" | "masqué";
@@ -38,6 +40,14 @@ function mapSupabaseStatus(status: SupabaseRestaurantReview["status"]): AdminRev
   return "publié";
 }
 
+function mapAdminStatusToSupabaseStatus(status: AdminReviewStatus): SupabaseRestaurantReviewStatus {
+  if (status === "en attente") return "pending";
+  if (status === "masqué") return "hidden";
+  return "published";
+}
+
+const REVIEW_STATUS_OPTIONS: AdminReviewStatus[] = ["publié", "en attente", "masqué"];
+
 function mapSupabaseReview(review: SupabaseRestaurantReview): AdminReview {
   return {
     id: review.id,
@@ -51,13 +61,14 @@ function mapSupabaseReview(review: SupabaseRestaurantReview): AdminReview {
 }
 
 export function ReviewsView() {
-  const { profile } = useAuth();
+  const { profile, role } = useAuth();
   const [currentRestaurant, setCurrentRestaurant] = useState<SupabaseCompanyRestaurant | null>(
     null,
   );
   const [reviews, setReviews] = useState<AdminReview[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(true);
   const [reviewsMessage, setReviewsMessage] = useState("");
+  const [updatingReviewId, setUpdatingReviewId] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -109,6 +120,48 @@ export function ReviewsView() {
       cancelled = true;
     };
   }, [profile?.current_company_id]);
+
+  const updateReviewStatus = async (review: AdminReview, nextStatus: AdminReviewStatus) => {
+    if (review.status === nextStatus) return;
+
+    if (role !== "superadmin") {
+      toast.error("Action non autorisée", {
+        description: "Seul un SuperAdmin peut modérer les avis.",
+      });
+      return;
+    }
+
+    setUpdatingReviewId(review.id);
+
+    try {
+      const updatedRows = await updateOwnedRestaurantReviewStatus({
+        reviewId: review.id,
+        status: mapAdminStatusToSupabaseStatus(nextStatus),
+      });
+
+      const updated = updatedRows[0];
+
+      setReviews((current) =>
+        current.map((item) =>
+          item.id === review.id
+            ? {
+                ...item,
+                status: updated ? mapSupabaseStatus(updated.status) : nextStatus,
+              }
+            : item,
+        ),
+      );
+
+      toast.success("Statut de l’avis mis à jour");
+    } catch (error) {
+      console.error("Failed to update review status:", error);
+      toast.error("Modification impossible", {
+        description: "La base de données a refusé la modification.",
+      });
+    } finally {
+      setUpdatingReviewId(null);
+    }
+  };
 
   const averageRating = useMemo(() => {
     if (reviews.length === 0) return "0,0";
@@ -195,12 +248,27 @@ export function ReviewsView() {
                     </div>
                   </div>
                 </div>
-                <button
-                  onClick={() => toast.success("Réponse envoyée")}
-                  className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-xs font-medium hover:bg-secondary"
-                >
-                  <MessageSquare className="h-3.5 w-3.5" /> Répondre
-                </button>
+                {role === "superadmin" ? (
+                  <div className="flex items-center gap-2">
+                    <MessageSquare className="h-3.5 w-3.5 text-muted-foreground" />
+                    <select
+                      value={rev.status}
+                      onChange={(event) =>
+                        updateReviewStatus(rev, event.target.value as AdminReviewStatus)
+                      }
+                      disabled={updatingReviewId === rev.id}
+                      className="rounded-full border border-border bg-background px-3 py-2 text-xs font-medium outline-none hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {REVIEW_STATUS_OPTIONS.map((status) => (
+                        <option key={status}>{status}</option>
+                      ))}
+                    </select>
+                  </div>
+                ) : (
+                  <span className="rounded-full border border-border px-3 py-2 text-xs text-muted-foreground">
+                    Lecture seule
+                  </span>
+                )}
               </div>
               <p className="text-sm text-muted-foreground mt-3 sm:pl-13">{rev.comment}</p>
               {rev.photo && (

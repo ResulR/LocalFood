@@ -387,6 +387,31 @@ export type SupabaseRestaurantReview = {
   updated_at: string;
 };
 
+export type SupabaseRestaurantReviewStatus = SupabaseRestaurantReview["status"];
+
+export async function updateOwnedRestaurantReviewStatus({
+  reviewId,
+  status,
+}: {
+  reviewId: string;
+  status: SupabaseRestaurantReviewStatus;
+}) {
+  const { data, error } = await supabase.rpc("update_owned_restaurant_review_status", {
+    _review_id: reviewId,
+    _status: status,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data as {
+    id: string;
+    status: SupabaseRestaurantReviewStatus;
+    updated_at: string;
+  }[];
+}
+
 export async function fetchSupabaseRestaurantReviewsBySlug(slug: string) {
   const { data: restaurant, error: restaurantError } = await supabase
     .from("restaurants")
