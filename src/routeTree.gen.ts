@@ -13,7 +13,6 @@ import { Route as RestaurantsRouteImport } from './routes/restaurants'
 import { Route as RestaurantDashboardRouteImport } from './routes/restaurant-dashboard'
 import { Route as ForRestaurantsRouteImport } from './routes/for-restaurants'
 import { Route as FavoritesRouteImport } from './routes/favorites'
-import { Route as DevSupabaseTestRouteImport } from './routes/dev-supabase-test'
 import { Route as AiAssistantRouteImport } from './routes/ai-assistant'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as RestaurantsIndexRouteImport } from './routes/restaurants.index'
@@ -47,11 +46,6 @@ const ForRestaurantsRoute = ForRestaurantsRouteImport.update({
 const FavoritesRoute = FavoritesRouteImport.update({
   id: '/favorites',
   path: '/favorites',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const DevSupabaseTestRoute = DevSupabaseTestRouteImport.update({
-  id: '/dev-supabase-test',
-  path: '/dev-supabase-test',
   getParentRoute: () => rootRouteImport,
 } as any)
 const AiAssistantRoute = AiAssistantRouteImport.update({
@@ -137,7 +131,6 @@ const RestaurantDashboardAbonnementRoute =
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/ai-assistant': typeof AiAssistantRoute
-  '/dev-supabase-test': typeof DevSupabaseTestRoute
   '/favorites': typeof FavoritesRoute
   '/for-restaurants': typeof ForRestaurantsRoute
   '/restaurant-dashboard': typeof RestaurantDashboardRouteWithChildren
@@ -158,7 +151,6 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/ai-assistant': typeof AiAssistantRoute
-  '/dev-supabase-test': typeof DevSupabaseTestRoute
   '/favorites': typeof FavoritesRoute
   '/for-restaurants': typeof ForRestaurantsRoute
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
@@ -178,7 +170,6 @@ export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/ai-assistant': typeof AiAssistantRoute
-  '/dev-supabase-test': typeof DevSupabaseTestRoute
   '/favorites': typeof FavoritesRoute
   '/for-restaurants': typeof ForRestaurantsRoute
   '/restaurant-dashboard': typeof RestaurantDashboardRouteWithChildren
@@ -201,7 +192,6 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/ai-assistant'
-    | '/dev-supabase-test'
     | '/favorites'
     | '/for-restaurants'
     | '/restaurant-dashboard'
@@ -222,7 +212,6 @@ export interface FileRouteTypes {
   to:
     | '/'
     | '/ai-assistant'
-    | '/dev-supabase-test'
     | '/favorites'
     | '/for-restaurants'
     | '/restaurant-dashboard/abonnement'
@@ -241,7 +230,6 @@ export interface FileRouteTypes {
     | '__root__'
     | '/'
     | '/ai-assistant'
-    | '/dev-supabase-test'
     | '/favorites'
     | '/for-restaurants'
     | '/restaurant-dashboard'
@@ -263,7 +251,6 @@ export interface FileRouteTypes {
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AiAssistantRoute: typeof AiAssistantRoute
-  DevSupabaseTestRoute: typeof DevSupabaseTestRoute
   FavoritesRoute: typeof FavoritesRoute
   ForRestaurantsRoute: typeof ForRestaurantsRoute
   RestaurantDashboardRoute: typeof RestaurantDashboardRouteWithChildren
@@ -298,13 +285,6 @@ declare module '@tanstack/react-router' {
       path: '/favorites'
       fullPath: '/favorites'
       preLoaderRoute: typeof FavoritesRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/dev-supabase-test': {
-      id: '/dev-supabase-test'
-      path: '/dev-supabase-test'
-      fullPath: '/dev-supabase-test'
-      preLoaderRoute: typeof DevSupabaseTestRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/ai-assistant': {
@@ -454,7 +434,6 @@ const RestaurantsRouteWithChildren = RestaurantsRoute._addFileChildren(
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AiAssistantRoute: AiAssistantRoute,
-  DevSupabaseTestRoute: DevSupabaseTestRoute,
   FavoritesRoute: FavoritesRoute,
   ForRestaurantsRoute: ForRestaurantsRoute,
   RestaurantDashboardRoute: RestaurantDashboardRouteWithChildren,
