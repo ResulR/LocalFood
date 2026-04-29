@@ -1,9 +1,16 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Search, SlidersHorizontal, X } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
 import { RestaurantCard } from "@/components/site/RestaurantCard";
-import { restaurants, QUICK_FILTERS, type RestaurantTag } from "@/data/restaurants";
+import {
+  restaurants as localRestaurants,
+  QUICK_FILTERS,
+  type Restaurant,
+  type RestaurantTag,
+} from "@/data/restaurants";
+import { fetchSupabaseRestaurants } from "@/lib/restaurants-api";
+import { mapSupabaseRestaurantsToRestaurants } from "@/lib/restaurant-mappers";
 
 export const Route = createFileRoute("/restaurants")({
   head: () => ({
@@ -25,6 +32,9 @@ function RestaurantsPage() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<Sort>("near");
   const [mobileFilters, setMobileFilters] = useState(false);
+  const [supabaseRestaurants, setSupabaseRestaurants] = useState<Restaurant[]>([]);
+  const [loadingRestaurants, setLoadingRestaurants] = useState(true);
+  const [restaurantsSource, setRestaurantsSource] = useState<"supabase" | "local">("local");
 
   const toggle = (t: RestaurantTag) => {
     const n = new Set(active);
@@ -38,10 +48,51 @@ function RestaurantsPage() {
     setActive(n);
   };
 
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchSupabaseRestaurants()
+      .then((data) => {
+        if (cancelled) return;
+
+        const mapped = mapSupabaseRestaurantsToRestaurants(data);
+
+        if (mapped.length > 0) {
+          setSupabaseRestaurants(mapped);
+          setRestaurantsSource("supabase");
+        } else {
+          setSupabaseRestaurants([]);
+          setRestaurantsSource("local");
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load restaurants from Supabase:", error);
+
+        if (!cancelled) {
+          setSupabaseRestaurants([]);
+          setRestaurantsSource("local");
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingRestaurants(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const sourceRestaurants =
+    restaurantsSource === "supabase" && supabaseRestaurants.length > 0
+      ? supabaseRestaurants
+      : localRestaurants;
+
   const filtered = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
 
-    let list = restaurants.filter((r) => {
+    let list = sourceRestaurants.filter((r) => {
       const matchesFilters = [...active].every((t) => r.tags.includes(t));
 
       if (!normalizedSearch) return matchesFilters;
@@ -69,7 +120,7 @@ function RestaurantsPage() {
     if (sort === "open") list = [...list].sort((a, b) => Number(b.open) - Number(a.open));
 
     return list;
-  }, [active, search, sort]);
+  }, [active, search, sort, sourceRestaurants]);
 
   return (
     <SiteShell>
@@ -80,7 +131,8 @@ function RestaurantsPage() {
               Restaurants autour de vous
             </h1>
             <p className="text-muted-foreground mt-2">
-              {filtered.length} adresses · Lyon et alentours
+              {filtered.length} adresses ·{" "}
+              {restaurantsSource === "supabase" ? "données Supabase" : "données locales"}
             </p>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
@@ -178,11 +230,18 @@ function RestaurantsPage() {
           )}
 
           <div>
+            {loadingRestaurants && (
+              <div className="mb-4 rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+                Chargement des restaurants...
+              </div>
+            )}
+
             <div className="grid sm:grid-cols-2 xl:grid-cols-3 gap-5">
               {filtered.map((r) => (
                 <RestaurantCard key={r.id} r={r} />
               ))}
             </div>
+
             {filtered.length === 0 && (
               <div className="rounded-2xl border border-dashed border-border p-12 text-center">
                 <p className="text-muted-foreground">
