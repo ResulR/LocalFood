@@ -3,12 +3,7 @@ import { useEffect, useMemo, useState } from "react";
 import { MapPin, Search, SlidersHorizontal, X } from "lucide-react";
 import { SiteShell } from "@/components/site/SiteShell";
 import { RestaurantCard } from "@/components/site/RestaurantCard";
-import {
-  restaurants as localRestaurants,
-  QUICK_FILTERS,
-  type Restaurant,
-  type RestaurantTag,
-} from "@/data/restaurants";
+import { QUICK_FILTERS, type Restaurant, type RestaurantTag } from "@/data/restaurants";
 import {
   calculateDistanceKm,
   dismissLocationPrompt,
@@ -56,7 +51,7 @@ function RestaurantsPage() {
   const [mobileFilters, setMobileFilters] = useState(false);
   const [supabaseRestaurants, setSupabaseRestaurants] = useState<Restaurant[]>([]);
   const [loadingRestaurants, setLoadingRestaurants] = useState(true);
-  const [restaurantsSource, setRestaurantsSource] = useState<"supabase" | "local">("local");
+  const [restaurantsMessage, setRestaurantsMessage] = useState("");
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
   const [showLocationPrompt, setShowLocationPrompt] = useState(false);
   const [locationStatus, setLocationStatus] = useState<LocationStatus>("idle");
@@ -105,18 +100,18 @@ function RestaurantsPage() {
   useEffect(() => {
     let cancelled = false;
 
+    setLoadingRestaurants(true);
+    setRestaurantsMessage("");
+
     fetchSupabaseRestaurants()
       .then((data) => {
         if (cancelled) return;
 
         const mapped = mapSupabaseRestaurantsToRestaurants(data);
+        setSupabaseRestaurants(mapped);
 
-        if (mapped.length > 0) {
-          setSupabaseRestaurants(mapped);
-          setRestaurantsSource("supabase");
-        } else {
-          setSupabaseRestaurants([]);
-          setRestaurantsSource("local");
+        if (mapped.length === 0) {
+          setRestaurantsMessage("Aucun restaurant actif n’est disponible pour le moment.");
         }
       })
       .catch((error) => {
@@ -124,7 +119,7 @@ function RestaurantsPage() {
 
         if (!cancelled) {
           setSupabaseRestaurants([]);
-          setRestaurantsSource("local");
+          setRestaurantsMessage("Impossible de charger les restaurants depuis la base de données.");
         }
       })
       .finally(() => {
@@ -138,10 +133,7 @@ function RestaurantsPage() {
     };
   }, []);
 
-  const sourceRestaurants =
-    restaurantsSource === "supabase" && supabaseRestaurants.length > 0
-      ? supabaseRestaurants
-      : localRestaurants;
+  const sourceRestaurants = supabaseRestaurants;
 
   const restaurantsWithDistance = useMemo(() => {
     if (!userLocation) {
@@ -380,6 +372,11 @@ function RestaurantsPage() {
             {loadingRestaurants && (
               <div className="mb-4 rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
                 Chargement des restaurants...
+              </div>
+            )}
+            {restaurantsMessage && (
+              <div className="mb-4 rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+                {restaurantsMessage}
               </div>
             )}
 
