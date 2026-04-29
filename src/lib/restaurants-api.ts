@@ -337,3 +337,61 @@ export async function fetchSupabaseRestaurantReviewsBySlug(slug: string) {
 
   return (data ?? []) as SupabaseRestaurantReview[];
 }
+
+export type SupabaseRestaurantInteractionType =
+  | "Maps"
+  | "Waze"
+  | "Appel"
+  | "Menu"
+  | "Intent"
+  | "AI"
+  | "Avis"
+  | "Offre"
+  | "Vue";
+
+export type SupabaseRestaurantInteraction = {
+  id: string;
+  restaurant_id: string;
+  action: string;
+  source: string;
+  interaction_type: SupabaseRestaurantInteractionType;
+  created_at: string;
+};
+
+export async function fetchSupabaseRestaurantInteractionsBySlug(slug: string) {
+  const { data: restaurant, error: restaurantError } = await supabase
+    .from("restaurants")
+    .select("id")
+    .eq("slug", slug)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (restaurantError) {
+    throw restaurantError;
+  }
+
+  if (!restaurant) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("restaurant_interactions")
+    .select(
+      `
+        id,
+        restaurant_id,
+        action,
+        source,
+        interaction_type,
+        created_at
+      `,
+    )
+    .eq("restaurant_id", restaurant.id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as SupabaseRestaurantInteraction[];
+}

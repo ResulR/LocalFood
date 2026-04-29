@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   BarChart,
   Bar,
@@ -9,17 +9,245 @@ import {
   CartesianGrid,
   Legend,
 } from "recharts";
-import { chartData7d, chartData30d } from "@/data/restaurants";
 import { topActionsBreakdown, peakHours } from "@/data/mockStats";
 import { TOP_AI_QUERIES } from "@/data/mockAI";
 import { Sparkles } from "lucide-react";
+import {
+  fetchSupabaseRestaurantInteractionsBySlug,
+  type SupabaseRestaurantInteraction,
+  type SupabaseRestaurantInteractionType,
+} from "@/lib/restaurants-api";
+
+type Range = "7d" | "30d";
+
+type ChartRow = {
+  day: string;
+  views: number;
+  clics: number;
+};
+
+type ActionBreakdownRow = {
+  l: string;
+  v: number;
+  p: number;
+};
+
+const ACTION_LABELS: Record<SupabaseRestaurantInteractionType, string> = {
+  Vue: "Vues",
+  Maps: "Itinéraire Maps",
+  Waze: "Itinéraire Waze",
+  Appel: "Appels",
+  Menu: "Voir le menu",
+  Intent: "« J'y vais »",
+  AI: "Assistant IA",
+  Avis: "Avis",
+  Offre: "Offres",
+};
+
+const INTERACTION_TYPES: SupabaseRestaurantInteractionType[] = [
+  "Maps",
+  "Waze",
+  "Appel",
+  "Menu",
+  "Intent",
+  "AI",
+  "Avis",
+  "Offre",
+  "Vue",
+];
+
+const FALLBACK_INTERACTIONS: SupabaseRestaurantInteraction[] = [
+  {
+    id: "fallback-1",
+    restaurant_id: "local",
+    action: "Vue de fiche",
+    source: "Recherche restaurants",
+    interaction_type: "Vue",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "fallback-2",
+    restaurant_id: "local",
+    action: "Itinéraire lancé",
+    source: "Google Maps",
+    interaction_type: "Maps",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "fallback-3",
+    restaurant_id: "local",
+    action: "Menu consulté",
+    source: "Fiche restaurant",
+    interaction_type: "Menu",
+    created_at: new Date().toISOString(),
+  },
+  {
+    id: "fallback-4",
+    restaurant_id: "local",
+    action: "Appel téléphonique",
+    source: "Fiche restaurant",
+    interaction_type: "Appel",
+    created_at: new Date().toISOString(),
+  },
+];
+
+function getRangeDays(range: Range) {
+  return range === "7d" ? 7 : 30;
+}
+
+function isInsideRange(createdAt: string, range: Range) {
+  const createdDate = new Date(createdAt);
+  const now = new Date();
+  const diffMs = now.getTime() - createdDate.getTime();
+  const diffDays = diffMs / (1000 * 60 * 60 * 24);
+
+  return diffDays <= getRangeDays(range);
+}
+
+function buildChartData(interactions: SupabaseRestaurantInteraction[], range: Range): ChartRow[] {
+  const days = getRangeDays(range);
+  const now = new Date();
+
+  return Array.from({ length: days }, (_, index) => {
+    const date = new Date(now);
+    date.setDate(now.getDate() - (days - 1 - index));
+
+    const dayInteractions = interactions.filter((interaction) => {
+      const interactionDate = new Date(interaction.created_at);
+
+      return (
+        interactionDate.getFullYear() === date.getFullYear() &&
+        interactionDate.getMonth() === date.getMonth() &&
+        interactionDate.getDate() === date.getDate()
+      );
+    });
+
+    const views = dayInteractions.filter(
+      (interaction) => interaction.interaction_type === "Vue",
+    ).length;
+    const clics = dayInteractions.filter(
+      (interaction) => interaction.interaction_type !== "Vue",
+    ).length;
+
+    return {
+      day:
+        range === "7d"
+          ? date.toLocaleDateString("fr-FR", { weekday: "short" }).replace(".", "")
+          : String(date.getDate()),
+      views,
+      clics,
+    };
+  });
+}
+
+function buildActionBreakdown(interactions: SupabaseRestaurantInteraction[]): ActionBreakdownRow[] {
+  const actionInteractions = interactions.filter(
+    (interaction) => interaction.interaction_type !== "Vue",
+  );
+  const total = Math.max(actionInteractions.length, 1);
+
+  return INTERACTION_TYPES.filter((type) => type !== "Vue")
+    .map((type) => {
+      const count = actionInteractions.filter(
+        (interaction) => interaction.interaction_type === type,
+      ).length;
+
+      return {
+        l: ACTION_LABELS[type],
+        v: count,
+        p: Math.round((count / total) * 100),
+      };
+    })
+    .filter((row) => row.v > 0)
+    .sort((a, b) => b.v - a.v);
+}
 
 export function StatsView() {
-  const [range, setRange] = useState<"7d" | "30d">("7d");
-  const data = range === "7d" ? chartData7d : chartData30d;
+  const [range, setRange] = useState<Range>("7d");
+  const [interactions, setInteractions] =
+    useState<SupabaseRestaurantInteraction[]>(FALLBACK_INTERACTIONS);
+  const [loadingStats, setLoadingStats] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchSupabaseRestaurantInteractionsBySlug("maison-zayna")
+      .then((data) => {
+        if (cancelled) return;
+
+        if (data.length > 0) {
+          setInteractions(data);
+        } else {
+          setInteractions(FALLBACK_INTERACTIONS);
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load restaurant interactions from Supabase:", error);
+
+        if (!cancelled) {
+          setInteractions(FALLBACK_INTERACTIONS);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingStats(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const rangeInteractions = useMemo(
+    () => interactions.filter((interaction) => isInsideRange(interaction.created_at, range)),
+    [interactions, range],
+  );
+
+  const data = useMemo(() => buildChartData(rangeInteractions, range), [rangeInteractions, range]);
+
+  const totalViews = useMemo(
+    () => rangeInteractions.filter((interaction) => interaction.interaction_type === "Vue").length,
+    [rangeInteractions],
+  );
+
+  const itineraryClicks = useMemo(
+    () =>
+      rangeInteractions.filter(
+        (interaction) =>
+          interaction.interaction_type === "Maps" || interaction.interaction_type === "Waze",
+      ).length,
+    [rangeInteractions],
+  );
+
+  const calls = useMemo(
+    () =>
+      rangeInteractions.filter((interaction) => interaction.interaction_type === "Appel").length,
+    [rangeInteractions],
+  );
+
+  const intentClicks = useMemo(
+    () =>
+      rangeInteractions.filter((interaction) => interaction.interaction_type === "Intent").length,
+    [rangeInteractions],
+  );
+
+  const conversionRate =
+    totalViews > 0 ? `${((intentClicks / totalViews) * 100).toFixed(1).replace(".", ",")}%` : "0%";
+
+  const actionBreakdown = useMemo(
+    () => buildActionBreakdown(rangeInteractions),
+    [rangeInteractions],
+  );
 
   return (
     <div className="space-y-6 max-w-[1400px]">
+      {loadingStats && (
+        <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+          Chargement des statistiques...
+        </div>
+      )}
+
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
           <h1 className="font-display text-3xl font-semibold">Statistiques</h1>
@@ -32,7 +260,9 @@ export function StatsView() {
             <button
               key={r}
               onClick={() => setRange(r)}
-              className={`px-4 py-1.5 text-sm rounded-full transition ${range === r ? "bg-background shadow-soft font-medium" : "text-muted-foreground"}`}
+              className={`px-4 py-1.5 text-sm rounded-full transition ${
+                range === r ? "bg-background shadow-soft font-medium" : "text-muted-foreground"
+              }`}
             >
               {r === "7d" ? "7 jours" : "30 jours"}
             </button>
@@ -42,10 +272,10 @@ export function StatsView() {
 
       <div className="grid md:grid-cols-4 gap-3">
         {[
-          { l: "Total vues", v: range === "7d" ? "409" : "1 752", c: "+14%" },
-          { l: "Clics itinéraire", v: range === "7d" ? "169" : "612", c: "+9%" },
-          { l: "Appels", v: range === "7d" ? "32" : "127", c: "+22%" },
-          { l: "Conversion", v: "12,4%", c: "+1,8 pt" },
+          { l: "Total vues", v: String(totalViews), c: "Supabase" },
+          { l: "Clics itinéraire", v: String(itineraryClicks), c: "Maps + Waze" },
+          { l: "Appels", v: String(calls), c: "Fiche restaurant" },
+          { l: "Conversion", v: conversionRate, c: "J’y vais / vues" },
         ].map((k) => (
           <div key={k.l} className="rounded-2xl bg-card border border-border p-5">
             <div className="text-xs text-muted-foreground">{k.l}</div>
@@ -62,7 +292,7 @@ export function StatsView() {
             <BarChart data={data}>
               <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="oklch(0.92 0.01 70)" />
               <XAxis dataKey="day" tickLine={false} axisLine={false} className="text-xs" />
-              <YAxis tickLine={false} axisLine={false} className="text-xs" />
+              <YAxis tickLine={false} axisLine={false} className="text-xs" allowDecimals={false} />
               <Tooltip
                 contentStyle={{ borderRadius: 12, border: "1px solid oklch(0.92 0.01 70)" }}
               />
@@ -78,7 +308,7 @@ export function StatsView() {
         <div className="rounded-2xl bg-card border border-border p-6">
           <h3 className="font-display text-base font-semibold mb-4">Répartition des actions</h3>
           <div className="space-y-3">
-            {topActionsBreakdown.map((row) => (
+            {(actionBreakdown.length > 0 ? actionBreakdown : topActionsBreakdown).map((row) => (
               <div key={row.l}>
                 <div className="flex justify-between text-sm">
                   <span>{row.l}</span>
@@ -91,6 +321,7 @@ export function StatsView() {
             ))}
           </div>
         </div>
+
         <div className="rounded-2xl bg-card border border-border p-6">
           <h3 className="font-display text-base font-semibold mb-4">Pics d'activité</h3>
           <ul className="space-y-3 text-sm">
