@@ -370,6 +370,8 @@ function SectionWithCarousel({
   items: Restaurant[];
   icon?: React.ComponentType<{ className?: string }>;
 }) {
+  const { t } = useI18n();
+
   return (
     <section className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
       <div className="flex items-end justify-between mb-8 flex-wrap gap-4">
