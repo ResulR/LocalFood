@@ -6,44 +6,74 @@ import {
   QUICK_FILTERS,
   type Restaurant,
 } from "@/data/restaurants";
-import { fetchSupabaseRestaurantBySlug } from "@/lib/restaurants-api";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  fetchSupabaseRestaurantById,
+  fetchSupabaseRestaurantsByCompanyId,
+} from "@/lib/restaurants-api";
 import { mapSupabaseRestaurantToRestaurant } from "@/lib/restaurant-mappers";
 
 export function ProfileEditor() {
+  const { profile } = useAuth();
   const [restaurant, setRestaurant] = useState<Restaurant>(localRestaurants[0]);
   const [tags, setTags] = useState<string[]>(localRestaurants[0].tags);
   const [saved, setSaved] = useState(false);
   const [loadingRestaurant, setLoadingRestaurant] = useState(true);
+  const [profileMessage, setProfileMessage] = useState("");
 
   useEffect(() => {
     let cancelled = false;
 
-    fetchSupabaseRestaurantBySlug("maison-zayna")
-      .then((data) => {
-        if (cancelled || !data) return;
+    async function loadProfileRestaurant() {
+      setLoadingRestaurant(true);
+      setProfileMessage("");
 
-        const mapped = mapSupabaseRestaurantToRestaurant(data);
-        setRestaurant(mapped);
-        setTags(mapped.tags);
-      })
-      .catch((error) => {
-        console.error("Failed to load profile restaurant from Supabase:", error);
+      if (!profile?.current_company_id) {
+        setProfileMessage("Aucune entreprise n’est liée à votre profil.");
+        setLoadingRestaurant(false);
+        return;
+      }
 
-        if (!cancelled) {
-          setRestaurant(localRestaurants[0]);
-          setTags(localRestaurants[0].tags);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoadingRestaurant(false);
-        }
-      });
+      const restaurants = await fetchSupabaseRestaurantsByCompanyId(profile.current_company_id);
+      const companyRestaurant = restaurants[0] ?? null;
+
+      if (cancelled) return;
+
+      if (!companyRestaurant) {
+        setProfileMessage("Aucun restaurant n’est encore lié à votre entreprise.");
+        setLoadingRestaurant(false);
+        return;
+      }
+
+      const data = await fetchSupabaseRestaurantById(companyRestaurant.id);
+
+      if (cancelled) return;
+
+      if (!data) {
+        setProfileMessage("Impossible de charger la fiche de ce restaurant.");
+        setLoadingRestaurant(false);
+        return;
+      }
+
+      const mapped = mapSupabaseRestaurantToRestaurant(data);
+      setRestaurant(mapped);
+      setTags(mapped.tags);
+      setLoadingRestaurant(false);
+    }
+
+    loadProfileRestaurant().catch((error) => {
+      console.error("Failed to load profile restaurant from Supabase:", error);
+
+      if (!cancelled) {
+        setProfileMessage("Impossible de charger la fiche restaurant.");
+        setLoadingRestaurant(false);
+      }
+    });
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [profile?.current_company_id]);
 
   const r = restaurant;
   const toggle = (t: string) =>
@@ -63,6 +93,12 @@ export function ProfileEditor() {
           Chargement de la fiche restaurant...
         </div>
       )}
+      {profileMessage && (
+        <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
+          {profileMessage}
+        </div>
+      )}
+
       <div className="flex items-end justify-between">
         <div>
           <h1 className="font-display text-3xl font-semibold">Ma fiche restaurant</h1>

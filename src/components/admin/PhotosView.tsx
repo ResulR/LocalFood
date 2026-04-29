@@ -7,41 +7,76 @@ import {
   type PhotoCategory,
   type RestaurantPhoto,
 } from "@/data/restaurants";
-import { fetchSupabaseRestaurantBySlug } from "@/lib/restaurants-api";
+import { useAuth } from "@/contexts/AuthContext";
+import {
+  fetchSupabaseRestaurantById,
+  fetchSupabaseRestaurantsByCompanyId,
+} from "@/lib/restaurants-api";
 import { mapSupabaseRestaurantToRestaurant } from "@/lib/restaurant-mappers";
 
 export function PhotosView() {
+  const { profile } = useAuth();
   const [photos, setPhotos] = useState<RestaurantPhoto[]>(localRestaurants[0].photos);
   const [filter, setFilter] = useState<PhotoCategory | "Toutes">("Toutes");
   const [loadingPhotos, setLoadingPhotos] = useState(true);
+  const [photosMessage, setPhotosMessage] = useState("");
 
   useEffect(() => {
     let cancelled = false;
 
-    fetchSupabaseRestaurantBySlug("maison-zayna")
-      .then((data) => {
-        if (cancelled || !data) return;
+    async function loadRestaurantPhotos() {
+      setLoadingPhotos(true);
+      setPhotosMessage("");
 
-        const mapped = mapSupabaseRestaurantToRestaurant(data);
-        setPhotos(mapped.photos);
-      })
-      .catch((error) => {
-        console.error("Failed to load restaurant photos from Supabase:", error);
+      if (!profile?.current_company_id) {
+        setPhotos([]);
+        setPhotosMessage("Aucune entreprise n’est liée à votre profil.");
+        setLoadingPhotos(false);
+        return;
+      }
 
-        if (!cancelled) {
-          setPhotos(localRestaurants[0].photos);
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoadingPhotos(false);
-        }
-      });
+      const restaurants = await fetchSupabaseRestaurantsByCompanyId(profile.current_company_id);
+      const companyRestaurant = restaurants[0] ?? null;
+
+      if (cancelled) return;
+
+      if (!companyRestaurant) {
+        setPhotos([]);
+        setPhotosMessage("Aucun restaurant n’est encore lié à votre entreprise.");
+        setLoadingPhotos(false);
+        return;
+      }
+
+      const data = await fetchSupabaseRestaurantById(companyRestaurant.id);
+
+      if (cancelled) return;
+
+      if (!data) {
+        setPhotos([]);
+        setPhotosMessage("Impossible de charger les photos de ce restaurant.");
+        setLoadingPhotos(false);
+        return;
+      }
+
+      const mapped = mapSupabaseRestaurantToRestaurant(data);
+      setPhotos(mapped.photos);
+      setLoadingPhotos(false);
+    }
+
+    loadRestaurantPhotos().catch((error) => {
+      console.error("Failed to load restaurant photos from Supabase:", error);
+
+      if (!cancelled) {
+        setPhotos([]);
+        setPhotosMessage("Impossible de charger les photos.");
+        setLoadingPhotos(false);
+      }
+    });
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [profile?.current_company_id]);
 
   const all = photos;
   const filtered = filter === "Toutes" ? all : all.filter((p) => p.category === filter);
@@ -51,6 +86,11 @@ export function PhotosView() {
       {loadingPhotos && (
         <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
           Chargement des photos...
+        </div>
+      )}
+      {photosMessage && (
+        <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
+          {photosMessage}
         </div>
       )}
 

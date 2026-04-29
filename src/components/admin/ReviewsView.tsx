@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { Star, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
-import { restaurants as localRestaurants } from "@/data/restaurants";
+import { useAuth } from "@/contexts/AuthContext";
 import {
-  fetchSupabaseRestaurantReviewsBySlug,
+  fetchSupabaseRestaurantReviewsByRestaurantId,
+  fetchSupabaseRestaurantsByCompanyId,
+  type SupabaseCompanyRestaurant,
   type SupabaseRestaurantReview,
 } from "@/lib/restaurants-api";
 
@@ -48,78 +50,65 @@ function mapSupabaseReview(review: SupabaseRestaurantReview): AdminReview {
   };
 }
 
-function getLocalFallbackReviews(): AdminReview[] {
-  return [
-    ...localRestaurants[0].reviews.map((review) => ({
-      id: review.id,
-      author: review.author,
-      rating: review.rating,
-      date: review.date,
-      comment: review.comment,
-      photo: review.photo,
-      status: "publié" as const,
-    })),
-    {
-      id: "x1",
-      author: "Antoine R.",
-      rating: 4,
-      date: "il y a 3 jours",
-      comment: "Très bon mais bruyant le samedi soir.",
-      status: "publié",
-    },
-    {
-      id: "x2",
-      author: "Inès D.",
-      rating: 2,
-      date: "il y a 4 jours",
-      comment: "Service vraiment trop lent, dommage car la cuisine est correcte.",
-      status: "en attente",
-    },
-    {
-      id: "x3",
-      author: "Mehdi K.",
-      rating: 5,
-      date: "il y a 5 jours",
-      comment: "Le meilleur halal de Lyon, sans hésiter !",
-      status: "publié",
-    },
-  ];
-}
-
 export function ReviewsView() {
-  const [reviews, setReviews] = useState<AdminReview[]>(() => getLocalFallbackReviews());
+  const { profile } = useAuth();
+  const [currentRestaurant, setCurrentRestaurant] = useState<SupabaseCompanyRestaurant | null>(
+    null,
+  );
+  const [reviews, setReviews] = useState<AdminReview[]>([]);
   const [loadingReviews, setLoadingReviews] = useState(true);
+  const [reviewsMessage, setReviewsMessage] = useState("");
 
   useEffect(() => {
     let cancelled = false;
 
-    fetchSupabaseRestaurantReviewsBySlug("maison-zayna")
-      .then((data) => {
-        if (cancelled) return;
+    async function loadReviews() {
+      setLoadingReviews(true);
+      setReviewsMessage("");
+      setCurrentRestaurant(null);
+      setReviews([]);
 
-        if (data.length > 0) {
-          setReviews(data.map(mapSupabaseReview));
-        } else {
-          setReviews(getLocalFallbackReviews());
-        }
-      })
-      .catch((error) => {
-        console.error("Failed to load restaurant reviews from Supabase:", error);
+      if (!profile?.current_company_id) {
+        setReviewsMessage("Aucune entreprise n’est liée à votre profil.");
+        setLoadingReviews(false);
+        return;
+      }
 
-        if (!cancelled) {
-          setReviews(getLocalFallbackReviews());
-        }
-      })
-      .finally(() => {
-        if (!cancelled) {
-          setLoadingReviews(false);
-        }
-      });
+      const restaurants = await fetchSupabaseRestaurantsByCompanyId(profile.current_company_id);
+      const restaurant = restaurants[0] ?? null;
+
+      if (cancelled) return;
+
+      if (!restaurant) {
+        setReviewsMessage("Aucun restaurant n’est encore lié à votre entreprise.");
+        setLoadingReviews(false);
+        return;
+      }
+
+      setCurrentRestaurant(restaurant);
+
+      const data = await fetchSupabaseRestaurantReviewsByRestaurantId(restaurant.id);
+
+      if (cancelled) return;
+
+      setReviews(data.map(mapSupabaseReview));
+      setLoadingReviews(false);
+    }
+
+    loadReviews().catch((error) => {
+      console.error("Failed to load restaurant reviews from Supabase:", error);
+
+      if (!cancelled) {
+        setReviewsMessage("Impossible de charger les avis clients.");
+        setReviews([]);
+        setLoadingReviews(false);
+      }
+    });
 
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [profile?.current_company_id]);
 
   const averageRating = useMemo(() => {
     if (reviews.length === 0) return "0,0";
@@ -140,6 +129,11 @@ export function ReviewsView() {
           Chargement des avis...
         </div>
       )}
+      {reviewsMessage && (
+        <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
+          {reviewsMessage}
+        </div>
+      )}
 
       <div>
         <h1 className="font-display text-3xl font-semibold">Avis clients</h1>
@@ -148,63 +142,73 @@ export function ReviewsView() {
 
       <div className="grid sm:grid-cols-3 gap-3">
         <Stat label="Note moyenne" value={averageRating} sub="sur 5" />
-        <Stat label="Avis affichés" value={String(reviews.length)} sub="Maison Zayna" />
+        <Stat
+          label="Avis affichés"
+          value={String(reviews.length)}
+          sub={currentRestaurant?.name ?? "Restaurant"}
+        />
         <Stat label="En attente" value={String(pendingCount)} sub="à modérer" />
       </div>
 
       <div className="rounded-2xl bg-card border border-border divide-y divide-border">
-        {reviews.map((rev) => (
-          <div key={rev.id} className="p-6">
-            <div className="flex items-start justify-between gap-4">
-              <div className="flex items-start gap-3">
-                <div className="h-10 w-10 rounded-full bg-gradient-primary text-primary-foreground inline-flex items-center justify-center text-sm font-semibold">
-                  {rev.author[0]}
-                </div>
-                <div>
-                  <div className="flex items-center gap-2">
-                    <span className="font-medium text-sm">{rev.author}</span>
-                    <span
-                      className={`text-[10px] uppercase tracking-wider rounded-full px-2 py-0.5 font-semibold ${
-                        rev.status === "publié"
-                          ? "bg-success/15 text-success"
-                          : rev.status === "en attente"
-                            ? "bg-warning/20 text-warning-foreground"
-                            : "bg-muted text-muted-foreground"
-                      }`}
-                    >
-                      {rev.status}
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2 mt-1">
-                    <div className="flex">
-                      {Array.from({ length: 5 }).map((_, i) => (
-                        <Star
-                          key={i}
-                          className={`h-3.5 w-3.5 ${
-                            i < rev.rating
-                              ? "fill-warning text-warning"
-                              : "text-muted-foreground/30"
-                          }`}
-                        />
-                      ))}
-                    </div>
-                    <span className="text-xs text-muted-foreground">{rev.date}</span>
-                  </div>
-                </div>
-              </div>
-              <button
-                onClick={() => toast.success("Réponse envoyée")}
-                className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-xs font-medium hover:bg-secondary"
-              >
-                <MessageSquare className="h-3.5 w-3.5" /> Répondre
-              </button>
-            </div>
-            <p className="text-sm text-muted-foreground mt-3 sm:pl-13">{rev.comment}</p>
-            {rev.photo && (
-              <img src={rev.photo} alt="" className="mt-3 rounded-lg max-h-40 object-cover" />
-            )}
+        {reviews.length === 0 ? (
+          <div className="p-10 text-center text-sm text-muted-foreground">
+            Aucun avis client à afficher pour ce restaurant.
           </div>
-        ))}
+        ) : (
+          reviews.map((rev) => (
+            <div key={rev.id} className="p-6">
+              <div className="flex items-start justify-between gap-4">
+                <div className="flex items-start gap-3">
+                  <div className="h-10 w-10 rounded-full bg-gradient-primary text-primary-foreground inline-flex items-center justify-center text-sm font-semibold">
+                    {rev.author[0]}
+                  </div>
+                  <div>
+                    <div className="flex items-center gap-2">
+                      <span className="font-medium text-sm">{rev.author}</span>
+                      <span
+                        className={`text-[10px] uppercase tracking-wider rounded-full px-2 py-0.5 font-semibold ${
+                          rev.status === "publié"
+                            ? "bg-success/15 text-success"
+                            : rev.status === "en attente"
+                              ? "bg-warning/20 text-warning-foreground"
+                              : "bg-muted text-muted-foreground"
+                        }`}
+                      >
+                        {rev.status}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-2 mt-1">
+                      <div className="flex">
+                        {Array.from({ length: 5 }).map((_, i) => (
+                          <Star
+                            key={i}
+                            className={`h-3.5 w-3.5 ${
+                              i < rev.rating
+                                ? "fill-warning text-warning"
+                                : "text-muted-foreground/30"
+                            }`}
+                          />
+                        ))}
+                      </div>
+                      <span className="text-xs text-muted-foreground">{rev.date}</span>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  onClick={() => toast.success("Réponse envoyée")}
+                  className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-xs font-medium hover:bg-secondary"
+                >
+                  <MessageSquare className="h-3.5 w-3.5" /> Répondre
+                </button>
+              </div>
+              <p className="text-sm text-muted-foreground mt-3 sm:pl-13">{rev.comment}</p>
+              {rev.photo && (
+                <img src={rev.photo} alt="" className="mt-3 rounded-lg max-h-40 object-cover" />
+              )}
+            </div>
+          ))
+        )}
       </div>
     </div>
   );

@@ -293,6 +293,88 @@ export async function fetchSupabaseRestaurantBySlug(slug: string) {
   return normalizeRestaurant(data as unknown as SupabaseRestaurantRow);
 }
 
+export async function fetchSupabaseRestaurantById(restaurantId: string) {
+  const { data, error } = await supabase
+    .from("restaurants")
+    .select(
+      `
+        id,
+        name,
+        slug,
+        category,
+        cuisine_type,
+        description,
+        main_image_url,
+        rating,
+        reviews_count,
+        distance_km,
+        latitude,
+        longitude,
+        price_level,
+        price_label,
+        is_open,
+        hours_summary,
+        address,
+        city,
+        country,
+        phone,
+        menu_url,
+        google_maps_url,
+        waze_url,
+        localfood_match_score,
+        is_new,
+        is_active,
+        restaurant_tags (
+          tags (
+            label,
+            slug
+          )
+        ),
+        restaurant_badges (
+          badges (
+            label,
+            slug
+          )
+        ),
+        restaurant_photos (
+          id,
+          url,
+          category,
+          is_client_photo,
+          author_name,
+          sort_order
+        ),
+        restaurant_opening_hours (
+          id,
+          day_of_week,
+          day_label,
+          hours_text,
+          is_closed
+        ),
+        restaurant_offers (
+          id,
+          code,
+          title,
+          description,
+          conditions,
+          is_active
+        )
+      `,
+    )
+    .eq("id", restaurantId)
+    .maybeSingle();
+
+  if (error) {
+    throw error;
+  }
+
+  if (!data) {
+    return null;
+  }
+
+  return normalizeRestaurant(data as unknown as SupabaseRestaurantRow);
+}
+
 export type SupabaseRestaurantReview = {
   id: string;
   restaurant_id: string;
@@ -337,6 +419,32 @@ export async function fetchSupabaseRestaurantReviewsBySlug(slug: string) {
       `,
     )
     .eq("restaurant_id", restaurant.id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as SupabaseRestaurantReview[];
+}
+
+export async function fetchSupabaseRestaurantReviewsByRestaurantId(restaurantId: string) {
+  const { data, error } = await supabase
+    .from("restaurant_reviews")
+    .select(
+      `
+        id,
+        restaurant_id,
+        author_name,
+        rating,
+        comment,
+        photo_url,
+        status,
+        created_at,
+        updated_at
+      `,
+    )
+    .eq("restaurant_id", restaurantId)
     .order("created_at", { ascending: false });
 
   if (error) {
