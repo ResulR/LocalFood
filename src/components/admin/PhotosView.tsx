@@ -1,12 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Upload, Trash2, Eye } from "lucide-react";
 import { toast } from "sonner";
-import {
-  restaurants as localRestaurants,
-  PHOTO_CATEGORIES,
-  type PhotoCategory,
-  type RestaurantPhoto,
-} from "@/data/restaurants";
+import { PHOTO_CATEGORIES, type PhotoCategory, type RestaurantPhoto } from "@/data/restaurants";
 import { useRestaurantDashboard } from "@/contexts/RestaurantDashboardContext";
 import {
   addOwnedRestaurantPhoto,
@@ -18,7 +13,7 @@ import { mapSupabaseRestaurantToRestaurant } from "@/lib/restaurant-mappers";
 
 export function PhotosView() {
   const { selectedRestaurant, loadingRestaurants, restaurantMessage } = useRestaurantDashboard();
-  const [photos, setPhotos] = useState<RestaurantPhoto[]>(localRestaurants[0].photos);
+  const [photos, setPhotos] = useState<RestaurantPhoto[]>([]);
   const [filter, setFilter] = useState<PhotoCategory | "Toutes">("Toutes");
   const [loadingPhotos, setLoadingPhotos] = useState(true);
   const [photosMessage, setPhotosMessage] = useState("");
