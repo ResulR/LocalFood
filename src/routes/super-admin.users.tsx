@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, Search, Shield, Users } from "lucide-react";
+import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import type { AppRole } from "@/contexts/AuthContext";
 
@@ -8,6 +9,8 @@ export const Route = createFileRoute("/super-admin/users")({
   head: () => ({ meta: [{ title: "Utilisateurs — SuperAdmin LocalFood" }] }),
   component: SuperAdminUsersPage,
 });
+
+const ROLES: AppRole[] = ["superadmin", "admin", "user"];
 
 type ProfileRow = {
   id: string;
@@ -44,52 +47,49 @@ function SuperAdminUsersPage() {
   const [roles, setRoles] = useState<UserRoleRow[]>([]);
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [loadingUsers, setLoadingUsers] = useState(true);
+  const [savingUserId, setSavingUserId] = useState<string | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [search, setSearch] = useState("");
 
+  const loadUsers = useCallback(async () => {
+    setLoadingUsers(true);
+    setErrorMessage("");
+
+    const [profilesResult, rolesResult, companiesResult] = await Promise.all([
+      supabase
+        .from("profiles")
+        .select("id, user_id, email, full_name, is_active, current_company_id")
+        .order("created_at", { ascending: false }),
+      supabase.from("user_roles").select("user_id, role"),
+      supabase.from("companies").select("id, name, slug, is_active").order("name"),
+    ]);
+
+    if (profilesResult.error) {
+      setErrorMessage(profilesResult.error.message);
+      setLoadingUsers(false);
+      return;
+    }
+
+    if (rolesResult.error) {
+      setErrorMessage(rolesResult.error.message);
+      setLoadingUsers(false);
+      return;
+    }
+
+    if (companiesResult.error) {
+      setErrorMessage(companiesResult.error.message);
+      setLoadingUsers(false);
+      return;
+    }
+
+    setProfiles((profilesResult.data ?? []) as ProfileRow[]);
+    setRoles((rolesResult.data ?? []) as UserRoleRow[]);
+    setCompanies((companiesResult.data ?? []) as CompanyRow[]);
+    setLoadingUsers(false);
+  }, []);
+
   useEffect(() => {
     let cancelled = false;
-
-    async function loadUsers() {
-      setLoadingUsers(true);
-      setErrorMessage("");
-
-      const [profilesResult, rolesResult, companiesResult] = await Promise.all([
-        supabase
-          .from("profiles")
-          .select("id, user_id, email, full_name, is_active, current_company_id")
-          .order("created_at", { ascending: false }),
-        supabase.from("user_roles").select("user_id, role"),
-        supabase.from("companies").select("id, name, slug, is_active").order("name"),
-      ]);
-
-      if (cancelled) {
-        return;
-      }
-
-      if (profilesResult.error) {
-        setErrorMessage(profilesResult.error.message);
-        setLoadingUsers(false);
-        return;
-      }
-
-      if (rolesResult.error) {
-        setErrorMessage(rolesResult.error.message);
-        setLoadingUsers(false);
-        return;
-      }
-
-      if (companiesResult.error) {
-        setErrorMessage(companiesResult.error.message);
-        setLoadingUsers(false);
-        return;
-      }
-
-      setProfiles((profilesResult.data ?? []) as ProfileRow[]);
-      setRoles((rolesResult.data ?? []) as UserRoleRow[]);
-      setCompanies((companiesResult.data ?? []) as CompanyRow[]);
-      setLoadingUsers(false);
-    }
 
     loadUsers().catch((error) => {
       console.error("Failed to load super admin users:", error);
@@ -103,7 +103,7 @@ function SuperAdminUsersPage() {
     return () => {
       cancelled = true;
     };
-  }, []);
+  }, [loadUsers]);
 
   const rows = useMemo<UserListRow[]>(() => {
     const roleByUserId = new Map(roles.map((role) => [role.user_id, role.role]));
@@ -121,6 +121,11 @@ function SuperAdminUsersPage() {
     }));
   }, [companies, profiles, roles]);
 
+  const superadminCount = useMemo(
+    () => rows.filter((row) => row.role === "superadmin").length,
+    [rows],
+  );
+
   const filteredRows = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
 
@@ -135,6 +140,51 @@ function SuperAdminUsersPage() {
         .includes(normalizedSearch),
     );
   }, [rows, search]);
+
+  const changeUserRole = async (row: UserListRow, nextRole: AppRole) => {
+    if (row.role === nextRole) {
+      return;
+    }
+
+    if (row.role === "superadmin" && superadminCount <= 1 && nextRole !== "superadmin") {
+      toast.error("Impossible de retirer le dernier SuperAdmin");
+      return;
+    }
+
+    setSavingUserId(row.userId);
+
+    const { error: deleteError } = await supabase
+      .from("user_roles")
+      .delete()
+      .eq("user_id", row.userId);
+
+    if (deleteError) {
+      setSavingUserId(null);
+      toast.error("Impossible de modifier le rôle", { description: deleteError.message });
+      return;
+    }
+
+    const { error: insertError } = await supabase.from("user_roles").insert({
+      user_id: row.userId,
+      role: nextRole,
+    });
+
+    if (insertError) {
+      setSavingUserId(null);
+      toast.error("Impossible d’enregistrer le nouveau rôle", {
+        description: insertError.message,
+      });
+      await loadUsers();
+      return;
+    }
+
+    toast.success("Rôle mis à jour", {
+      description: `${row.email} est maintenant ${nextRole}.`,
+    });
+
+    setSavingUserId(null);
+    await loadUsers();
+  };
 
   return (
     <div className="max-w-[1400px] space-y-6">
@@ -203,31 +253,60 @@ function SuperAdminUsersPage() {
                 </tr>
               </thead>
               <tbody>
-                {filteredRows.map((row) => (
-                  <tr key={row.userId} className="border-b border-border last:border-0">
-                    <td className="px-5 py-4">
-                      <div className="font-medium">{row.fullName}</div>
-                      <div className="text-xs text-muted-foreground">{row.email}</div>
-                    </td>
-                    <td className="px-5 py-4">
-                      <span className="rounded-full bg-secondary px-2.5 py-1 text-xs font-medium text-muted-foreground">
-                        {row.role}
-                      </span>
-                    </td>
-                    <td className="px-5 py-4 text-muted-foreground">{row.companyName}</td>
-                    <td className="px-5 py-4">
-                      <span
-                        className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                          row.isActive
-                            ? "bg-success/15 text-success"
-                            : "bg-destructive/10 text-destructive"
-                        }`}
-                      >
-                        {row.isActive ? "Actif" : "Inactif"}
-                      </span>
-                    </td>
-                  </tr>
-                ))}
+                {filteredRows.map((row) => {
+                  const isOnlySuperadmin = row.role === "superadmin" && superadminCount <= 1;
+                  const isSaving = savingUserId === row.userId;
+
+                  return (
+                    <tr key={row.userId} className="border-b border-border last:border-0">
+                      <td className="px-5 py-4">
+                        <div className="font-medium">{row.fullName}</div>
+                        <div className="text-xs text-muted-foreground">{row.email}</div>
+                      </td>
+                      <td className="px-5 py-4">
+                        <div className="flex flex-col gap-1">
+                          <select
+                            value={row.role === "non défini" ? "user" : row.role}
+                            disabled={isSaving || isOnlySuperadmin}
+                            onChange={(event) => changeUserRole(row, event.target.value as AppRole)}
+                            className="w-fit rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium outline-none disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {ROLES.map((role) => (
+                              <option key={role} value={role}>
+                                {role}
+                              </option>
+                            ))}
+                          </select>
+
+                          {isOnlySuperadmin && (
+                            <span className="text-[11px] text-muted-foreground">
+                              Dernier SuperAdmin
+                            </span>
+                          )}
+
+                          {isSaving && (
+                            <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
+                              <Loader2 className="h-3 w-3 animate-spin" />
+                              Sauvegarde...
+                            </span>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-5 py-4 text-muted-foreground">{row.companyName}</td>
+                      <td className="px-5 py-4">
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
+                            row.isActive
+                              ? "bg-success/15 text-success"
+                              : "bg-destructive/10 text-destructive"
+                          }`}
+                        >
+                          {row.isActive ? "Actif" : "Inactif"}
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -235,9 +314,8 @@ function SuperAdminUsersPage() {
       )}
 
       <div className="rounded-2xl border border-border bg-secondary/40 p-5 text-sm text-muted-foreground">
-        Cette première version affiche les utilisateurs uniquement. L’ajout d’utilisateur, le
-        changement de rôle et l’assignation d’entreprise seront ajoutés étape par étape après
-        validation de cette base.
+        Vous pouvez maintenant modifier les rôles. Le dernier SuperAdmin est protégé pour éviter de
+        perdre l’accès global à LocalFood.
       </div>
     </div>
   );
