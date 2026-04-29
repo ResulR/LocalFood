@@ -1,5 +1,5 @@
 import { createFileRoute, Link, notFound } from "@tanstack/react-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import {
   Star,
   MapPin,
@@ -9,7 +9,6 @@ import {
   Menu as MenuIcon,
   Heart,
   Share2,
-  Camera,
   ArrowLeft,
   Check,
   Sparkles,
@@ -20,46 +19,41 @@ import {
 import { toast } from "sonner";
 import { SiteShell } from "@/components/site/SiteShell";
 import { RestaurantCard } from "@/components/site/RestaurantCard";
-import {
-  getRestaurant,
-  getSimilar,
-  restaurants as localRestaurants,
-  PHOTO_CATEGORIES,
-  type PhotoCategory,
-} from "@/data/restaurants";
+import { PHOTO_CATEGORIES, type PhotoCategory } from "@/data/restaurants";
 import { useFavorites } from "@/lib/favorites";
 import {
   fetchSupabaseRestaurantBySlug,
+  fetchSupabaseRestaurants,
   trackRestaurantInteractionBySlug,
   type SupabaseRestaurantInteractionType,
 } from "@/lib/restaurants-api";
-import { mapSupabaseRestaurantToRestaurant } from "@/lib/restaurant-mappers";
+import {
+  mapSupabaseRestaurantToRestaurant,
+  mapSupabaseRestaurantsToRestaurants,
+} from "@/lib/restaurant-mappers";
 
 export const Route = createFileRoute("/restaurants/$id")({
   loader: async ({ params }) => {
     try {
       const supabaseRestaurant = await fetchSupabaseRestaurantBySlug(params.id);
 
-      if (supabaseRestaurant) {
-        return {
-          restaurant: mapSupabaseRestaurantToRestaurant(supabaseRestaurant),
-          source: "supabase" as const,
-        };
+      if (!supabaseRestaurant) {
+        throw notFound();
       }
+
+      const restaurants = await fetchSupabaseRestaurants();
+      const mappedRestaurants = mapSupabaseRestaurantsToRestaurants(restaurants);
+
+      return {
+        restaurant: mapSupabaseRestaurantToRestaurant(supabaseRestaurant),
+        similar: mappedRestaurants
+          .filter((restaurant) => restaurant.slug !== supabaseRestaurant.slug)
+          .slice(0, 3),
+      };
     } catch (error) {
       console.error("Failed to load restaurant from Supabase:", error);
-    }
-
-    const localRestaurant = getRestaurant(params.id);
-
-    if (!localRestaurant) {
       throw notFound();
     }
-
-    return {
-      restaurant: localRestaurant,
-      source: "local" as const,
-    };
   },
   head: ({ loaderData }) => ({
     meta: loaderData
@@ -92,13 +86,7 @@ function RestaurantPage() {
   const { has, toggle } = useFavorites();
   const isFav = has(r.id);
 
-  const similar = useMemo(() => {
-    if (loaderData.source === "supabase") {
-      return localRestaurants.filter((restaurant) => restaurant.id !== r.id).slice(0, 3);
-    }
-
-    return getSimilar(r.id);
-  }, [loaderData.source, r.id]);
+  const similar = loaderData.similar;
 
   const [rating, setRating] = useState(0);
   const [comment, setComment] = useState("");
