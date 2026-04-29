@@ -98,10 +98,10 @@ function ForRestaurantsPage() {
                   Créer ma fiche restaurant <ArrowRight className="h-4 w-4" />
                 </Link>
                 <a
-                  href="#tarifs"
+                  href="#fonctionnalites"
                   className="inline-flex items-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-semibold hover:bg-secondary"
                 >
-                  Voir les offres
+                  Voir les fonctionnalités
                 </a>
               </div>
             </div>
@@ -157,73 +157,69 @@ function ForRestaurantsPage() {
         </div>
       </section>
 
-      {/* Pricing teaser */}
-      <section id="tarifs" className="max-w-7xl mx-auto px-4 sm:px-6 pb-20">
-        <div className="grid md:grid-cols-3 gap-5">
-          {[
-            {
-              name: "Gratuit",
-              price: "0€",
-              desc: "Présence de base sur LocalFood.",
-              features: ["Fiche standard", "Coordonnées & horaires", "Visible dans les résultats"],
-            },
-            {
-              name: "Premium",
-              price: "29€",
-              popular: true,
-              desc: "Pour développer votre visibilité locale.",
-              features: [
-                "Fiche premium",
-                "Statistiques détaillées",
-                "Photos clients",
-                "Avis internes",
-                "Mise en avant",
-              ],
-            },
-            {
-              name: "Pro",
-              price: "59€",
-              desc: "Pour les restaurants ambitieux.",
-              features: [
-                "Tout Premium inclus",
-                "Top des résultats",
-                "Badge Pro vérifié",
-                "Réponses aux avis prioritaires",
-                "Support dédié",
-              ],
-            },
-          ].map((p) => (
-            <div
-              key={p.name}
-              className={`rounded-3xl p-7 border ${p.popular ? "border-primary bg-card shadow-elevated relative" : "border-border bg-card"}`}
-            >
-              {p.popular && (
-                <span className="absolute -top-3 left-7 rounded-full bg-gradient-primary text-primary-foreground px-3 py-1 text-[11px] font-semibold shadow-glow">
-                  Le plus populaire
-                </span>
-              )}
-              <div className="font-display text-xl font-semibold">{p.name}</div>
-              <div className="mt-2 flex items-baseline gap-1">
-                <span className="font-display text-4xl font-semibold">{p.price}</span>
-                <span className="text-sm text-muted-foreground">/ mois</span>
+      {/* Features teaser */}
+      <section id="fonctionnalites" className="max-w-7xl mx-auto px-4 sm:px-6 pb-20">
+        <div className="rounded-3xl bg-card border border-border p-8 sm:p-10 shadow-soft">
+          <div className="max-w-2xl">
+            <span className="inline-flex items-center gap-2 rounded-full bg-primary/10 text-primary px-3 py-1.5 text-xs font-semibold">
+              <Sparkles className="h-3.5 w-3.5" /> Espace restaurateur
+            </span>
+            <h2 className="font-display text-3xl sm:text-4xl font-semibold mt-4">
+              Une fiche complète pour présenter votre restaurant.
+            </h2>
+            <p className="text-muted-foreground mt-3">
+              LocalFood permet aux restaurateurs de gérer leur présence locale, leurs photos, leurs
+              avis et leurs statistiques. Les options commerciales seront définies plus tard.
+            </p>
+          </div>
+
+          <div className="mt-8 grid md:grid-cols-3 gap-5">
+            {[
+              {
+                title: "Fiche restaurant",
+                desc: "Présentez votre nom, votre cuisine, vos horaires, vos tags, vos liens Maps et votre menu.",
+                features: ["Informations générales", "Tags & filtres", "Liens externes"],
+              },
+              {
+                title: "Photos & avis",
+                desc: "Mettez en avant vos photos et suivez les avis publiés par vos clients.",
+                features: ["Galerie photos", "Photos clients", "Avis publiés"],
+              },
+              {
+                title: "Statistiques",
+                desc: "Suivez les vues, les clics itinéraire, les appels, les clics menu et les interactions IA.",
+                features: ["Vues de fiche", "Clics Maps/Waze", "Performance IA"],
+              },
+            ].map((block) => (
+              <div key={block.title} className="rounded-2xl border border-border bg-background p-6">
+                <h3 className="font-display text-xl font-semibold">{block.title}</h3>
+                <p className="text-sm text-muted-foreground mt-2">{block.desc}</p>
+                <ul className="mt-5 space-y-2.5">
+                  {block.features.map((feature) => (
+                    <li key={feature} className="text-sm flex items-start gap-2">
+                      <Check className="h-4 w-4 text-success mt-0.5 shrink-0" />
+                      {feature}
+                    </li>
+                  ))}
+                </ul>
               </div>
-              <p className="text-sm text-muted-foreground mt-2">{p.desc}</p>
-              <ul className="mt-5 space-y-2.5">
-                {p.features.map((f) => (
-                  <li key={f} className="text-sm flex items-start gap-2">
-                    <Check className="h-4 w-4 text-success mt-0.5 shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <Link
-                to="/restaurant-dashboard"
-                className={`mt-6 w-full inline-flex justify-center items-center rounded-full px-5 py-3 text-sm font-semibold transition ${p.popular ? "bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95" : "border border-border hover:bg-secondary"}`}
-              >
-                Choisir {p.name}
-              </Link>
-            </div>
-          ))}
+            ))}
+          </div>
+
+          <div className="mt-8 flex flex-wrap gap-3">
+            <Link
+              to="/restaurant-dashboard"
+              className="inline-flex items-center gap-2 rounded-full bg-gradient-primary text-primary-foreground px-6 py-3 text-sm font-semibold shadow-glow hover:opacity-95"
+            >
+              Voir la démo restaurateur <ArrowRight className="h-4 w-4" />
+            </Link>
+            <Link
+              to="/restaurants"
+              className="inline-flex items-center gap-2 rounded-full border border-border px-6 py-3 text-sm font-semibold hover:bg-secondary"
+            >
+              Voir les restaurants
+            </Link>
+          </div>
         </div>
       </section>
     </SiteShell>
