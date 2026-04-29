@@ -10,6 +10,7 @@ import {
   Search,
   ArrowLeft,
   LogOut,
+  Shield,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 
@@ -25,7 +26,7 @@ const NAV: NavItem[] = [
 export function AdminLayout() {
   const loc = useLocation();
   const navigate = useNavigate();
-  const { signOut } = useAuth();
+  const { role, signOut } = useAuth();
 
   const handleSignOut = async () => {
     await signOut();
@@ -58,7 +59,16 @@ export function AdminLayout() {
             );
           })}
         </nav>
-        <div className="p-3 border-t border-sidebar-border">
+        <div className="space-y-2 border-t border-sidebar-border p-3">
+          {role === "superadmin" && (
+            <Link
+              to="/super-admin/users"
+              className="flex items-center gap-2 text-xs font-medium text-primary hover:text-primary/80"
+            >
+              <Shield className="h-3.5 w-3.5" /> SuperAdmin
+            </Link>
+          )}
+
           <Link
             to="/"
             className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground"
