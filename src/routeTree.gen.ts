@@ -20,6 +20,7 @@ import { Route as IndexRouteImport } from './routes/index'
 import { Route as RestaurantsIndexRouteImport } from './routes/restaurants.index'
 import { Route as RestaurantDashboardIndexRouteImport } from './routes/restaurant-dashboard.index'
 import { Route as SuperAdminUsersRouteImport } from './routes/super-admin.users'
+import { Route as SuperAdminCompaniesRouteImport } from './routes/super-admin.companies'
 import { Route as RestaurantsIdRouteImport } from './routes/restaurants.$id'
 import { Route as RestaurantDashboardSubscriptionRouteImport } from './routes/restaurant-dashboard.subscription'
 import { Route as RestaurantDashboardStatsRouteImport } from './routes/restaurant-dashboard.stats'
@@ -85,6 +86,11 @@ const RestaurantDashboardIndexRoute =
 const SuperAdminUsersRoute = SuperAdminUsersRouteImport.update({
   id: '/users',
   path: '/users',
+  getParentRoute: () => SuperAdminRoute,
+} as any)
+const SuperAdminCompaniesRoute = SuperAdminCompaniesRouteImport.update({
+  id: '/companies',
+  path: '/companies',
   getParentRoute: () => SuperAdminRoute,
 } as any)
 const RestaurantsIdRoute = RestaurantsIdRouteImport.update({
@@ -165,6 +171,7 @@ export interface FileRoutesByFullPath {
   '/restaurant-dashboard/stats': typeof RestaurantDashboardStatsRoute
   '/restaurant-dashboard/subscription': typeof RestaurantDashboardSubscriptionRoute
   '/restaurants/$id': typeof RestaurantsIdRoute
+  '/super-admin/companies': typeof SuperAdminCompaniesRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
   '/restaurant-dashboard/': typeof RestaurantDashboardIndexRoute
   '/restaurants/': typeof RestaurantsIndexRoute
@@ -186,6 +193,7 @@ export interface FileRoutesByTo {
   '/restaurant-dashboard/stats': typeof RestaurantDashboardStatsRoute
   '/restaurant-dashboard/subscription': typeof RestaurantDashboardSubscriptionRoute
   '/restaurants/$id': typeof RestaurantsIdRoute
+  '/super-admin/companies': typeof SuperAdminCompaniesRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
   '/restaurant-dashboard': typeof RestaurantDashboardIndexRoute
   '/restaurants': typeof RestaurantsIndexRoute
@@ -210,6 +218,7 @@ export interface FileRoutesById {
   '/restaurant-dashboard/stats': typeof RestaurantDashboardStatsRoute
   '/restaurant-dashboard/subscription': typeof RestaurantDashboardSubscriptionRoute
   '/restaurants/$id': typeof RestaurantsIdRoute
+  '/super-admin/companies': typeof SuperAdminCompaniesRoute
   '/super-admin/users': typeof SuperAdminUsersRoute
   '/restaurant-dashboard/': typeof RestaurantDashboardIndexRoute
   '/restaurants/': typeof RestaurantsIndexRoute
@@ -235,6 +244,7 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard/stats'
     | '/restaurant-dashboard/subscription'
     | '/restaurants/$id'
+    | '/super-admin/companies'
     | '/super-admin/users'
     | '/restaurant-dashboard/'
     | '/restaurants/'
@@ -256,6 +266,7 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard/stats'
     | '/restaurant-dashboard/subscription'
     | '/restaurants/$id'
+    | '/super-admin/companies'
     | '/super-admin/users'
     | '/restaurant-dashboard'
     | '/restaurants'
@@ -279,6 +290,7 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard/stats'
     | '/restaurant-dashboard/subscription'
     | '/restaurants/$id'
+    | '/super-admin/companies'
     | '/super-admin/users'
     | '/restaurant-dashboard/'
     | '/restaurants/'
@@ -372,6 +384,13 @@ declare module '@tanstack/react-router' {
       path: '/users'
       fullPath: '/super-admin/users'
       preLoaderRoute: typeof SuperAdminUsersRouteImport
+      parentRoute: typeof SuperAdminRoute
+    }
+    '/super-admin/companies': {
+      id: '/super-admin/companies'
+      path: '/companies'
+      fullPath: '/super-admin/companies'
+      preLoaderRoute: typeof SuperAdminCompaniesRouteImport
       parentRoute: typeof SuperAdminRoute
     }
     '/restaurants/$id': {
@@ -491,10 +510,12 @@ const RestaurantsRouteWithChildren = RestaurantsRoute._addFileChildren(
 )
 
 interface SuperAdminRouteChildren {
+  SuperAdminCompaniesRoute: typeof SuperAdminCompaniesRoute
   SuperAdminUsersRoute: typeof SuperAdminUsersRoute
 }
 
 const SuperAdminRouteChildren: SuperAdminRouteChildren = {
+  SuperAdminCompaniesRoute: SuperAdminCompaniesRoute,
   SuperAdminUsersRoute: SuperAdminUsersRoute,
 }
 
