@@ -11,6 +11,7 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as RestaurantsRouteImport } from './routes/restaurants'
 import { Route as RestaurantDashboardRouteImport } from './routes/restaurant-dashboard'
+import { Route as LoginRouteImport } from './routes/login'
 import { Route as ForRestaurantsRouteImport } from './routes/for-restaurants'
 import { Route as FavoritesRouteImport } from './routes/favorites'
 import { Route as AiAssistantRouteImport } from './routes/ai-assistant'
@@ -36,6 +37,11 @@ const RestaurantsRoute = RestaurantsRouteImport.update({
 const RestaurantDashboardRoute = RestaurantDashboardRouteImport.update({
   id: '/restaurant-dashboard',
   path: '/restaurant-dashboard',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const LoginRoute = LoginRouteImport.update({
+  id: '/login',
+  path: '/login',
   getParentRoute: () => rootRouteImport,
 } as any)
 const ForRestaurantsRoute = ForRestaurantsRouteImport.update({
@@ -133,6 +139,7 @@ export interface FileRoutesByFullPath {
   '/ai-assistant': typeof AiAssistantRoute
   '/favorites': typeof FavoritesRoute
   '/for-restaurants': typeof ForRestaurantsRoute
+  '/login': typeof LoginRoute
   '/restaurant-dashboard': typeof RestaurantDashboardRouteWithChildren
   '/restaurants': typeof RestaurantsRouteWithChildren
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
@@ -153,6 +160,7 @@ export interface FileRoutesByTo {
   '/ai-assistant': typeof AiAssistantRoute
   '/favorites': typeof FavoritesRoute
   '/for-restaurants': typeof ForRestaurantsRoute
+  '/login': typeof LoginRoute
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
   '/restaurant-dashboard/avis': typeof RestaurantDashboardAvisRoute
   '/restaurant-dashboard/fiche': typeof RestaurantDashboardFicheRoute
@@ -172,6 +180,7 @@ export interface FileRoutesById {
   '/ai-assistant': typeof AiAssistantRoute
   '/favorites': typeof FavoritesRoute
   '/for-restaurants': typeof ForRestaurantsRoute
+  '/login': typeof LoginRoute
   '/restaurant-dashboard': typeof RestaurantDashboardRouteWithChildren
   '/restaurants': typeof RestaurantsRouteWithChildren
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
@@ -194,6 +203,7 @@ export interface FileRouteTypes {
     | '/ai-assistant'
     | '/favorites'
     | '/for-restaurants'
+    | '/login'
     | '/restaurant-dashboard'
     | '/restaurants'
     | '/restaurant-dashboard/abonnement'
@@ -214,6 +224,7 @@ export interface FileRouteTypes {
     | '/ai-assistant'
     | '/favorites'
     | '/for-restaurants'
+    | '/login'
     | '/restaurant-dashboard/abonnement'
     | '/restaurant-dashboard/avis'
     | '/restaurant-dashboard/fiche'
@@ -232,6 +243,7 @@ export interface FileRouteTypes {
     | '/ai-assistant'
     | '/favorites'
     | '/for-restaurants'
+    | '/login'
     | '/restaurant-dashboard'
     | '/restaurants'
     | '/restaurant-dashboard/abonnement'
@@ -253,6 +265,7 @@ export interface RootRouteChildren {
   AiAssistantRoute: typeof AiAssistantRoute
   FavoritesRoute: typeof FavoritesRoute
   ForRestaurantsRoute: typeof ForRestaurantsRoute
+  LoginRoute: typeof LoginRoute
   RestaurantDashboardRoute: typeof RestaurantDashboardRouteWithChildren
   RestaurantsRoute: typeof RestaurantsRouteWithChildren
 }
@@ -271,6 +284,13 @@ declare module '@tanstack/react-router' {
       path: '/restaurant-dashboard'
       fullPath: '/restaurant-dashboard'
       preLoaderRoute: typeof RestaurantDashboardRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/login': {
+      id: '/login'
+      path: '/login'
+      fullPath: '/login'
+      preLoaderRoute: typeof LoginRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/for-restaurants': {
@@ -436,6 +456,7 @@ const rootRouteChildren: RootRouteChildren = {
   AiAssistantRoute: AiAssistantRoute,
   FavoritesRoute: FavoritesRoute,
   ForRestaurantsRoute: ForRestaurantsRoute,
+  LoginRoute: LoginRoute,
   RestaurantDashboardRoute: RestaurantDashboardRouteWithChildren,
   RestaurantsRoute: RestaurantsRouteWithChildren,
 }
