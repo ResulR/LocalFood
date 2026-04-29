@@ -1,51 +1,159 @@
+import { useEffect, useMemo, useState } from "react";
 import { Star, MessageSquare } from "lucide-react";
 import { toast } from "sonner";
-import { restaurants } from "@/data/restaurants";
+import { restaurants as localRestaurants } from "@/data/restaurants";
+import {
+  fetchSupabaseRestaurantReviewsBySlug,
+  type SupabaseRestaurantReview,
+} from "@/lib/restaurants-api";
 
-const allReviews = [
-  ...restaurants[0].reviews.map((r) => ({ ...r, status: "publié" as const })),
-  {
-    id: "x1",
-    author: "Antoine R.",
-    rating: 4,
-    date: "il y a 3 jours",
-    comment: "Très bon mais bruyant le samedi soir.",
-    status: "publié" as const,
-  },
-  {
-    id: "x2",
-    author: "Inès D.",
-    rating: 2,
-    date: "il y a 4 jours",
-    comment: "Service vraiment trop lent, dommage car la cuisine est correcte.",
-    status: "en attente" as const,
-  },
-  {
-    id: "x3",
-    author: "Mehdi K.",
-    rating: 5,
-    date: "il y a 5 jours",
-    comment: "Le meilleur halal de Lyon, sans hésiter !",
-    status: "publié" as const,
-  },
-];
+type AdminReviewStatus = "publié" | "en attente" | "masqué";
+
+type AdminReview = {
+  id: string;
+  author: string;
+  rating: number;
+  date: string;
+  comment: string;
+  photo?: string;
+  status: AdminReviewStatus;
+};
+
+function formatReviewDate(createdAt: string) {
+  const createdDate = new Date(createdAt);
+  const now = new Date();
+  const diffMs = now.getTime() - createdDate.getTime();
+  const diffDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
+
+  if (diffDays === 0) return "aujourd'hui";
+  if (diffDays === 1) return "il y a 1 jour";
+  return `il y a ${diffDays} jours`;
+}
+
+function mapSupabaseStatus(status: SupabaseRestaurantReview["status"]): AdminReviewStatus {
+  if (status === "pending") return "en attente";
+  if (status === "hidden") return "masqué";
+  return "publié";
+}
+
+function mapSupabaseReview(review: SupabaseRestaurantReview): AdminReview {
+  return {
+    id: review.id,
+    author: review.author_name,
+    rating: review.rating,
+    date: formatReviewDate(review.created_at),
+    comment: review.comment,
+    photo: review.photo_url ?? undefined,
+    status: mapSupabaseStatus(review.status),
+  };
+}
+
+function getLocalFallbackReviews(): AdminReview[] {
+  return [
+    ...localRestaurants[0].reviews.map((review) => ({
+      id: review.id,
+      author: review.author,
+      rating: review.rating,
+      date: review.date,
+      comment: review.comment,
+      photo: review.photo,
+      status: "publié" as const,
+    })),
+    {
+      id: "x1",
+      author: "Antoine R.",
+      rating: 4,
+      date: "il y a 3 jours",
+      comment: "Très bon mais bruyant le samedi soir.",
+      status: "publié",
+    },
+    {
+      id: "x2",
+      author: "Inès D.",
+      rating: 2,
+      date: "il y a 4 jours",
+      comment: "Service vraiment trop lent, dommage car la cuisine est correcte.",
+      status: "en attente",
+    },
+    {
+      id: "x3",
+      author: "Mehdi K.",
+      rating: 5,
+      date: "il y a 5 jours",
+      comment: "Le meilleur halal de Lyon, sans hésiter !",
+      status: "publié",
+    },
+  ];
+}
 
 export function ReviewsView() {
+  const [reviews, setReviews] = useState<AdminReview[]>(() => getLocalFallbackReviews());
+  const [loadingReviews, setLoadingReviews] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchSupabaseRestaurantReviewsBySlug("maison-zayna")
+      .then((data) => {
+        if (cancelled) return;
+
+        if (data.length > 0) {
+          setReviews(data.map(mapSupabaseReview));
+        } else {
+          setReviews(getLocalFallbackReviews());
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load restaurant reviews from Supabase:", error);
+
+        if (!cancelled) {
+          setReviews(getLocalFallbackReviews());
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingReviews(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const averageRating = useMemo(() => {
+    if (reviews.length === 0) return "0,0";
+
+    const average = reviews.reduce((sum, review) => sum + review.rating, 0) / reviews.length;
+    return average.toFixed(1).replace(".", ",");
+  }, [reviews]);
+
+  const pendingCount = useMemo(
+    () => reviews.filter((review) => review.status === "en attente").length,
+    [reviews],
+  );
+
   return (
     <div className="space-y-6 max-w-5xl">
+      {loadingReviews && (
+        <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+          Chargement des avis...
+        </div>
+      )}
+
       <div>
         <h1 className="font-display text-3xl font-semibold">Avis clients</h1>
         <p className="text-muted-foreground mt-1">Modérez et répondez aux avis de vos clients.</p>
       </div>
 
       <div className="grid sm:grid-cols-3 gap-3">
-        <Stat label="Note moyenne" value="4,8" sub="sur 5" />
-        <Stat label="Avis ce mois" value="14" sub="+3 vs mois dernier" />
-        <Stat label="En attente" value="1" sub="à modérer" />
+        <Stat label="Note moyenne" value={averageRating} sub="sur 5" />
+        <Stat label="Avis affichés" value={String(reviews.length)} sub="Maison Zayna" />
+        <Stat label="En attente" value={String(pendingCount)} sub="à modérer" />
       </div>
 
       <div className="rounded-2xl bg-card border border-border divide-y divide-border">
-        {allReviews.map((rev) => (
+        {reviews.map((rev) => (
           <div key={rev.id} className="p-6">
             <div className="flex items-start justify-between gap-4">
               <div className="flex items-start gap-3">
@@ -56,7 +164,13 @@ export function ReviewsView() {
                   <div className="flex items-center gap-2">
                     <span className="font-medium text-sm">{rev.author}</span>
                     <span
-                      className={`text-[10px] uppercase tracking-wider rounded-full px-2 py-0.5 font-semibold ${rev.status === "publié" ? "bg-success/15 text-success" : "bg-warning/20 text-warning-foreground"}`}
+                      className={`text-[10px] uppercase tracking-wider rounded-full px-2 py-0.5 font-semibold ${
+                        rev.status === "publié"
+                          ? "bg-success/15 text-success"
+                          : rev.status === "en attente"
+                            ? "bg-warning/20 text-warning-foreground"
+                            : "bg-muted text-muted-foreground"
+                      }`}
                     >
                       {rev.status}
                     </span>
@@ -66,7 +180,11 @@ export function ReviewsView() {
                       {Array.from({ length: 5 }).map((_, i) => (
                         <Star
                           key={i}
-                          className={`h-3.5 w-3.5 ${i < rev.rating ? "fill-warning text-warning" : "text-muted-foreground/30"}`}
+                          className={`h-3.5 w-3.5 ${
+                            i < rev.rating
+                              ? "fill-warning text-warning"
+                              : "text-muted-foreground/30"
+                          }`}
                         />
                       ))}
                     </div>
@@ -82,7 +200,7 @@ export function ReviewsView() {
               </button>
             </div>
             <p className="text-sm text-muted-foreground mt-3 sm:pl-13">{rev.comment}</p>
-            {"photo" in rev && rev.photo && (
+            {rev.photo && (
               <img src={rev.photo} alt="" className="mt-3 rounded-lg max-h-40 object-cover" />
             )}
           </div>

@@ -284,3 +284,56 @@ export async function fetchSupabaseRestaurantBySlug(slug: string) {
 
   return normalizeRestaurant(data as unknown as SupabaseRestaurantRow);
 }
+
+export type SupabaseRestaurantReview = {
+  id: string;
+  restaurant_id: string;
+  author_name: string;
+  rating: number;
+  comment: string;
+  photo_url: string | null;
+  status: "published" | "pending" | "hidden";
+  created_at: string;
+  updated_at: string;
+};
+
+export async function fetchSupabaseRestaurantReviewsBySlug(slug: string) {
+  const { data: restaurant, error: restaurantError } = await supabase
+    .from("restaurants")
+    .select("id")
+    .eq("slug", slug)
+    .eq("is_active", true)
+    .maybeSingle();
+
+  if (restaurantError) {
+    throw restaurantError;
+  }
+
+  if (!restaurant) {
+    return [];
+  }
+
+  const { data, error } = await supabase
+    .from("restaurant_reviews")
+    .select(
+      `
+        id,
+        restaurant_id,
+        author_name,
+        rating,
+        comment,
+        photo_url,
+        status,
+        created_at,
+        updated_at
+      `,
+    )
+    .eq("restaurant_id", restaurant.id)
+    .order("created_at", { ascending: false });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as SupabaseRestaurantReview[];
+}
