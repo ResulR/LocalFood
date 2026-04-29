@@ -158,10 +158,7 @@ function HomePage() {
                 {t("home.aiBadge")}
               </div>
               <h2 className="font-display text-2xl font-semibold mt-1">{t("home.aiTitle")}</h2>
-              <p className="text-muted-foreground text-sm mt-2">
-                Notre assistant analyse votre requête et trouve les restaurants qui correspondent
-                vraiment à vos critères.
-              </p>
+              <p className="text-muted-foreground text-sm mt-2">{t("home.aiDescription")}</p>
               <div className="mt-4 rounded-2xl border border-dashed border-border bg-secondary/30 p-4 text-sm text-muted-foreground">
                 L’assistant IA sera branché sur les données réelles LocalFood avant la mise en
                 production.
@@ -333,10 +330,7 @@ function HomePage() {
                     </span>
                   ))}
               </h2>
-              <p className="mt-4 opacity-90 max-w-md">
-                Gagnez en visibilité locale, suivez vos performances et attirez plus de clients
-                chaque mois.
-              </p>
+              <p className="mt-4 opacity-90 max-w-md">{t("home.restaurantCtaDescription")}</p>
             </div>
             <div className="flex md:justify-end gap-3 flex-wrap">
               <Link

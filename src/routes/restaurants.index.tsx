@@ -194,9 +194,7 @@ function RestaurantsPage() {
     if (!navigator.geolocation) {
       dismissLocation("unavailable");
       setLocationStatus("error");
-      setLocationMessage(
-        "La localisation n'est pas disponible sur votre navigateur. Vous pouvez continuer à explorer les restaurants.",
-      );
+      setLocationMessage(t("restaurants.locationUnavailableBrowser"));
       return;
     }
 

@@ -213,11 +213,17 @@ const translations = {
     "restaurantDetail.phoneUnavailable": "Phone number unavailable",
     "restaurantDetail.linkUnavailable": "Link unavailable",
 
+    "home.restaurantCtaDescription":
+      "Gain local visibility, track your performance and attract more customers every month.",
+    "aiPage.hoursUnknown": "Opening hours not provided",
+    "restaurants.locationUnavailableBrowser":
+      "Location is not available in your browser. You can continue exploring restaurants.",
     "forRestaurants.badge": "For restaurants",
     "forRestaurants.heroTitle": "Make your restaurant known across the whole city.",
     "forRestaurants.heroDescriptionBefore": "LocalFood connects you with customers looking for ",
     "forRestaurants.heroDescriptionStrong": "exactly",
-    "forRestaurants.heroDescriptionAfter": " what you offer: halal, vegan, brunch, terrace, date night… based on their cravings, here and now.",
+    "forRestaurants.heroDescriptionAfter":
+      " what you offer: halal, vegan, brunch, terrace, date night… based on their cravings, here and now.",
     "forRestaurants.createListing": "Create my restaurant listing",
     "forRestaurants.viewFeatures": "View features",
     "forRestaurants.preview": "Preview — Maison Zayna",
@@ -229,32 +235,39 @@ const translations = {
     "forRestaurants.benefitsTitle": "Everything you need to grow.",
     "forRestaurants.benefitsSubtitle": "One platform, all the tools.",
     "forRestaurants.visibilityTitle": "More visibility",
-    "forRestaurants.visibilityDesc": "Appear in front of customers looking for what you offer, near them.",
+    "forRestaurants.visibilityDesc":
+      "Appear in front of customers looking for what you offer, near them.",
     "forRestaurants.premiumTitle": "Premium listing",
-    "forRestaurants.premiumDesc": "Showcase your restaurant with photos, badges and a polished description.",
+    "forRestaurants.premiumDesc":
+      "Showcase your restaurant with photos, badges and a polished description.",
     "forRestaurants.reviewsTitle": "Internal reviews",
     "forRestaurants.reviewsDesc": "Receive and reply to reviews directly from your pro area.",
     "forRestaurants.photosTitle": "Customer photos",
-    "forRestaurants.photosDesc": "Your customers share their photos, strengthening your credibility.",
+    "forRestaurants.photosDesc":
+      "Your customers share their photos, strengthening your credibility.",
     "forRestaurants.statsTitle": "Click statistics",
     "forRestaurants.statsDesc": "Track exactly how many people view and contact your listing.",
     "forRestaurants.mapsTitle": "Maps & Waze integrated",
     "forRestaurants.mapsDesc": "Customers start the route in one click, bringing you real traffic.",
     "forRestaurants.proSpaceBadge": "Restaurant owner area",
     "forRestaurants.featuresTitle": "A complete listing to present your restaurant.",
-    "forRestaurants.featuresDesc": "LocalFood lets restaurant owners manage their local presence, photos, reviews and statistics. Commercial options will be defined later.",
+    "forRestaurants.featuresDesc":
+      "LocalFood lets restaurant owners manage their local presence, photos, reviews and statistics. Commercial options will be defined later.",
     "forRestaurants.blockListingTitle": "Restaurant listing",
-    "forRestaurants.blockListingDesc": "Present your name, cuisine, opening hours, tags, Maps links and menu.",
+    "forRestaurants.blockListingDesc":
+      "Present your name, cuisine, opening hours, tags, Maps links and menu.",
     "forRestaurants.blockListingFeature1": "General information",
     "forRestaurants.blockListingFeature2": "Tags & filters",
     "forRestaurants.blockListingFeature3": "External links",
     "forRestaurants.blockPhotosTitle": "Photos & reviews",
-    "forRestaurants.blockPhotosDesc": "Highlight your photos and follow reviews published by your customers.",
+    "forRestaurants.blockPhotosDesc":
+      "Highlight your photos and follow reviews published by your customers.",
     "forRestaurants.blockPhotosFeature1": "Photo gallery",
     "forRestaurants.blockPhotosFeature2": "Customer photos",
     "forRestaurants.blockPhotosFeature3": "Published reviews",
     "forRestaurants.blockStatsTitle": "Statistics",
-    "forRestaurants.blockStatsDesc": "Track views, route clicks, calls, menu clicks and AI interactions.",
+    "forRestaurants.blockStatsDesc":
+      "Track views, route clicks, calls, menu clicks and AI interactions.",
     "forRestaurants.blockStatsFeature1": "Listing views",
     "forRestaurants.blockStatsFeature2": "Maps/Waze clicks",
     "forRestaurants.blockStatsFeature3": "AI performance",
@@ -478,7 +491,8 @@ const translations = {
     "forRestaurants.heroTitle": "Bëje restorantin tënd të njihet në gjithë qytetin.",
     "forRestaurants.heroDescriptionBefore": "LocalFood të lidh me klientë që kërkojnë ",
     "forRestaurants.heroDescriptionStrong": "pikërisht",
-    "forRestaurants.heroDescriptionAfter": " atë që ofron: halal, vegan, brunch, terrasë, date night… sipas dëshirave të tyre, këtu dhe tani.",
+    "forRestaurants.heroDescriptionAfter":
+      " atë që ofron: halal, vegan, brunch, terrasë, date night… sipas dëshirave të tyre, këtu dhe tani.",
     "forRestaurants.createListing": "Krijo fichën e restorantit",
     "forRestaurants.viewFeatures": "Shiko funksionalitetet",
     "forRestaurants.preview": "Pamje — Maison Zayna",
@@ -490,9 +504,11 @@ const translations = {
     "forRestaurants.benefitsTitle": "Gjithçka që të duhet për t'u rritur.",
     "forRestaurants.benefitsSubtitle": "Një platformë, të gjitha mjetet.",
     "forRestaurants.visibilityTitle": "Më shumë dukshmëri",
-    "forRestaurants.visibilityDesc": "Shfaqesh para klientëve që kërkojnë atë që ofron, pranë tyre.",
+    "forRestaurants.visibilityDesc":
+      "Shfaqesh para klientëve që kërkojnë atë që ofron, pranë tyre.",
     "forRestaurants.premiumTitle": "Fichë premium",
-    "forRestaurants.premiumDesc": "Prezanto restorantin me foto, badges dhe përshkrim të kujdesshëm.",
+    "forRestaurants.premiumDesc":
+      "Prezanto restorantin me foto, badges dhe përshkrim të kujdesshëm.",
     "forRestaurants.reviewsTitle": "Komente interne",
     "forRestaurants.reviewsDesc": "Merr dhe përgjigju komenteve direkt nga hapësira pro.",
     "forRestaurants.photosTitle": "Foto klientësh",
@@ -503,9 +519,11 @@ const translations = {
     "forRestaurants.mapsDesc": "Klientët hapin itinerarin me një klik dhe ti fiton trafik real.",
     "forRestaurants.proSpaceBadge": "Hapësira e restauratorit",
     "forRestaurants.featuresTitle": "Një fichë e plotë për të prezantuar restorantin.",
-    "forRestaurants.featuresDesc": "LocalFood u mundëson restauratorëve të menaxhojnë prezencën lokale, fotot, komentet dhe statistikat. Opsionet komerciale do të përcaktohen më vonë.",
+    "forRestaurants.featuresDesc":
+      "LocalFood u mundëson restauratorëve të menaxhojnë prezencën lokale, fotot, komentet dhe statistikat. Opsionet komerciale do të përcaktohen më vonë.",
     "forRestaurants.blockListingTitle": "Fichë restoranti",
-    "forRestaurants.blockListingDesc": "Prezanto emrin, kuzhinën, oraret, tag-et, linket Maps dhe menunë.",
+    "forRestaurants.blockListingDesc":
+      "Prezanto emrin, kuzhinën, oraret, tag-et, linket Maps dhe menunë.",
     "forRestaurants.blockListingFeature1": "Informacione të përgjithshme",
     "forRestaurants.blockListingFeature2": "Tags & filtra",
     "forRestaurants.blockListingFeature3": "Linke të jashtme",
@@ -515,12 +533,18 @@ const translations = {
     "forRestaurants.blockPhotosFeature2": "Foto klientësh",
     "forRestaurants.blockPhotosFeature3": "Komente të publikuara",
     "forRestaurants.blockStatsTitle": "Statistika",
-    "forRestaurants.blockStatsDesc": "Ndiq shikimet, klikimet e itinerarit, telefonatat, klikimet e menusë dhe ndërveprimet AI.",
+    "forRestaurants.blockStatsDesc":
+      "Ndiq shikimet, klikimet e itinerarit, telefonatat, klikimet e menusë dhe ndërveprimet AI.",
     "forRestaurants.blockStatsFeature1": "Shikime fiche",
     "forRestaurants.blockStatsFeature2": "Klikime Maps/Waze",
     "forRestaurants.blockStatsFeature3": "Performancë AI",
     "forRestaurants.viewProSpace": "Shiko hapësirën e restauratorit",
     "forRestaurants.viewRestaurants": "Shiko restorantet",
+    "home.restaurantCtaDescription":
+      "Fito më shumë dukshmëri lokale, ndiq performancën dhe tërhiq më shumë klientë çdo muaj.",
+    "aiPage.hoursUnknown": "Orari nuk është i plotësuar",
+    "restaurants.locationUnavailableBrowser":
+      "Lokalizimi nuk është i disponueshëm në shfletuesin tënd. Mund të vazhdosh të eksplorosh restorantet.",
   },
   fr: {
     "common.language": "Langue",
@@ -739,7 +763,8 @@ const translations = {
     "forRestaurants.heroTitle": "Faites découvrir votre restaurant à toute la ville.",
     "forRestaurants.heroDescriptionBefore": "LocalFood vous connecte aux clients qui cherchent ",
     "forRestaurants.heroDescriptionStrong": "exactement",
-    "forRestaurants.heroDescriptionAfter": " ce que vous proposez : halal, vegan, brunch, terrasse, date night… selon leurs envies, ici et maintenant.",
+    "forRestaurants.heroDescriptionAfter":
+      " ce que vous proposez : halal, vegan, brunch, terrasse, date night… selon leurs envies, ici et maintenant.",
     "forRestaurants.createListing": "Créer ma fiche restaurant",
     "forRestaurants.viewFeatures": "Voir les fonctionnalités",
     "forRestaurants.preview": "Aperçu — Maison Zayna",
@@ -751,37 +776,52 @@ const translations = {
     "forRestaurants.benefitsTitle": "Tout ce qu'il vous faut pour grandir.",
     "forRestaurants.benefitsSubtitle": "Une seule plateforme, tous les outils.",
     "forRestaurants.visibilityTitle": "Plus de visibilité",
-    "forRestaurants.visibilityDesc": "Apparaissez auprès des clients qui cherchent ce que vous proposez, près de chez eux.",
+    "forRestaurants.visibilityDesc":
+      "Apparaissez auprès des clients qui cherchent ce que vous proposez, près de chez eux.",
     "forRestaurants.premiumTitle": "Fiche premium",
-    "forRestaurants.premiumDesc": "Mettez en valeur votre restaurant avec photos, badges et description soignée.",
+    "forRestaurants.premiumDesc":
+      "Mettez en valeur votre restaurant avec photos, badges et description soignée.",
     "forRestaurants.reviewsTitle": "Avis internes",
-    "forRestaurants.reviewsDesc": "Recevez et répondez aux avis directement depuis votre espace pro.",
+    "forRestaurants.reviewsDesc":
+      "Recevez et répondez aux avis directement depuis votre espace pro.",
     "forRestaurants.photosTitle": "Photos clients",
-    "forRestaurants.photosDesc": "Vos clients partagent leurs photos, vous renforcez votre crédibilité.",
+    "forRestaurants.photosDesc":
+      "Vos clients partagent leurs photos, vous renforcez votre crédibilité.",
     "forRestaurants.statsTitle": "Statistiques de clics",
-    "forRestaurants.statsDesc": "Suivez précisément combien de personnes consultent et contactent votre fiche.",
+    "forRestaurants.statsDesc":
+      "Suivez précisément combien de personnes consultent et contactent votre fiche.",
     "forRestaurants.mapsTitle": "Maps & Waze intégrés",
-    "forRestaurants.mapsDesc": "Vos clients lancent l'itinéraire en un clic, vous gagnez du trafic réel.",
+    "forRestaurants.mapsDesc":
+      "Vos clients lancent l'itinéraire en un clic, vous gagnez du trafic réel.",
     "forRestaurants.proSpaceBadge": "Espace restaurateur",
     "forRestaurants.featuresTitle": "Une fiche complète pour présenter votre restaurant.",
-    "forRestaurants.featuresDesc": "LocalFood permet aux restaurateurs de gérer leur présence locale, leurs photos, leurs avis et leurs statistiques. Les options commerciales seront définies plus tard.",
+    "forRestaurants.featuresDesc":
+      "LocalFood permet aux restaurateurs de gérer leur présence locale, leurs photos, leurs avis et leurs statistiques. Les options commerciales seront définies plus tard.",
     "forRestaurants.blockListingTitle": "Fiche restaurant",
-    "forRestaurants.blockListingDesc": "Présentez votre nom, votre cuisine, vos horaires, vos tags, vos liens Maps et votre menu.",
+    "forRestaurants.blockListingDesc":
+      "Présentez votre nom, votre cuisine, vos horaires, vos tags, vos liens Maps et votre menu.",
     "forRestaurants.blockListingFeature1": "Informations générales",
     "forRestaurants.blockListingFeature2": "Tags & filtres",
     "forRestaurants.blockListingFeature3": "Liens externes",
     "forRestaurants.blockPhotosTitle": "Photos & avis",
-    "forRestaurants.blockPhotosDesc": "Mettez en avant vos photos et suivez les avis publiés par vos clients.",
+    "forRestaurants.blockPhotosDesc":
+      "Mettez en avant vos photos et suivez les avis publiés par vos clients.",
     "forRestaurants.blockPhotosFeature1": "Galerie photos",
     "forRestaurants.blockPhotosFeature2": "Photos clients",
     "forRestaurants.blockPhotosFeature3": "Avis publiés",
     "forRestaurants.blockStatsTitle": "Statistiques",
-    "forRestaurants.blockStatsDesc": "Suivez les vues, les clics itinéraire, les appels, les clics menu et les interactions IA.",
+    "forRestaurants.blockStatsDesc":
+      "Suivez les vues, les clics itinéraire, les appels, les clics menu et les interactions IA.",
     "forRestaurants.blockStatsFeature1": "Vues de fiche",
     "forRestaurants.blockStatsFeature2": "Clics Maps/Waze",
     "forRestaurants.blockStatsFeature3": "Performance IA",
     "forRestaurants.viewProSpace": "Voir l’espace restaurateur",
     "forRestaurants.viewRestaurants": "Voir les restaurants",
+    "home.restaurantCtaDescription":
+      "Gagnez en visibilité locale, suivez vos performances et attirez plus de clients chaque mois.",
+    "aiPage.hoursUnknown": "Horaires non renseignés",
+    "restaurants.locationUnavailableBrowser":
+      "La localisation n'est pas disponible sur votre navigateur. Vous pouvez continuer à explorer les restaurants.",
   },
 } as const;
 

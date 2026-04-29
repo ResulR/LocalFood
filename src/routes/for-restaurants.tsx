@@ -142,9 +142,7 @@ function ForRestaurantsPage() {
             <div className="rounded-3xl bg-card border border-border p-6 sm:p-8 shadow-elevated">
               <div className="flex items-center justify-between">
                 <div>
-                  <div className="text-xs text-muted-foreground">
-                    {t("forRestaurants.preview")}
-                  </div>
+                  <div className="text-xs text-muted-foreground">{t("forRestaurants.preview")}</div>
                   <div className="font-display text-xl font-semibold mt-1">
                     {t("forRestaurants.monthPerformance")}
                   </div>

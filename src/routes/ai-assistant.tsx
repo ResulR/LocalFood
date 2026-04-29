@@ -35,6 +35,7 @@ type AIPageResult = AIRestaurantSearchResult & {
 
 function mapAIRecommendationToRestaurant(
   recommendation: RestaurantAIRecommendation,
+  hoursUnknown: string,
 ): AIPageRestaurant {
   const tagLabels = recommendation.tags.map((tag) => tag.label);
   const badgeLabels = recommendation.badges.map((badge) => badge.label);
@@ -66,7 +67,7 @@ function mapAIRecommendationToRestaurant(
     price: recommendation.priceLabel,
     priceLevel: recommendation.priceLabel.length as 1 | 2 | 3,
     open: recommendation.isOpen,
-    hours: recommendation.hoursSummary ?? "Horaires non renseignés",
+    hours: recommendation.hoursSummary ?? hoursUnknown,
     openingHours: {},
     tags: tagLabels as Restaurant["tags"],
     badges: badgeLabels as Restaurant["badges"],
@@ -139,7 +140,9 @@ function AIAssistantPage() {
 
       setResult({
         ...data,
-        restaurants: data.recommendations.map(mapAIRecommendationToRestaurant),
+        restaurants: data.recommendations.map((recommendation) =>
+          mapAIRecommendationToRestaurant(recommendation, t("aiPage.hoursUnknown")),
+        ),
       });
     } catch (error) {
       console.error("Failed to search restaurants with AI:", error);
@@ -163,8 +166,7 @@ function AIAssistantPage() {
             {t("aiPage.heroTitle")}
           </h1>
           <p className="mt-4 text-lg text-muted-foreground max-w-2xl mx-auto">
-            Notre assistant analyse votre requête et vous propose les restaurants LocalFood qui
-            correspondent vraiment à vos critères.
+            {t("aiPage.heroDescription")}
           </p>
 
           <form
