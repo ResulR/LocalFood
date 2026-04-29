@@ -22,8 +22,6 @@ import {
   Area,
   AreaChart,
 } from "recharts";
-import { interactions as localInteractions } from "@/data/mockStats";
-import { TOP_AI_QUERIES } from "@/data/mockAI";
 import { useRestaurantDashboard } from "@/contexts/RestaurantDashboardContext";
 import {
   fetchSupabaseRestaurantInteractionsBySlug,
@@ -43,25 +41,6 @@ type ChartRow = {
   views: number;
   clics: number;
 };
-
-const FALLBACK_INTERACTIONS: SupabaseRestaurantInteraction[] = [
-  {
-    id: "fallback-view",
-    restaurant_id: "local",
-    action: "Vue de fiche",
-    source: "Recherche restaurants",
-    interaction_type: "Vue",
-    created_at: new Date().toISOString(),
-  },
-  ...localInteractions.map((interaction, index) => ({
-    id: `fallback-${interaction.id}`,
-    restaurant_id: "local",
-    action: interaction.action,
-    source: interaction.source,
-    interaction_type: interaction.type as SupabaseRestaurantInteractionType,
-    created_at: new Date(Date.now() - (index + 1) * 60 * 60 * 1000).toISOString(),
-  })),
-];
 
 const SOURCE_LABELS: Record<string, string> = {
   public_card: "Carte restaurant",
@@ -310,20 +289,17 @@ export function DashboardOverview() {
             <h2 className="font-display text-lg font-semibold">Performance Assistant IA</h2>
           </div>
           <p className="text-xs text-muted-foreground mb-4">
-            Top recherches IA ayant affiché votre restaurant
+            Données IA réelles liées à ce restaurant.
           </p>
-          <ul className="space-y-3">
-            {TOP_AI_QUERIES.slice(0, 5).map((q) => (
-              <li key={q.q} className="flex items-center justify-between text-sm">
-                <span className="text-foreground/90">« {q.q} »</span>
-                <span className="text-xs text-muted-foreground">{q.count}</span>
-              </li>
-            ))}
-          </ul>
+
+          <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
+            Aucune donnée IA réelle n’est encore disponible pour ce restaurant.
+          </div>
+
           <div className="mt-5 pt-4 border-t border-border grid grid-cols-2 gap-3 text-center">
             <div>
               <div className="font-display text-2xl font-semibold">{ai}</div>
-              <div className="text-[11px] text-muted-foreground">apparitions IA</div>
+              <div className="text-[11px] text-muted-foreground">interactions IA</div>
             </div>
             <div>
               <div className="font-display text-2xl font-semibold">{ai}</div>
@@ -350,36 +326,44 @@ export function DashboardOverview() {
               </tr>
             </thead>
             <tbody>
-              {recentInteractions.map((row) => (
-                <tr
-                  key={row.id}
-                  className="border-b border-border last:border-0 hover:bg-secondary/30"
-                >
-                  <td className="px-6 py-3.5 font-medium">{row.action}</td>
-                  <td className="px-6 py-3.5 text-muted-foreground">
-                    {formatInteractionSource(row.source)}
-                  </td>
-                  <td className="px-6 py-3.5 text-muted-foreground">
-                    {currentRestaurant?.name ?? "Restaurant"}
-                  </td>
-                  <td className="px-6 py-3.5 text-muted-foreground">
-                    {formatWhen(row.created_at)}
-                  </td>
-                  <td className="px-6 py-3.5 text-right">
-                    <span
-                      className={`text-xs rounded-full px-2.5 py-1 font-medium ${
-                        row.interaction_type === "AI"
-                          ? "bg-primary/10 text-primary"
-                          : row.interaction_type === "Offre"
-                            ? "bg-success/15 text-success"
-                            : "bg-secondary text-muted-foreground"
-                      }`}
-                    >
-                      {row.interaction_type}
-                    </span>
+              {recentInteractions.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="px-6 py-10 text-center text-sm text-muted-foreground">
+                    Aucune interaction réelle enregistrée pour ce restaurant.
                   </td>
                 </tr>
-              ))}
+              ) : (
+                recentInteractions.map((row) => (
+                  <tr
+                    key={row.id}
+                    className="border-b border-border last:border-0 hover:bg-secondary/30"
+                  >
+                    <td className="px-6 py-3.5 font-medium">{row.action}</td>
+                    <td className="px-6 py-3.5 text-muted-foreground">
+                      {formatInteractionSource(row.source)}
+                    </td>
+                    <td className="px-6 py-3.5 text-muted-foreground">
+                      {currentRestaurant?.name ?? "Restaurant"}
+                    </td>
+                    <td className="px-6 py-3.5 text-muted-foreground">
+                      {formatWhen(row.created_at)}
+                    </td>
+                    <td className="px-6 py-3.5 text-right">
+                      <span
+                        className={`text-xs rounded-full px-2.5 py-1 font-medium ${
+                          row.interaction_type === "AI"
+                            ? "bg-primary/10 text-primary"
+                            : row.interaction_type === "Offre"
+                              ? "bg-success/15 text-success"
+                              : "bg-secondary text-muted-foreground"
+                        }`}
+                      >
+                        {row.interaction_type}
+                      </span>
+                    </td>
+                  </tr>
+                ))
+              )}
             </tbody>
           </table>
         </div>
