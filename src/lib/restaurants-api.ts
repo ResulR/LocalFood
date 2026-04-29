@@ -733,3 +733,85 @@ export async function fetchSupabaseRestaurantsByCompanyId(companyId: string) {
 
   return (data ?? []) as SupabaseCompanyRestaurant[];
 }
+
+export type OwnedRestaurantOffer = {
+  id: string;
+  restaurant_id: string;
+  code: string;
+  title: string;
+  description: string;
+  conditions: string | null;
+  is_active: boolean;
+  created_at: string;
+  updated_at: string;
+};
+
+export async function fetchOwnedRestaurantOffers(restaurantId: string) {
+  const { data, error } = await (supabase as any).rpc("fetch_owned_restaurant_offers", {
+    _restaurant_id: restaurantId,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as OwnedRestaurantOffer[];
+}
+
+export async function upsertOwnedRestaurantOffer({
+  offerId,
+  restaurantId,
+  code,
+  title,
+  description,
+  conditions,
+  isActive,
+}: {
+  offerId: string | null;
+  restaurantId: string;
+  code: string;
+  title: string;
+  description: string;
+  conditions: string;
+  isActive: boolean;
+}) {
+  const { data, error } = await (supabase as any).rpc("upsert_owned_restaurant_offer", {
+    _offer_id: offerId,
+    _restaurant_id: restaurantId,
+    _code: code,
+    _title: title,
+    _description: description,
+    _conditions: conditions,
+    _is_active: isActive,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return (data ?? []) as OwnedRestaurantOffer[];
+}
+
+export async function updateOwnedRestaurantOfferStatus({
+  offerId,
+  isActive,
+}: {
+  offerId: string;
+  isActive: boolean;
+}) {
+  const { data, error } = await (supabase as any).rpc("update_owned_restaurant_offer_status", {
+    _offer_id: offerId,
+    _is_active: isActive,
+  });
+
+  if (error) {
+    throw error;
+  }
+
+  return data as {
+    id: string;
+    restaurant_id: string;
+    is_active: boolean;
+    updated_at: string;
+  }[];
+}

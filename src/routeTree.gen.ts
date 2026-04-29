@@ -29,6 +29,8 @@ import { Route as RestaurantDashboardStatistiquesRouteImport } from './routes/re
 import { Route as RestaurantDashboardReviewsRouteImport } from './routes/restaurant-dashboard.reviews'
 import { Route as RestaurantDashboardProfileRouteImport } from './routes/restaurant-dashboard.profile'
 import { Route as RestaurantDashboardPhotosRouteImport } from './routes/restaurant-dashboard.photos'
+import { Route as RestaurantDashboardOffresRouteImport } from './routes/restaurant-dashboard.offres'
+import { Route as RestaurantDashboardOffersRouteImport } from './routes/restaurant-dashboard.offers'
 import { Route as RestaurantDashboardFicheRouteImport } from './routes/restaurant-dashboard.fiche'
 import { Route as RestaurantDashboardAvisRouteImport } from './routes/restaurant-dashboard.avis'
 import { Route as RestaurantDashboardAbonnementRouteImport } from './routes/restaurant-dashboard.abonnement'
@@ -140,6 +142,18 @@ const RestaurantDashboardPhotosRoute =
     path: '/photos',
     getParentRoute: () => RestaurantDashboardRoute,
   } as any)
+const RestaurantDashboardOffresRoute =
+  RestaurantDashboardOffresRouteImport.update({
+    id: '/offres',
+    path: '/offres',
+    getParentRoute: () => RestaurantDashboardRoute,
+  } as any)
+const RestaurantDashboardOffersRoute =
+  RestaurantDashboardOffersRouteImport.update({
+    id: '/offers',
+    path: '/offers',
+    getParentRoute: () => RestaurantDashboardRoute,
+  } as any)
 const RestaurantDashboardFicheRoute =
   RestaurantDashboardFicheRouteImport.update({
     id: '/fiche',
@@ -170,6 +184,8 @@ export interface FileRoutesByFullPath {
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
   '/restaurant-dashboard/avis': typeof RestaurantDashboardAvisRoute
   '/restaurant-dashboard/fiche': typeof RestaurantDashboardFicheRoute
+  '/restaurant-dashboard/offers': typeof RestaurantDashboardOffersRoute
+  '/restaurant-dashboard/offres': typeof RestaurantDashboardOffresRoute
   '/restaurant-dashboard/photos': typeof RestaurantDashboardPhotosRoute
   '/restaurant-dashboard/profile': typeof RestaurantDashboardProfileRoute
   '/restaurant-dashboard/reviews': typeof RestaurantDashboardReviewsRoute
@@ -193,6 +209,8 @@ export interface FileRoutesByTo {
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
   '/restaurant-dashboard/avis': typeof RestaurantDashboardAvisRoute
   '/restaurant-dashboard/fiche': typeof RestaurantDashboardFicheRoute
+  '/restaurant-dashboard/offers': typeof RestaurantDashboardOffersRoute
+  '/restaurant-dashboard/offres': typeof RestaurantDashboardOffresRoute
   '/restaurant-dashboard/photos': typeof RestaurantDashboardPhotosRoute
   '/restaurant-dashboard/profile': typeof RestaurantDashboardProfileRoute
   '/restaurant-dashboard/reviews': typeof RestaurantDashboardReviewsRoute
@@ -219,6 +237,8 @@ export interface FileRoutesById {
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
   '/restaurant-dashboard/avis': typeof RestaurantDashboardAvisRoute
   '/restaurant-dashboard/fiche': typeof RestaurantDashboardFicheRoute
+  '/restaurant-dashboard/offers': typeof RestaurantDashboardOffersRoute
+  '/restaurant-dashboard/offres': typeof RestaurantDashboardOffresRoute
   '/restaurant-dashboard/photos': typeof RestaurantDashboardPhotosRoute
   '/restaurant-dashboard/profile': typeof RestaurantDashboardProfileRoute
   '/restaurant-dashboard/reviews': typeof RestaurantDashboardReviewsRoute
@@ -246,6 +266,8 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard/abonnement'
     | '/restaurant-dashboard/avis'
     | '/restaurant-dashboard/fiche'
+    | '/restaurant-dashboard/offers'
+    | '/restaurant-dashboard/offres'
     | '/restaurant-dashboard/photos'
     | '/restaurant-dashboard/profile'
     | '/restaurant-dashboard/reviews'
@@ -269,6 +291,8 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard/abonnement'
     | '/restaurant-dashboard/avis'
     | '/restaurant-dashboard/fiche'
+    | '/restaurant-dashboard/offers'
+    | '/restaurant-dashboard/offres'
     | '/restaurant-dashboard/photos'
     | '/restaurant-dashboard/profile'
     | '/restaurant-dashboard/reviews'
@@ -294,6 +318,8 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard/abonnement'
     | '/restaurant-dashboard/avis'
     | '/restaurant-dashboard/fiche'
+    | '/restaurant-dashboard/offers'
+    | '/restaurant-dashboard/offres'
     | '/restaurant-dashboard/photos'
     | '/restaurant-dashboard/profile'
     | '/restaurant-dashboard/reviews'
@@ -461,6 +487,20 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RestaurantDashboardPhotosRouteImport
       parentRoute: typeof RestaurantDashboardRoute
     }
+    '/restaurant-dashboard/offres': {
+      id: '/restaurant-dashboard/offres'
+      path: '/offres'
+      fullPath: '/restaurant-dashboard/offres'
+      preLoaderRoute: typeof RestaurantDashboardOffresRouteImport
+      parentRoute: typeof RestaurantDashboardRoute
+    }
+    '/restaurant-dashboard/offers': {
+      id: '/restaurant-dashboard/offers'
+      path: '/offers'
+      fullPath: '/restaurant-dashboard/offers'
+      preLoaderRoute: typeof RestaurantDashboardOffersRouteImport
+      parentRoute: typeof RestaurantDashboardRoute
+    }
     '/restaurant-dashboard/fiche': {
       id: '/restaurant-dashboard/fiche'
       path: '/fiche'
@@ -489,6 +529,8 @@ interface RestaurantDashboardRouteChildren {
   RestaurantDashboardAbonnementRoute: typeof RestaurantDashboardAbonnementRoute
   RestaurantDashboardAvisRoute: typeof RestaurantDashboardAvisRoute
   RestaurantDashboardFicheRoute: typeof RestaurantDashboardFicheRoute
+  RestaurantDashboardOffersRoute: typeof RestaurantDashboardOffersRoute
+  RestaurantDashboardOffresRoute: typeof RestaurantDashboardOffresRoute
   RestaurantDashboardPhotosRoute: typeof RestaurantDashboardPhotosRoute
   RestaurantDashboardProfileRoute: typeof RestaurantDashboardProfileRoute
   RestaurantDashboardReviewsRoute: typeof RestaurantDashboardReviewsRoute
@@ -502,6 +544,8 @@ const RestaurantDashboardRouteChildren: RestaurantDashboardRouteChildren = {
   RestaurantDashboardAbonnementRoute: RestaurantDashboardAbonnementRoute,
   RestaurantDashboardAvisRoute: RestaurantDashboardAvisRoute,
   RestaurantDashboardFicheRoute: RestaurantDashboardFicheRoute,
+  RestaurantDashboardOffersRoute: RestaurantDashboardOffersRoute,
+  RestaurantDashboardOffresRoute: RestaurantDashboardOffresRoute,
   RestaurantDashboardPhotosRoute: RestaurantDashboardPhotosRoute,
   RestaurantDashboardProfileRoute: RestaurantDashboardProfileRoute,
   RestaurantDashboardReviewsRoute: RestaurantDashboardReviewsRoute,

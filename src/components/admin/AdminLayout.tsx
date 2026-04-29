@@ -5,6 +5,7 @@ import {
   BarChart3,
   Star,
   Images,
+  BadgePercent,
   UtensilsCrossed,
   Bell,
   Search,
@@ -20,6 +21,7 @@ type NavItem = { to: string; label: string; icon: typeof LayoutDashboard; exact?
 const NAV: NavItem[] = [
   { to: "/restaurant-dashboard", label: "Vue d'ensemble", icon: LayoutDashboard, exact: true },
   { to: "/restaurant-dashboard/profile", label: "Ma fiche", icon: Store },
+  { to: "/restaurant-dashboard/offres", label: "Offres", icon: BadgePercent },
   { to: "/restaurant-dashboard/stats", label: "Statistiques", icon: BarChart3 },
   { to: "/restaurant-dashboard/reviews", label: "Avis clients", icon: Star },
   { to: "/restaurant-dashboard/photos", label: "Photos", icon: Images },
