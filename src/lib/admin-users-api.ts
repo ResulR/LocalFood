@@ -51,3 +51,48 @@ export async function createAdminUser(
 
   return json.data as CreateAdminUserResponse;
 }
+
+type UpdateAdminUserStatusResponse = {
+  userId: string;
+  email: string | null;
+  fullName: string | null;
+  isActive: boolean;
+};
+
+export async function updateAdminUserStatus({
+  userId,
+  isActive,
+}: {
+  userId: string;
+  isActive: boolean;
+}): Promise<UpdateAdminUserStatusResponse> {
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError) {
+    throw new Error(sessionError.message);
+  }
+
+  if (!session?.access_token) {
+    throw new Error("Session Supabase introuvable.");
+  }
+
+  const response = await fetch(`${apiBaseUrl}/api/admin/users/${userId}/status`, {
+    method: "PATCH",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+    },
+    body: JSON.stringify({ isActive }),
+  });
+
+  const json = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(json?.error ?? "Impossible de modifier le statut utilisateur.");
+  }
+
+  return json.data as UpdateAdminUserStatusResponse;
+}

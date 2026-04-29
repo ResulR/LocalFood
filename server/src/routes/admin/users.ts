@@ -13,6 +13,10 @@ const createAdminUserSchema = z.object({
   companyId: z.string().uuid(),
 });
 
+const updateAdminUserStatusSchema = z.object({
+  isActive: z.boolean(),
+});
+
 adminUsersRouter.post("/", requireAuth, requireSuperAdmin, async (request, response, next) => {
   try {
     const payload = createAdminUserSchema.parse(request.body);
@@ -126,3 +130,89 @@ adminUsersRouter.post("/", requireAuth, requireSuperAdmin, async (request, respo
     next(error);
   }
 });
+
+adminUsersRouter.patch(
+  "/:userId/status",
+  requireAuth,
+  requireSuperAdmin,
+  async (request, response, next) => {
+    try {
+      const paramsSchema = z.object({
+        userId: z.string().uuid(),
+      });
+
+      const { userId } = paramsSchema.parse(request.params);
+      const payload = updateAdminUserStatusSchema.parse(request.body);
+      const supabaseAdmin = createSupabaseAdminClient();
+
+      const { data: roleData, error: roleError } = await supabaseAdmin
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", userId)
+        .maybeSingle();
+
+      if (roleError) {
+        throw new HttpError(500, roleError.message, "USER_ROLE_LOOKUP_FAILED");
+      }
+
+      if (!roleData) {
+        throw new HttpError(404, "User role not found.", "USER_ROLE_NOT_FOUND");
+      }
+
+      if (roleData.role === "superadmin" && payload.isActive === false) {
+        const { count, error: countError } = await supabaseAdmin
+          .from("profiles")
+          .select("user_id, user_roles!inner(role)", { count: "exact", head: true })
+          .eq("is_active", true)
+          .eq("user_roles.role", "superadmin");
+
+        if (countError) {
+          throw new HttpError(500, countError.message, "SUPERADMIN_COUNT_FAILED");
+        }
+
+        if ((count ?? 0) <= 1) {
+          throw new HttpError(
+            400,
+            "Cannot deactivate the last active SuperAdmin.",
+            "LAST_SUPERADMIN_ACTIVE",
+          );
+        }
+      }
+
+      const { data: updatedProfile, error: updateError } = await supabaseAdmin
+        .from("profiles")
+        .update({
+          is_active: payload.isActive,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", userId)
+        .select("user_id, email, full_name, is_active")
+        .maybeSingle();
+
+      if (updateError) {
+        throw new HttpError(500, updateError.message, "PROFILE_STATUS_UPDATE_FAILED");
+      }
+
+      if (!updatedProfile) {
+        throw new HttpError(404, "Profile not found.", "PROFILE_NOT_FOUND");
+      }
+
+      response.json({
+        ok: true,
+        data: {
+          userId: updatedProfile.user_id,
+          email: updatedProfile.email,
+          fullName: updatedProfile.full_name,
+          isActive: updatedProfile.is_active,
+        },
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        next(new HttpError(400, "Invalid request.", "VALIDATION_ERROR"));
+        return;
+      }
+
+      next(error);
+    }
+  },
+);

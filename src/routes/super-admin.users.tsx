@@ -4,7 +4,7 @@ import { Loader2, Search, Shield, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 import type { AppRole } from "@/contexts/AuthContext";
-import { createAdminUser } from "@/lib/admin-users-api";
+import { createAdminUser, updateAdminUserStatus } from "@/lib/admin-users-api";
 
 export const Route = createFileRoute("/super-admin/users")({
   head: () => ({ meta: [{ title: "Utilisateurs — SuperAdmin LocalFood" }] }),
@@ -301,6 +301,40 @@ function SuperAdminUsersPage() {
     }
   };
 
+  const changeUserStatus = async (row: UserListRow, nextIsActive: boolean) => {
+    if (row.isActive === nextIsActive) {
+      return;
+    }
+
+    if (row.role === "superadmin" && superadminCount <= 1 && !nextIsActive) {
+      toast.error("Impossible de désactiver le dernier SuperAdmin actif");
+      return;
+    }
+
+    setSavingUserId(row.userId);
+
+    try {
+      await updateAdminUserStatus({
+        userId: row.userId,
+        isActive: nextIsActive,
+      });
+
+      toast.success(nextIsActive ? "Utilisateur activé" : "Utilisateur désactivé", {
+        description: row.email,
+      });
+
+      await loadUsers();
+    } catch (error) {
+      console.error("Failed to update user status:", error);
+      toast.error("Modification impossible", {
+        description:
+          error instanceof Error ? error.message : "Le backend a refusé la modification.",
+      });
+    } finally {
+      setSavingUserId(null);
+    }
+  };
+
   return (
     <div className="max-w-[1400px] space-y-6">
       <div className="flex items-end justify-between gap-4 flex-wrap">
@@ -500,15 +534,28 @@ function SuperAdminUsersPage() {
                         </select>
                       </td>
                       <td className="px-5 py-4">
-                        <span
-                          className={`rounded-full px-2.5 py-1 text-xs font-medium ${
-                            row.isActive
-                              ? "bg-success/15 text-success"
-                              : "bg-destructive/10 text-destructive"
-                          }`}
-                        >
-                          {row.isActive ? "Actif" : "Inactif"}
-                        </span>
+                        <div className="flex flex-col gap-2">
+                          <span
+                            className={`w-fit rounded-full px-2.5 py-1 text-xs font-medium ${
+                              row.isActive
+                                ? "bg-success/15 text-success"
+                                : "bg-destructive/10 text-destructive"
+                            }`}
+                          >
+                            {row.isActive ? "Actif" : "Inactif"}
+                          </span>
+
+                          <button
+                            type="button"
+                            disabled={
+                              isSaving || (row.role === "superadmin" && superadminCount <= 1)
+                            }
+                            onClick={() => changeUserStatus(row, !row.isActive)}
+                            className="w-fit rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
+                          >
+                            {row.isActive ? "Désactiver" : "Activer"}
+                          </button>
+                        </div>
                       </td>
                     </tr>
                   );
