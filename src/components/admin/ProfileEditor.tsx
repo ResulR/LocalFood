@@ -1,12 +1,51 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Save, Upload, X } from "lucide-react";
 import { toast } from "sonner";
-import { restaurants, QUICK_FILTERS } from "@/data/restaurants";
+import {
+  restaurants as localRestaurants,
+  QUICK_FILTERS,
+  type Restaurant,
+} from "@/data/restaurants";
+import { fetchSupabaseRestaurantBySlug } from "@/lib/restaurants-api";
+import { mapSupabaseRestaurantToRestaurant } from "@/lib/restaurant-mappers";
 
 export function ProfileEditor() {
-  const r = restaurants[0];
-  const [tags, setTags] = useState<string[]>(r.tags);
+  const [restaurant, setRestaurant] = useState<Restaurant>(localRestaurants[0]);
+  const [tags, setTags] = useState<string[]>(localRestaurants[0].tags);
   const [saved, setSaved] = useState(false);
+  const [loadingRestaurant, setLoadingRestaurant] = useState(true);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchSupabaseRestaurantBySlug("maison-zayna")
+      .then((data) => {
+        if (cancelled || !data) return;
+
+        const mapped = mapSupabaseRestaurantToRestaurant(data);
+        setRestaurant(mapped);
+        setTags(mapped.tags);
+      })
+      .catch((error) => {
+        console.error("Failed to load profile restaurant from Supabase:", error);
+
+        if (!cancelled) {
+          setRestaurant(localRestaurants[0]);
+          setTags(localRestaurants[0].tags);
+        }
+      })
+      .finally(() => {
+        if (!cancelled) {
+          setLoadingRestaurant(false);
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const r = restaurant;
   const toggle = (t: string) =>
     setTags(tags.includes(t) ? tags.filter((x) => x !== t) : [...tags, t]);
   const save = () => {
@@ -19,12 +58,14 @@ export function ProfileEditor() {
 
   return (
     <div className="space-y-8 max-w-4xl">
+      {loadingRestaurant && (
+        <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
+          Chargement de la fiche restaurant...
+        </div>
+      )}
       <div className="flex items-end justify-between">
         <div>
           <h1 className="font-display text-3xl font-semibold">Ma fiche restaurant</h1>
-          <p className="text-muted-foreground mt-1">
-            Modifiez les informations affichées aux clients.
-          </p>
         </div>
         <button
           onClick={save}
