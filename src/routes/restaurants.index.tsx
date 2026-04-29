@@ -131,8 +131,8 @@ function RestaurantsPage() {
               Restaurants autour de vous
             </h1>
             <p className="text-muted-foreground mt-2">
-              {filtered.length} adresses ·{" "}
-              {restaurantsSource === "supabase" ? "données Supabase" : "données locales"}
+              {filtered.length} adresse{filtered.length > 1 ? "s" : ""} disponible
+              {filtered.length > 1 ? "s" : ""} autour de vous.
             </p>
           </div>
           <div className="flex flex-col sm:flex-row sm:items-center gap-2 w-full lg:w-auto">
