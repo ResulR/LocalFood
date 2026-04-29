@@ -33,7 +33,17 @@ export async function requireAuth(request: Request, _response: Response, next: N
       throw new HttpError(401, "Missing bearer token.", "AUTH_TOKEN_MISSING");
     }
 
-    const supabase = createSupabaseUserClient(accessToken);
+    let supabase;
+
+    try {
+      supabase = createSupabaseUserClient(accessToken);
+    } catch {
+      throw new HttpError(
+        503,
+        "Server authentication is not configured.",
+        "SERVER_AUTH_NOT_CONFIGURED",
+      );
+    }
 
     const { data: userData, error: userError } = await supabase.auth.getUser();
 
