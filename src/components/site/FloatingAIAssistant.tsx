@@ -1,7 +1,10 @@
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { Sparkles, X, Minus, Send, ArrowUpRight } from "lucide-react";
 import { runMockAIQuery, SUGGESTED_PROMPTS, type AIResult } from "@/data/mockAI";
+import { restaurants as localRestaurants, type Restaurant } from "@/data/restaurants";
+import { fetchSupabaseRestaurants } from "@/lib/restaurants-api";
+import { mapSupabaseRestaurantsToRestaurants } from "@/lib/restaurant-mappers";
 
 /**
  * FloatingAIAssistant
@@ -14,17 +17,58 @@ export function FloatingAIAssistant() {
   const [open, setOpen] = useState(false);
   const [query, setQuery] = useState("");
   const [result, setResult] = useState<AIResult | null>(null);
+  const [supabaseRestaurants, setSupabaseRestaurants] = useState<Restaurant[]>([]);
+  const [restaurantsSource, setRestaurantsSource] = useState<"supabase" | "local">("local");
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     if (open) setTimeout(() => inputRef.current?.focus(), 50);
   }, [open]);
 
+  useEffect(() => {
+    let cancelled = false;
+
+    fetchSupabaseRestaurants()
+      .then((data) => {
+        if (cancelled) return;
+
+        const mapped = mapSupabaseRestaurantsToRestaurants(data);
+
+        if (mapped.length > 0) {
+          setSupabaseRestaurants(mapped);
+          setRestaurantsSource("supabase");
+        } else {
+          setSupabaseRestaurants([]);
+          setRestaurantsSource("local");
+        }
+      })
+      .catch((error) => {
+        console.error("Failed to load floating assistant restaurants from Supabase:", error);
+
+        if (!cancelled) {
+          setSupabaseRestaurants([]);
+          setRestaurantsSource("local");
+        }
+      });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const sourceRestaurants = useMemo(
+    () =>
+      restaurantsSource === "supabase" && supabaseRestaurants.length > 0
+        ? supabaseRestaurants
+        : localRestaurants,
+    [restaurantsSource, supabaseRestaurants],
+  );
+
   function submit(q: string) {
     const value = q.trim();
     if (!value) return;
     setQuery(value);
-    setResult(runMockAIQuery(value));
+    setResult(runMockAIQuery(value, sourceRestaurants));
   }
 
   return (

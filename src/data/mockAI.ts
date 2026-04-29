@@ -2,7 +2,11 @@
 // Le moteur fait un matching simple entre les mots-clés détectés
 // dans la requête utilisateur et les tags des restaurants.
 
-import { restaurants, type Restaurant, type RestaurantTag } from "./restaurants";
+import {
+  restaurants as localRestaurants,
+  type Restaurant,
+  type RestaurantTag,
+} from "./restaurants";
 
 export const SUGGESTED_PROMPTS = [
   "Je veux un resto date night avec parking",
@@ -48,7 +52,10 @@ export type AIResult = {
   results: Array<Restaurant & { matchScore: number; matchReason: string }>;
 };
 
-export function runMockAIQuery(query: string): AIResult {
+export function runMockAIQuery(
+  query: string,
+  sourceRestaurants: Restaurant[] = localRestaurants,
+): AIResult {
   const detected = new Set<string>();
   for (const [re, tag] of KEYWORD_MAP) {
     if (re.test(query)) detected.add(tag);
@@ -60,7 +67,7 @@ export function runMockAIQuery(query: string): AIResult {
     (t): t is RestaurantTag => t !== "AMBIANCE_CALME",
   );
 
-  const scored = restaurants
+  const scored = sourceRestaurants
     .map((r) => {
       const matched = tagDetected.filter((t) => r.tags.includes(t));
       const ratio = tagDetected.length === 0 ? 0.5 : matched.length / tagDetected.length;
