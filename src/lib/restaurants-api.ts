@@ -1,5 +1,13 @@
 import { supabase } from "@/lib/supabase";
 
+const apiBaseUrl = import.meta.env.VITE_LOCALFOOD_API_URL ?? "http://localhost:4000";
+
+type SupabaseRpcClient = {
+  rpc: typeof supabase.rpc;
+};
+
+const supabaseRpc = supabase as SupabaseRpcClient;
+
 export type SupabaseRestaurantTag = {
   label: string;
   slug: string;
@@ -701,15 +709,37 @@ export async function addOwnedRestaurantPhoto({
 }
 
 export async function deleteOwnedRestaurantPhoto(photoId: string) {
-  const { data, error } = await supabase.rpc("delete_owned_restaurant_photo", {
-    _photo_id: photoId,
-  });
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
 
-  if (error) {
-    throw error;
+  if (sessionError) {
+    throw new Error(sessionError.message);
   }
 
-  return data;
+  if (!session?.access_token) {
+    throw new Error("Session Supabase introuvable.");
+  }
+
+  const response = await fetch(`${apiBaseUrl}/api/admin/restaurant-photos/${photoId}`, {
+    method: "DELETE",
+    headers: {
+      Authorization: `Bearer ${session.access_token}`,
+    },
+  });
+
+  const json = await response.json().catch(() => null);
+
+  if (!response.ok) {
+    throw new Error(json?.error ?? "Impossible de supprimer la photo.");
+  }
+
+  return json.data as {
+    photoId: string;
+    storageDeleted: boolean;
+    storagePath: string | null;
+  };
 }
 
 export type SupabaseCompanyRestaurant = {
@@ -747,7 +777,7 @@ export type OwnedRestaurantOffer = {
 };
 
 export async function fetchOwnedRestaurantOffers(restaurantId: string) {
-  const { data, error } = await (supabase as any).rpc("fetch_owned_restaurant_offers", {
+  const { data, error } = await supabaseRpc.rpc("fetch_owned_restaurant_offers", {
     _restaurant_id: restaurantId,
   });
 
@@ -775,7 +805,7 @@ export async function upsertOwnedRestaurantOffer({
   conditions: string;
   isActive: boolean;
 }) {
-  const { data, error } = await (supabase as any).rpc("upsert_owned_restaurant_offer", {
+  const { data, error } = await supabaseRpc.rpc("upsert_owned_restaurant_offer", {
     _offer_id: offerId,
     _restaurant_id: restaurantId,
     _code: code,
@@ -799,7 +829,7 @@ export async function updateOwnedRestaurantOfferStatus({
   offerId: string;
   isActive: boolean;
 }) {
-  const { data, error } = await (supabase as any).rpc("update_owned_restaurant_offer_status", {
+  const { data, error } = await supabaseRpc.rpc("update_owned_restaurant_offer_status", {
     _offer_id: offerId,
     _is_active: isActive,
   });
@@ -834,7 +864,7 @@ export type OwnedRestaurantOpeningHourInput = {
 };
 
 export async function fetchOwnedRestaurantOpeningHours(restaurantId: string) {
-  const { data, error } = await (supabase as any).rpc("fetch_owned_restaurant_opening_hours", {
+  const { data, error } = await supabaseRpc.rpc("fetch_owned_restaurant_opening_hours", {
     _restaurant_id: restaurantId,
   });
 
@@ -852,7 +882,7 @@ export async function upsertOwnedRestaurantOpeningHours({
   restaurantId: string;
   hours: OwnedRestaurantOpeningHourInput[];
 }) {
-  const { data, error } = await (supabase as any).rpc("upsert_owned_restaurant_opening_hours", {
+  const { data, error } = await supabaseRpc.rpc("upsert_owned_restaurant_opening_hours", {
     _restaurant_id: restaurantId,
     _hours: hours,
   });
