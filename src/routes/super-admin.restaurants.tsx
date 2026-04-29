@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
-import { Loader2, Search, Shield, Store } from "lucide-react";
+import { Edit3, Loader2, Save, Search, Shield, Store, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
 
@@ -9,13 +9,24 @@ export const Route = createFileRoute("/super-admin/restaurants")({
   component: SuperAdminRestaurantsPage,
 });
 
+type PriceLabel = "€" | "€€" | "€€€";
+
 type RestaurantRow = {
   id: string;
   name: string;
   slug: string;
   category: string;
   cuisine_type: string;
+  description: string;
+  rating: number;
+  reviews_count: number;
+  price_level: number;
+  price_label: PriceLabel;
+  is_open: boolean;
+  address: string;
   city: string;
+  country: string;
+  phone: string | null;
   is_active: boolean;
   company_id: string | null;
 };
@@ -33,17 +44,51 @@ type RestaurantListRow = {
   slug: string;
   category: string;
   cuisineType: string;
+  description: string;
+  rating: number;
+  reviewsCount: number;
+  priceLevel: number;
+  priceLabel: PriceLabel;
+  isOpen: boolean;
+  address: string;
   city: string;
+  country: string;
+  phone: string;
   isActive: boolean;
   companyId: string | null;
   companyName: string;
 };
+
+type EditingRestaurant = {
+  id: string;
+  name: string;
+  category: string;
+  cuisineType: string;
+  description: string;
+  priceLabel: PriceLabel;
+  isOpen: boolean;
+  address: string;
+  city: string;
+  country: string;
+  phone: string;
+};
+
+const PRICE_OPTIONS: { label: PriceLabel; level: number }[] = [
+  { label: "€", level: 1 },
+  { label: "€€", level: 2 },
+  { label: "€€€", level: 3 },
+];
+
+function getPriceLevel(priceLabel: PriceLabel) {
+  return PRICE_OPTIONS.find((price) => price.label === priceLabel)?.level ?? 2;
+}
 
 function SuperAdminRestaurantsPage() {
   const [restaurants, setRestaurants] = useState<RestaurantRow[]>([]);
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [loadingRestaurants, setLoadingRestaurants] = useState(true);
   const [savingRestaurantId, setSavingRestaurantId] = useState<string | null>(null);
+  const [editingRestaurant, setEditingRestaurant] = useState<EditingRestaurant | null>(null);
   const [errorMessage, setErrorMessage] = useState("");
   const [search, setSearch] = useState("");
 
@@ -54,7 +99,27 @@ function SuperAdminRestaurantsPage() {
     const [restaurantsResult, companiesResult] = await Promise.all([
       supabase
         .from("restaurants")
-        .select("id, name, slug, category, cuisine_type, city, is_active, company_id")
+        .select(
+          `
+            id,
+            name,
+            slug,
+            category,
+            cuisine_type,
+            description,
+            rating,
+            reviews_count,
+            price_level,
+            price_label,
+            is_open,
+            address,
+            city,
+            country,
+            phone,
+            is_active,
+            company_id
+          `,
+        )
         .order("name"),
       supabase.from("companies").select("id, name, slug, is_active").order("name"),
     ]);
@@ -102,7 +167,16 @@ function SuperAdminRestaurantsPage() {
       slug: restaurant.slug,
       category: restaurant.category,
       cuisineType: restaurant.cuisine_type,
+      description: restaurant.description,
+      rating: Number(restaurant.rating),
+      reviewsCount: restaurant.reviews_count,
+      priceLevel: restaurant.price_level,
+      priceLabel: restaurant.price_label,
+      isOpen: restaurant.is_open,
+      address: restaurant.address,
       city: restaurant.city,
+      country: restaurant.country,
+      phone: restaurant.phone ?? "",
       isActive: restaurant.is_active,
       companyId: restaurant.company_id,
       companyName: restaurant.company_id
@@ -119,7 +193,16 @@ function SuperAdminRestaurantsPage() {
     }
 
     return rows.filter((row) =>
-      [row.name, row.slug, row.category, row.cuisineType, row.city, row.companyName]
+      [
+        row.name,
+        row.slug,
+        row.category,
+        row.cuisineType,
+        row.description,
+        row.city,
+        row.address,
+        row.companyName,
+      ]
         .join(" ")
         .toLowerCase()
         .includes(normalizedSearch),
@@ -198,6 +281,82 @@ function SuperAdminRestaurantsPage() {
     await loadRestaurants();
   };
 
+  const startEditingRestaurant = (row: RestaurantListRow) => {
+    setEditingRestaurant({
+      id: row.id,
+      name: row.name,
+      category: row.category,
+      cuisineType: row.cuisineType,
+      description: row.description,
+      priceLabel: row.priceLabel,
+      isOpen: row.isOpen,
+      address: row.address,
+      city: row.city,
+      country: row.country,
+      phone: row.phone,
+    });
+  };
+
+  const cancelEditingRestaurant = () => {
+    setEditingRestaurant(null);
+  };
+
+  const saveRestaurant = async () => {
+    if (!editingRestaurant) {
+      return;
+    }
+
+    const name = editingRestaurant.name.trim();
+    const category = editingRestaurant.category.trim();
+    const cuisineType = editingRestaurant.cuisineType.trim();
+    const description = editingRestaurant.description.trim();
+    const address = editingRestaurant.address.trim();
+    const city = editingRestaurant.city.trim();
+    const country = editingRestaurant.country.trim();
+    const phone = editingRestaurant.phone.trim();
+
+    if (!name || !category || !cuisineType || !description || !address || !city || !country) {
+      toast.error("Les champs principaux du restaurant sont obligatoires");
+      return;
+    }
+
+    setSavingRestaurantId(editingRestaurant.id);
+
+    const { error } = await supabase
+      .from("restaurants")
+      .update({
+        name,
+        category,
+        cuisine_type: cuisineType,
+        description,
+        price_label: editingRestaurant.priceLabel,
+        price_level: getPriceLevel(editingRestaurant.priceLabel),
+        is_open: editingRestaurant.isOpen,
+        address,
+        city,
+        country,
+        phone: phone || null,
+      })
+      .eq("id", editingRestaurant.id)
+      .select("id")
+      .single();
+
+    if (error) {
+      setSavingRestaurantId(null);
+      toast.error("Impossible de modifier le restaurant", { description: error.message });
+      await loadRestaurants();
+      return;
+    }
+
+    toast.success("Restaurant mis à jour", {
+      description: `${name} a été modifié.`,
+    });
+
+    setEditingRestaurant(null);
+    setSavingRestaurantId(null);
+    await loadRestaurants();
+  };
+
   return (
     <div className="max-w-[1400px] space-y-6">
       <div className="flex items-end justify-between gap-4 flex-wrap">
@@ -259,27 +418,181 @@ function SuperAdminRestaurantsPage() {
               <thead className="border-b border-border bg-secondary/40 text-xs text-muted-foreground">
                 <tr>
                   <th className="px-5 py-3 text-left font-medium">Restaurant</th>
-                  <th className="px-5 py-3 text-left font-medium">Ville</th>
-                  <th className="px-5 py-3 text-left font-medium">Catégorie</th>
+                  <th className="px-5 py-3 text-left font-medium">Infos</th>
                   <th className="px-5 py-3 text-left font-medium">Entreprise</th>
                   <th className="px-5 py-3 text-left font-medium">Statut</th>
+                  <th className="px-5 py-3 text-right font-medium">Actions</th>
                 </tr>
               </thead>
               <tbody>
                 {filteredRows.map((row) => {
                   const isSaving = savingRestaurantId === row.id;
+                  const isEditing = editingRestaurant?.id === row.id;
 
                   return (
-                    <tr key={row.id} className="border-b border-border last:border-0">
-                      <td className="px-5 py-4">
-                        <div className="font-medium">{row.name}</div>
-                        <div className="text-xs text-muted-foreground">{row.slug}</div>
+                    <tr key={row.id} className="border-b border-border last:border-0 align-top">
+                      <td className="px-5 py-4 min-w-[280px]">
+                        {isEditing ? (
+                          <div className="space-y-2">
+                            <input
+                              value={editingRestaurant.name}
+                              onChange={(event) =>
+                                setEditingRestaurant({
+                                  ...editingRestaurant,
+                                  name: event.target.value,
+                                })
+                              }
+                              className="w-full rounded-xl border border-border bg-background px-3 py-2 text-sm outline-none focus:border-ring"
+                            />
+                            <textarea
+                              value={editingRestaurant.description}
+                              onChange={(event) =>
+                                setEditingRestaurant({
+                                  ...editingRestaurant,
+                                  description: event.target.value,
+                                })
+                              }
+                              className="min-h-20 w-full rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-ring"
+                            />
+                            <div className="text-xs text-muted-foreground">
+                              Slug stable : {row.slug}
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div className="font-medium">{row.name}</div>
+                            <div className="text-xs text-muted-foreground">{row.slug}</div>
+                            <div className="mt-1 max-w-xs text-xs text-muted-foreground line-clamp-2">
+                              {row.description}
+                            </div>
+                          </>
+                        )}
                       </td>
-                      <td className="px-5 py-4 text-muted-foreground">{row.city}</td>
-                      <td className="px-5 py-4">
-                        <div>{row.category}</div>
-                        <div className="text-xs text-muted-foreground">{row.cuisineType}</div>
+
+                      <td className="px-5 py-4 min-w-[320px]">
+                        {isEditing ? (
+                          <div className="grid gap-2">
+                            <input
+                              value={editingRestaurant.category}
+                              onChange={(event) =>
+                                setEditingRestaurant({
+                                  ...editingRestaurant,
+                                  category: event.target.value,
+                                })
+                              }
+                              placeholder="Catégorie"
+                              className="rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-ring"
+                            />
+                            <input
+                              value={editingRestaurant.cuisineType}
+                              onChange={(event) =>
+                                setEditingRestaurant({
+                                  ...editingRestaurant,
+                                  cuisineType: event.target.value,
+                                })
+                              }
+                              placeholder="Type cuisine"
+                              className="rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-ring"
+                            />
+                            <input
+                              value={editingRestaurant.address}
+                              onChange={(event) =>
+                                setEditingRestaurant({
+                                  ...editingRestaurant,
+                                  address: event.target.value,
+                                })
+                              }
+                              placeholder="Adresse"
+                              className="rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-ring"
+                            />
+                            <div className="grid grid-cols-2 gap-2">
+                              <input
+                                value={editingRestaurant.city}
+                                onChange={(event) =>
+                                  setEditingRestaurant({
+                                    ...editingRestaurant,
+                                    city: event.target.value,
+                                  })
+                                }
+                                placeholder="Ville"
+                                className="rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-ring"
+                              />
+                              <input
+                                value={editingRestaurant.country}
+                                onChange={(event) =>
+                                  setEditingRestaurant({
+                                    ...editingRestaurant,
+                                    country: event.target.value,
+                                  })
+                                }
+                                placeholder="Pays"
+                                className="rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-ring"
+                              />
+                            </div>
+                            <input
+                              value={editingRestaurant.phone}
+                              onChange={(event) =>
+                                setEditingRestaurant({
+                                  ...editingRestaurant,
+                                  phone: event.target.value,
+                                })
+                              }
+                              placeholder="Téléphone"
+                              className="rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-ring"
+                            />
+                            <div className="grid grid-cols-2 gap-2">
+                              <select
+                                value={editingRestaurant.priceLabel}
+                                onChange={(event) =>
+                                  setEditingRestaurant({
+                                    ...editingRestaurant,
+                                    priceLabel: event.target.value as PriceLabel,
+                                  })
+                                }
+                                className="rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-ring"
+                              >
+                                {PRICE_OPTIONS.map((price) => (
+                                  <option key={price.label} value={price.label}>
+                                    {price.label}
+                                  </option>
+                                ))}
+                              </select>
+
+                              <select
+                                value={editingRestaurant.isOpen ? "open" : "closed"}
+                                onChange={(event) =>
+                                  setEditingRestaurant({
+                                    ...editingRestaurant,
+                                    isOpen: event.target.value === "open",
+                                  })
+                                }
+                                className="rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-ring"
+                              >
+                                <option value="open">Ouvert</option>
+                                <option value="closed">Fermé</option>
+                              </select>
+                            </div>
+
+                            <div className="rounded-xl bg-secondary/50 px-3 py-2 text-xs text-muted-foreground">
+                              Note et avis en lecture seule : {row.rating.toFixed(1)} ★ ·{" "}
+                              {row.reviewsCount} avis
+                            </div>
+                          </div>
+                        ) : (
+                          <>
+                            <div>{row.category}</div>
+                            <div className="text-xs text-muted-foreground">{row.cuisineType}</div>
+                            <div className="mt-2 text-xs text-muted-foreground">
+                              {row.address}, {row.city}, {row.country}
+                            </div>
+                            <div className="mt-1 text-xs text-muted-foreground">
+                              {row.priceLabel} · {row.rating.toFixed(1)} ★ · {row.reviewsCount} avis
+                              · {row.isOpen ? " Ouvert" : " Fermé"}
+                            </div>
+                          </>
+                        )}
                       </td>
+
                       <td className="px-5 py-4">
                         <div className="flex flex-col gap-1">
                           <select
@@ -304,6 +617,7 @@ function SuperAdminRestaurantsPage() {
                           )}
                         </div>
                       </td>
+
                       <td className="px-5 py-4">
                         <select
                           value={row.isActive ? "active" : "inactive"}
@@ -321,6 +635,44 @@ function SuperAdminRestaurantsPage() {
                           <option value="inactive">Inactif</option>
                         </select>
                       </td>
+
+                      <td className="px-5 py-4">
+                        <div className="flex justify-end gap-2">
+                          {isEditing ? (
+                            <>
+                              <button
+                                onClick={saveRestaurant}
+                                disabled={isSaving}
+                                className="inline-flex items-center gap-1 rounded-full bg-foreground px-3 py-1.5 text-xs font-medium text-background hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                {isSaving ? (
+                                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                                ) : (
+                                  <Save className="h-3.5 w-3.5" />
+                                )}
+                                Sauver
+                              </button>
+
+                              <button
+                                onClick={cancelEditingRestaurant}
+                                disabled={isSaving}
+                                className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
+                              >
+                                <X className="h-3.5 w-3.5" />
+                                Annuler
+                              </button>
+                            </>
+                          ) : (
+                            <button
+                              onClick={() => startEditingRestaurant(row)}
+                              className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary"
+                            >
+                              <Edit3 className="h-3.5 w-3.5" />
+                              Modifier
+                            </button>
+                          )}
+                        </div>
+                      </td>
                     </tr>
                   );
                 })}
@@ -331,9 +683,9 @@ function SuperAdminRestaurantsPage() {
       )}
 
       <div className="rounded-2xl border border-border bg-secondary/40 p-5 text-sm text-muted-foreground">
-        Cette page permet d’assigner un restaurant à une entreprise et d’activer/désactiver sa
-        visibilité publique. Une entreprise pourra donc gérer plusieurs restaurants ou plusieurs
-        localisations.
+        Cette page permet de modifier les informations principales d’un restaurant, son entreprise,
+        son statut public et son état ouvert/fermé. Les photos, horaires, tags, badges et offres
+        seront gérés dans des étapes séparées.
       </div>
     </div>
   );
