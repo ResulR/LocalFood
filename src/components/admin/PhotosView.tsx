@@ -10,11 +10,15 @@ import {
   uploadRestaurantPhotoFile,
 } from "@/lib/restaurants-api";
 import { mapSupabaseRestaurantToRestaurant } from "@/lib/restaurant-mappers";
+import { useAdminI18n } from "@/lib/admin-i18n";
+
+const ALL_PHOTOS_FILTER = "Toutes";
 
 export function PhotosView() {
+  const { tAdmin } = useAdminI18n();
   const { selectedRestaurant, loadingRestaurants, restaurantMessage } = useRestaurantDashboard();
   const [photos, setPhotos] = useState<RestaurantPhoto[]>([]);
-  const [filter, setFilter] = useState<PhotoCategory | "Toutes">("Toutes");
+  const [filter, setFilter] = useState<PhotoCategory | typeof ALL_PHOTOS_FILTER>(ALL_PHOTOS_FILTER);
   const [loadingPhotos, setLoadingPhotos] = useState(true);
   const [photosMessage, setPhotosMessage] = useState("");
   const [deletingPhotoId, setDeletingPhotoId] = useState<string | null>(null);
@@ -38,7 +42,7 @@ export function PhotosView() {
       }
 
       if (!selectedRestaurant) {
-        setPhotosMessage(restaurantMessage || "Aucun restaurant n’est sélectionné.");
+        setPhotosMessage(restaurantMessage || tAdmin("admin.photos.noRestaurantSelected"));
         setLoadingPhotos(false);
         return;
       }
@@ -51,7 +55,7 @@ export function PhotosView() {
 
       if (!data) {
         setPhotos([]);
-        setPhotosMessage("Impossible de charger les photos de ce restaurant.");
+        setPhotosMessage(tAdmin("admin.photos.loadRestaurantError"));
         setLoadingPhotos(false);
         return;
       }
@@ -67,7 +71,7 @@ export function PhotosView() {
       if (!cancelled) {
         setPhotos([]);
         setCurrentRestaurantId(null);
-        setPhotosMessage("Impossible de charger les photos.");
+        setPhotosMessage(tAdmin("admin.photos.loadError"));
         setLoadingPhotos(false);
       }
     });
@@ -75,19 +79,19 @@ export function PhotosView() {
     return () => {
       cancelled = true;
     };
-  }, [selectedRestaurant, loadingRestaurants, restaurantMessage]);
+  }, [selectedRestaurant, loadingRestaurants, restaurantMessage, tAdmin]);
 
   const addPhoto = async () => {
     if (!currentRestaurantId) {
-      toast.error("Ajout impossible", {
-        description: "Aucun restaurant n’est chargé.",
+      toast.error(tAdmin("admin.photos.addImpossible"), {
+        description: tAdmin("admin.photos.noRestaurantLoaded"),
       });
       return;
     }
 
     if (!selectedPhotoFile) {
-      toast.error("Photo manquante", {
-        description: "Choisissez une photo avant d’enregistrer.",
+      toast.error(tAdmin("admin.photos.missingPhoto"), {
+        description: tAdmin("admin.photos.choosePhoto"),
       });
       return;
     }
@@ -127,13 +131,14 @@ export function PhotosView() {
       if (fileInputRef.current) {
         fileInputRef.current.value = "";
       }
-      toast.success("Photo ajoutée", {
-        description: "La photo a été ajoutée à la galerie.",
+
+      toast.success(tAdmin("admin.photos.addedTitle"), {
+        description: tAdmin("admin.photos.addedDescription"),
       });
     } catch (error) {
       console.error("Failed to add restaurant photo:", error);
-      toast.error("Ajout impossible", {
-        description: "La base de données a refusé l’ajout.",
+      toast.error(tAdmin("admin.photos.addImpossible"), {
+        description: tAdmin("admin.photos.addRefusedDescription"),
       });
     } finally {
       setAddingPhoto(false);
@@ -142,8 +147,8 @@ export function PhotosView() {
 
   const deletePhoto = async (photo: RestaurantPhoto) => {
     if (!photo.id) {
-      toast.error("Suppression impossible", {
-        description: "Cette photo n’a pas d’identifiant Supabase.",
+      toast.error(tAdmin("admin.photos.deleteImpossible"), {
+        description: tAdmin("admin.photos.noSupabaseId"),
       });
       return;
     }
@@ -153,13 +158,13 @@ export function PhotosView() {
     try {
       await deleteOwnedRestaurantPhoto(photo.id);
       setPhotos((current) => current.filter((item) => item.id !== photo.id));
-      toast.success("Photo supprimée", {
-        description: "La photo a été retirée de la galerie.",
+      toast.success(tAdmin("admin.photos.deletedTitle"), {
+        description: tAdmin("admin.photos.deletedDescription"),
       });
     } catch (error) {
       console.error("Failed to delete restaurant photo:", error);
-      toast.error("Suppression impossible", {
-        description: "La base de données a refusé la suppression.",
+      toast.error(tAdmin("admin.photos.deleteImpossible"), {
+        description: tAdmin("admin.photos.deleteRefusedDescription"),
       });
     } finally {
       setDeletingPhotoId(null);
@@ -167,13 +172,13 @@ export function PhotosView() {
   };
 
   const all = photos;
-  const filtered = filter === "Toutes" ? all : all.filter((p) => p.category === filter);
+  const filtered = filter === ALL_PHOTOS_FILTER ? all : all.filter((p) => p.category === filter);
 
   return (
     <div className="space-y-6 max-w-6xl">
       {loadingPhotos && (
         <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
-          Chargement des photos...
+          {tAdmin("admin.photos.loading")}
         </div>
       )}
       {photosMessage && (
@@ -184,10 +189,8 @@ export function PhotosView() {
 
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
-          <h1 className="font-display text-3xl font-semibold">Photos</h1>
-          <p className="text-muted-foreground mt-1">
-            Photos officielles et photos partagées par vos clients.
-          </p>
+          <h1 className="font-display text-3xl font-semibold">{tAdmin("admin.photos.title")}</h1>
+          <p className="text-muted-foreground mt-1">{tAdmin("admin.photos.subtitle")}</p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full lg:w-auto">
           <input
@@ -211,38 +214,41 @@ export function PhotosView() {
             disabled={addingPhoto || !currentRestaurantId || !selectedPhotoFile}
             className="inline-flex items-center justify-center gap-2 rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-medium hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           >
-            <Upload className="h-4 w-4" /> {addingPhoto ? "Ajout..." : "Ajouter"}
+            <Upload className="h-4 w-4" />{" "}
+            {addingPhoto ? tAdmin("admin.photos.adding") : tAdmin("admin.photos.add")}
           </button>
         </div>
       </div>
 
       <div className="flex flex-wrap gap-2">
-        {(["Toutes", ...PHOTO_CATEGORIES] as const).map((cat) => (
+        {([ALL_PHOTOS_FILTER, ...PHOTO_CATEGORIES] as const).map((cat) => (
           <button
             key={cat}
-            onClick={() => setFilter(cat as PhotoCategory | "Toutes")}
+            onClick={() => setFilter(cat as PhotoCategory | typeof ALL_PHOTOS_FILTER)}
             className={`rounded-full px-3 py-1.5 text-xs font-medium border transition ${
               filter === cat
                 ? "bg-foreground text-background border-foreground"
                 : "bg-background border-border hover:border-foreground/40"
             }`}
           >
-            {cat}
+            {cat === ALL_PHOTOS_FILTER ? tAdmin("admin.photos.all") : cat}
           </button>
         ))}
       </div>
 
       <div className="rounded-2xl bg-card border border-border p-6">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="font-display text-lg font-semibold">Galerie ({filtered.length})</h2>
+          <h2 className="font-display text-lg font-semibold">
+            {tAdmin("admin.photos.gallery")} ({filtered.length})
+          </h2>
           <div className="text-xs text-muted-foreground">
-            {all.filter((p) => p.byClient).length} ajoutées par vos clients
+            {all.filter((p) => p.byClient).length} {tAdmin("admin.photos.addedByCustomers")}
           </div>
         </div>
 
         {filtered.length === 0 ? (
           <div className="rounded-xl border border-dashed border-border p-12 text-center text-sm text-muted-foreground">
-            Aucune photo dans cette catégorie.
+            {tAdmin("admin.photos.emptyCategory")}
           </div>
         ) : (
           <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">

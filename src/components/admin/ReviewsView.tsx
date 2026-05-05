@@ -9,6 +9,9 @@ import {
   type SupabaseRestaurantReview,
   type SupabaseRestaurantReviewStatus,
 } from "@/lib/restaurants-api";
+import { useAdminI18n } from "@/lib/admin-i18n";
+
+type TAdmin = ReturnType<typeof useAdminI18n>["tAdmin"];
 
 type AdminReviewStatus = "publié" | "en attente" | "masqué";
 
@@ -16,21 +19,21 @@ type AdminReview = {
   id: string;
   author: string;
   rating: number;
-  date: string;
+  createdAt: string;
   comment: string;
   photo?: string;
   status: AdminReviewStatus;
 };
 
-function formatReviewDate(createdAt: string) {
+function formatReviewDate(createdAt: string, tAdmin: TAdmin) {
   const createdDate = new Date(createdAt);
   const now = new Date();
   const diffMs = now.getTime() - createdDate.getTime();
   const diffDays = Math.max(0, Math.floor(diffMs / (1000 * 60 * 60 * 24)));
 
-  if (diffDays === 0) return "aujourd'hui";
-  if (diffDays === 1) return "il y a 1 jour";
-  return `il y a ${diffDays} jours`;
+  if (diffDays === 0) return tAdmin("admin.reviews.today");
+  if (diffDays === 1) return tAdmin("admin.reviews.oneDayAgo");
+  return `${diffDays} ${tAdmin("admin.reviews.daysAgo")}`;
 }
 
 function mapSupabaseStatus(status: SupabaseRestaurantReview["status"]): AdminReviewStatus {
@@ -45,6 +48,12 @@ function mapAdminStatusToSupabaseStatus(status: AdminReviewStatus): SupabaseRest
   return "published";
 }
 
+function formatReviewStatus(status: AdminReviewStatus, tAdmin: TAdmin) {
+  if (status === "en attente") return tAdmin("admin.reviews.statusPending");
+  if (status === "masqué") return tAdmin("admin.reviews.statusHidden");
+  return tAdmin("admin.reviews.statusPublished");
+}
+
 const REVIEW_STATUS_OPTIONS: AdminReviewStatus[] = ["publié", "en attente", "masqué"];
 
 function mapSupabaseReview(review: SupabaseRestaurantReview): AdminReview {
@@ -52,7 +61,7 @@ function mapSupabaseReview(review: SupabaseRestaurantReview): AdminReview {
     id: review.id,
     author: review.author_name,
     rating: review.rating,
-    date: formatReviewDate(review.created_at),
+    createdAt: review.created_at,
     comment: review.comment,
     photo: review.photo_url ?? undefined,
     status: mapSupabaseStatus(review.status),
@@ -61,6 +70,7 @@ function mapSupabaseReview(review: SupabaseRestaurantReview): AdminReview {
 
 export function ReviewsView() {
   const { role } = useAuth();
+  const { tAdmin } = useAdminI18n();
   const { selectedRestaurant, loadingRestaurants, restaurantMessage } = useRestaurantDashboard();
   const currentRestaurant = selectedRestaurant;
   const [reviews, setReviews] = useState<AdminReview[]>([]);
@@ -81,7 +91,7 @@ export function ReviewsView() {
       }
 
       if (!currentRestaurant) {
-        setReviewsMessage(restaurantMessage || "Aucun restaurant n’est sélectionné.");
+        setReviewsMessage(restaurantMessage || tAdmin("admin.reviews.noRestaurantSelected"));
         setLoadingReviews(false);
         return;
       }
@@ -98,7 +108,7 @@ export function ReviewsView() {
       console.error("Failed to load restaurant reviews from Supabase:", error);
 
       if (!cancelled) {
-        setReviewsMessage("Impossible de charger les avis clients.");
+        setReviewsMessage(tAdmin("admin.reviews.loadError"));
         setReviews([]);
         setLoadingReviews(false);
       }
@@ -107,14 +117,14 @@ export function ReviewsView() {
     return () => {
       cancelled = true;
     };
-  }, [currentRestaurant, loadingRestaurants, restaurantMessage]);
+  }, [currentRestaurant, loadingRestaurants, restaurantMessage, tAdmin]);
 
   const updateReviewStatus = async (review: AdminReview, nextStatus: AdminReviewStatus) => {
     if (review.status === nextStatus) return;
 
     if (role !== "superadmin") {
-      toast.error("Action non autorisée", {
-        description: "Seul un SuperAdmin peut modérer les avis.",
+      toast.error(tAdmin("admin.reviews.unauthorized"), {
+        description: tAdmin("admin.reviews.superAdminOnly"),
       });
       return;
     }
@@ -140,11 +150,11 @@ export function ReviewsView() {
         ),
       );
 
-      toast.success("Statut de l’avis mis à jour");
+      toast.success(tAdmin("admin.reviews.updated"));
     } catch (error) {
       console.error("Failed to update review status:", error);
-      toast.error("Modification impossible", {
-        description: "La base de données a refusé la modification.",
+      toast.error(tAdmin("admin.reviews.updateImpossible"), {
+        description: tAdmin("admin.reviews.updateRefusedDescription"),
       });
     } finally {
       setUpdatingReviewId(null);
@@ -167,7 +177,7 @@ export function ReviewsView() {
     <div className="space-y-6 max-w-5xl">
       {loadingReviews && (
         <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
-          Chargement des avis...
+          {tAdmin("admin.reviews.loading")}
         </div>
       )}
       {reviewsMessage && (
@@ -177,24 +187,24 @@ export function ReviewsView() {
       )}
 
       <div>
-        <h1 className="font-display text-3xl font-semibold">Avis clients</h1>
-        <p className="text-muted-foreground mt-1">Modérez et répondez aux avis de vos clients.</p>
+        <h1 className="font-display text-3xl font-semibold">{tAdmin("admin.reviews.title")}</h1>
+        <p className="text-muted-foreground mt-1">{tAdmin("admin.reviews.subtitle")}</p>
       </div>
 
       <div className="grid sm:grid-cols-3 gap-3">
-        <Stat label="Note moyenne" value={averageRating} sub="sur 5" />
+        <Stat label={tAdmin("admin.reviews.averageRating")} value={averageRating} sub={tAdmin("admin.reviews.outOf5")} />
         <Stat
-          label="Avis affichés"
+          label={tAdmin("admin.reviews.displayedReviews")}
           value={String(reviews.length)}
-          sub={currentRestaurant?.name ?? "Restaurant"}
+          sub={currentRestaurant?.name ?? tAdmin("admin.common.restaurant")}
         />
-        <Stat label="En attente" value={String(pendingCount)} sub="à modérer" />
+        <Stat label={tAdmin("admin.reviews.pending")} value={String(pendingCount)} sub={tAdmin("admin.reviews.toModerate")} />
       </div>
 
       <div className="rounded-2xl bg-card border border-border divide-y divide-border">
         {reviews.length === 0 ? (
           <div className="p-10 text-center text-sm text-muted-foreground">
-            Aucun avis client à afficher pour ce restaurant.
+            {tAdmin("admin.reviews.empty")}
           </div>
         ) : (
           reviews.map((rev) => (
@@ -216,7 +226,7 @@ export function ReviewsView() {
                               : "bg-muted text-muted-foreground"
                         }`}
                       >
-                        {rev.status}
+                        {formatReviewStatus(rev.status, tAdmin)}
                       </span>
                     </div>
                     <div className="flex items-center gap-2 mt-1">
@@ -232,7 +242,9 @@ export function ReviewsView() {
                           />
                         ))}
                       </div>
-                      <span className="text-xs text-muted-foreground">{rev.date}</span>
+                      <span className="text-xs text-muted-foreground">
+                        {formatReviewDate(rev.createdAt, tAdmin)}
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -248,13 +260,15 @@ export function ReviewsView() {
                       className="rounded-full border border-border bg-background px-3 py-2 text-xs font-medium outline-none hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
                     >
                       {REVIEW_STATUS_OPTIONS.map((status) => (
-                        <option key={status}>{status}</option>
+                        <option key={status} value={status}>
+                          {formatReviewStatus(status, tAdmin)}
+                        </option>
                       ))}
                     </select>
                   </div>
                 ) : (
                   <span className="rounded-full border border-border px-3 py-2 text-xs text-muted-foreground">
-                    Lecture seule
+                    {tAdmin("admin.reviews.readOnly")}
                   </span>
                 )}
               </div>
