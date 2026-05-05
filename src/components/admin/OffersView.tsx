@@ -8,6 +8,7 @@ import {
   upsertOwnedRestaurantOffer,
   type OwnedRestaurantOffer,
 } from "@/lib/restaurants-api";
+import { useAdminI18n } from "@/lib/admin-i18n";
 
 type OfferForm = {
   offerId: string | null;
@@ -28,6 +29,7 @@ const emptyForm: OfferForm = {
 };
 
 export function OffersView() {
+  const { tAdmin } = useAdminI18n();
   const { selectedRestaurant, loadingRestaurants, restaurantMessage } = useRestaurantDashboard();
   const currentRestaurant = selectedRestaurant;
   const [offers, setOffers] = useState<OwnedRestaurantOffer[]>([]);
@@ -51,7 +53,7 @@ export function OffersView() {
       }
 
       if (!currentRestaurant) {
-        setOffersMessage(restaurantMessage || "Aucun restaurant n’est sélectionné.");
+        setOffersMessage(restaurantMessage || tAdmin("admin.offers.noRestaurantSelected"));
         setLoadingOffers(false);
         return;
       }
@@ -68,7 +70,7 @@ export function OffersView() {
       console.error("Failed to load restaurant offers from Supabase:", error);
 
       if (!cancelled) {
-        setOffersMessage("Impossible de charger les offres.");
+        setOffersMessage(tAdmin("admin.offers.loadError"));
         setOffers([]);
         setLoadingOffers(false);
       }
@@ -77,7 +79,7 @@ export function OffersView() {
     return () => {
       cancelled = true;
     };
-  }, [currentRestaurant, loadingRestaurants, restaurantMessage]);
+  }, [currentRestaurant, loadingRestaurants, restaurantMessage, tAdmin]);
 
   const activeOffersCount = useMemo(
     () => offers.filter((offer) => offer.is_active).length,
@@ -107,8 +109,8 @@ export function OffersView() {
     event.preventDefault();
 
     if (!currentRestaurant) {
-      toast.error("Enregistrement impossible", {
-        description: "Aucun restaurant n’est chargé.",
+      toast.error(tAdmin("admin.offers.saveRefused"), {
+        description: tAdmin("admin.offers.noRestaurantLoaded"),
       });
       return;
     }
@@ -140,15 +142,20 @@ export function OffersView() {
         });
       }
 
-      toast.success(form.offerId ? "Offre modifiée" : "Offre ajoutée", {
-        description: "L’offre a été sauvegardée en base.",
-      });
+      toast.success(
+        form.offerId
+          ? tAdmin("admin.offers.savedUpdatedTitle")
+          : tAdmin("admin.offers.savedAddedTitle"),
+        {
+          description: tAdmin("admin.offers.savedDescription"),
+        },
+      );
 
       resetForm();
     } catch (error) {
       console.error("Failed to save restaurant offer:", error);
-      toast.error("Enregistrement impossible", {
-        description: "La base de données a refusé la modification.",
+      toast.error(tAdmin("admin.offers.saveRefused"), {
+        description: tAdmin("admin.offers.saveRefusedDescription"),
       });
     } finally {
       setSavingOffer(false);
@@ -178,11 +185,13 @@ export function OffersView() {
         ),
       );
 
-      toast.success(updated?.is_active ? "Offre activée" : "Offre désactivée");
+      toast.success(
+        updated?.is_active ? tAdmin("admin.offers.activated") : tAdmin("admin.offers.deactivated"),
+      );
     } catch (error) {
       console.error("Failed to update restaurant offer status:", error);
-      toast.error("Modification impossible", {
-        description: "La base de données a refusé la modification.",
+      toast.error(tAdmin("admin.offers.updateImpossible"), {
+        description: tAdmin("admin.offers.saveRefusedDescription"),
       });
     } finally {
       setUpdatingOfferId(null);
@@ -195,7 +204,7 @@ export function OffersView() {
         <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
           <div className="inline-flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Chargement des offres...
+            {tAdmin("admin.offers.loading")}
           </div>
         </div>
       )}
@@ -210,16 +219,18 @@ export function OffersView() {
         <div>
           <div className="inline-flex items-center gap-2 text-xs font-semibold text-primary uppercase tracking-wider">
             <BadgePercent className="h-3.5 w-3.5" />
-            Offres restaurant
+            {tAdmin("admin.offers.badge")}
           </div>
-          <h1 className="mt-1 font-display text-3xl font-semibold">Offres</h1>
+          <h1 className="mt-1 font-display text-3xl font-semibold">
+            {tAdmin("admin.offers.title")}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Créez et gérez les offres visibles sur la fiche publique du restaurant.
+            {tAdmin("admin.offers.subtitle")}
           </p>
         </div>
 
         <div className="rounded-2xl border border-border bg-card px-5 py-4">
-          <div className="text-xs text-muted-foreground">Offres actives</div>
+          <div className="text-xs text-muted-foreground">{tAdmin("admin.offers.activeOffers")}</div>
           <div className="font-display text-2xl font-semibold">{activeOffersCount}</div>
         </div>
       </div>
@@ -228,47 +239,47 @@ export function OffersView() {
         <div className="mb-4 flex items-center gap-2">
           <Plus className="h-4 w-4 text-primary" />
           <h2 className="font-display text-lg font-semibold">
-            {form.offerId ? "Modifier une offre" : "Ajouter une offre"}
+            {form.offerId ? tAdmin("admin.offers.editTitle") : tAdmin("admin.offers.addTitle")}
           </h2>
         </div>
 
         <div className="grid gap-4 md:grid-cols-2">
-          <Field label="Code promo">
+          <Field label={tAdmin("admin.offers.promoCode")}>
             <input
               value={form.code}
               onChange={(event) => updateForm("code", event.target.value)}
               required
               className={inputCls}
-              placeholder="Ex : LOCAL10"
+              placeholder={tAdmin("admin.offers.codePlaceholder")}
             />
           </Field>
 
-          <Field label="Titre">
+          <Field label={tAdmin("admin.offers.offerTitle")}>
             <input
               value={form.title}
               onChange={(event) => updateForm("title", event.target.value)}
               required
               className={inputCls}
-              placeholder="Ex : -10% sur votre première commande"
+              placeholder={tAdmin("admin.offers.titlePlaceholder")}
             />
           </Field>
 
-          <Field label="Description" full>
+          <Field label={tAdmin("admin.offers.description")} full>
             <textarea
               value={form.description}
               onChange={(event) => updateForm("description", event.target.value)}
               required
               className={`${inputCls} min-h-[90px]`}
-              placeholder="Expliquez clairement l’offre au client."
+              placeholder={tAdmin("admin.offers.descriptionPlaceholder")}
             />
           </Field>
 
-          <Field label="Conditions" full>
+          <Field label={tAdmin("admin.offers.conditions")} full>
             <textarea
               value={form.conditions}
               onChange={(event) => updateForm("conditions", event.target.value)}
               className={`${inputCls} min-h-[70px]`}
-              placeholder="Ex : Valable uniquement sur place, hors boissons."
+              placeholder={tAdmin("admin.offers.conditionsPlaceholder")}
             />
           </Field>
 
@@ -279,7 +290,7 @@ export function OffersView() {
               onChange={(event) => updateForm("isActive", event.target.checked)}
               className="h-4 w-4 rounded border-border"
             />
-            Offre active
+            {tAdmin("admin.offers.activeOffer")}
           </label>
         </div>
 
@@ -290,7 +301,7 @@ export function OffersView() {
               onClick={resetForm}
               className="rounded-full border border-border px-5 py-2.5 text-sm font-medium hover:bg-secondary"
             >
-              Annuler
+              {tAdmin("admin.offers.cancel")}
             </button>
           )}
 
@@ -300,22 +311,26 @@ export function OffersView() {
             className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {savingOffer && <Loader2 className="h-4 w-4 animate-spin" />}
-            {savingOffer ? "Enregistrement..." : form.offerId ? "Modifier l’offre" : "Ajouter"}
+            {savingOffer
+              ? tAdmin("admin.common.saving")
+              : form.offerId
+                ? tAdmin("admin.offers.updateButton")
+                : tAdmin("admin.offers.addButton")}
           </button>
         </div>
       </form>
 
       <div className="rounded-2xl border border-border bg-card">
         <div className="border-b border-border px-5 py-4">
-          <h2 className="font-display text-lg font-semibold">Offres existantes</h2>
+          <h2 className="font-display text-lg font-semibold">{tAdmin("admin.offers.existing")}</h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Une offre inactive n’est pas affichée publiquement.
+            {tAdmin("admin.offers.inactiveHelp")}
           </p>
         </div>
 
         {offers.length === 0 ? (
           <div className="p-10 text-center text-sm text-muted-foreground">
-            Aucune offre n’est encore créée pour ce restaurant.
+            {tAdmin("admin.offers.empty")}
           </div>
         ) : (
           <div className="divide-y divide-border">
@@ -334,7 +349,9 @@ export function OffersView() {
                               : "bg-muted text-muted-foreground"
                           }`}
                         >
-                          {offer.is_active ? "Active" : "Inactive"}
+                          {offer.is_active
+                            ? tAdmin("admin.offers.active")
+                            : tAdmin("admin.offers.inactive")}
                         </span>
                         <span className="rounded-full border border-border px-2.5 py-1 text-xs font-semibold">
                           {offer.code}
@@ -346,7 +363,7 @@ export function OffersView() {
 
                       {offer.conditions && (
                         <p className="mt-2 text-xs text-muted-foreground">
-                          Conditions : {offer.conditions}
+                          {tAdmin("admin.offers.conditionsPrefix")} {offer.conditions}
                         </p>
                       )}
                     </div>
@@ -358,7 +375,7 @@ export function OffersView() {
                         className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-xs font-medium hover:bg-secondary"
                       >
                         <Pencil className="h-3.5 w-3.5" />
-                        Modifier
+                        {tAdmin("admin.offers.edit")}
                       </button>
 
                       <button
@@ -372,7 +389,9 @@ export function OffersView() {
                         ) : (
                           <Power className="h-3.5 w-3.5" />
                         )}
-                        {offer.is_active ? "Désactiver" : "Activer"}
+                        {offer.is_active
+                          ? tAdmin("admin.offers.disable")
+                          : tAdmin("admin.offers.enable")}
                       </button>
                     </div>
                   </div>

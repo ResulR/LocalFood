@@ -8,6 +8,7 @@ import {
   type OwnedRestaurantOpeningHour,
   type OwnedRestaurantOpeningHourInput,
 } from "@/lib/restaurants-api";
+import { useAdminI18n, type AdminTranslationKey } from "@/lib/admin-i18n";
 
 type OpeningHourFormRow = {
   day_of_week: number;
@@ -25,6 +26,16 @@ const defaultHours: OpeningHourFormRow[] = [
   { day_of_week: 6, day_label: "Samedi", hours_text: "10:00 - 23:00", is_closed: false },
   { day_of_week: 7, day_label: "Dimanche", hours_text: "Fermé", is_closed: true },
 ];
+
+const DAY_TRANSLATION_KEYS: Record<number, AdminTranslationKey> = {
+  1: "admin.openingHours.monday",
+  2: "admin.openingHours.tuesday",
+  3: "admin.openingHours.wednesday",
+  4: "admin.openingHours.thursday",
+  5: "admin.openingHours.friday",
+  6: "admin.openingHours.saturday",
+  7: "admin.openingHours.sunday",
+};
 
 function mergeExistingHours(existingHours: OwnedRestaurantOpeningHour[]): OpeningHourFormRow[] {
   const existingByDay = new Map(existingHours.map((hour) => [hour.day_of_week, hour]));
@@ -46,6 +57,7 @@ function mergeExistingHours(existingHours: OwnedRestaurantOpeningHour[]): Openin
 }
 
 export function OpeningHoursView() {
+  const { tAdmin } = useAdminI18n();
   const { selectedRestaurant, loadingRestaurants, restaurantMessage } = useRestaurantDashboard();
   const currentRestaurant = selectedRestaurant;
   const [hours, setHours] = useState<OpeningHourFormRow[]>(defaultHours);
@@ -66,7 +78,7 @@ export function OpeningHoursView() {
       }
 
       if (!currentRestaurant) {
-        setHoursMessage(restaurantMessage || "Aucun restaurant n’est sélectionné.");
+        setHoursMessage(restaurantMessage || tAdmin("admin.openingHours.noRestaurantSelected"));
         setLoadingHours(false);
         return;
       }
@@ -83,7 +95,7 @@ export function OpeningHoursView() {
       console.error("Failed to load restaurant opening hours from Supabase:", error);
 
       if (!cancelled) {
-        setHoursMessage("Impossible de charger les horaires.");
+        setHoursMessage(tAdmin("admin.openingHours.loadError"));
         setHours(defaultHours);
         setLoadingHours(false);
       }
@@ -92,7 +104,7 @@ export function OpeningHoursView() {
     return () => {
       cancelled = true;
     };
-  }, [currentRestaurant, loadingRestaurants, restaurantMessage]);
+  }, [currentRestaurant, loadingRestaurants, restaurantMessage, tAdmin]);
 
   const updateHour = <K extends keyof OpeningHourFormRow>(
     dayOfWeek: number,
@@ -114,8 +126,8 @@ export function OpeningHoursView() {
 
   const saveHours = async () => {
     if (!currentRestaurant) {
-      toast.error("Enregistrement impossible", {
-        description: "Aucun restaurant n’est chargé.",
+      toast.error(tAdmin("admin.openingHours.saveImpossible"), {
+        description: tAdmin("admin.openingHours.noRestaurantLoaded"),
       });
       return;
     }
@@ -137,13 +149,13 @@ export function OpeningHoursView() {
 
       setHours(mergeExistingHours(savedHours));
 
-      toast.success("Horaires enregistrés", {
-        description: "Les horaires détaillés ont été sauvegardés.",
+      toast.success(tAdmin("admin.openingHours.savedTitle"), {
+        description: tAdmin("admin.openingHours.savedDescription"),
       });
     } catch (error) {
       console.error("Failed to save restaurant opening hours:", error);
-      toast.error("Enregistrement impossible", {
-        description: "La base de données a refusé la modification.",
+      toast.error(tAdmin("admin.openingHours.saveImpossible"), {
+        description: tAdmin("admin.openingHours.saveRefusedDescription"),
       });
     } finally {
       setSavingHours(false);
@@ -156,7 +168,7 @@ export function OpeningHoursView() {
         <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
           <div className="inline-flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Chargement des horaires...
+            {tAdmin("admin.openingHours.loading")}
           </div>
         </div>
       )}
@@ -171,11 +183,13 @@ export function OpeningHoursView() {
         <div>
           <div className="inline-flex items-center gap-2 text-xs font-semibold text-primary uppercase tracking-wider">
             <Clock className="h-3.5 w-3.5" />
-            Horaires restaurant
+            {tAdmin("admin.openingHours.badge")}
           </div>
-          <h1 className="mt-1 font-display text-3xl font-semibold">Horaires</h1>
+          <h1 className="mt-1 font-display text-3xl font-semibold">
+            {tAdmin("admin.openingHours.title")}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Gérez les horaires détaillés affichés sur la fiche publique du restaurant.
+            {tAdmin("admin.openingHours.subtitle")}
           </p>
         </div>
 
@@ -190,47 +204,57 @@ export function OpeningHoursView() {
           ) : (
             <Save className="h-4 w-4" />
           )}
-          {savingHours ? "Enregistrement..." : "Enregistrer"}
+          {savingHours ? tAdmin("admin.common.saving") : tAdmin("admin.common.save")}
         </button>
       </div>
 
       <div className="rounded-2xl border border-border bg-card">
         <div className="border-b border-border px-5 py-4">
-          <h2 className="font-display text-lg font-semibold">Horaires par jour</h2>
+          <h2 className="font-display text-lg font-semibold">
+            {tAdmin("admin.openingHours.byDay")}
+          </h2>
           <p className="mt-1 text-xs text-muted-foreground">
-            Exemple : 09:00 - 22:00, 11:30 - 14:30 / 18:00 - 22:00, ou Fermé.
+            {tAdmin("admin.openingHours.example")}
           </p>
         </div>
 
         <div className="divide-y divide-border">
-          {hours.map((hour) => (
-            <div
-              key={hour.day_of_week}
-              className="grid gap-3 p-5 md:grid-cols-[140px_1fr_auto] md:items-center"
-            >
-              <div className="font-medium">{hour.day_label}</div>
+          {hours.map((hour) => {
+            const dayLabelKey = DAY_TRANSLATION_KEYS[hour.day_of_week];
 
-              <input
-                value={hour.hours_text}
-                onChange={(event) => updateHour(hour.day_of_week, "hours_text", event.target.value)}
-                disabled={hour.is_closed}
-                className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm outline-none focus:border-ring disabled:cursor-not-allowed disabled:opacity-60"
-                placeholder="09:00 - 22:00"
-              />
+            return (
+              <div
+                key={hour.day_of_week}
+                className="grid gap-3 p-5 md:grid-cols-[140px_1fr_auto] md:items-center"
+              >
+                <div className="font-medium">
+                  {dayLabelKey ? tAdmin(dayLabelKey) : hour.day_label}
+                </div>
 
-              <label className="flex items-center gap-2 text-sm text-muted-foreground">
                 <input
-                  type="checkbox"
-                  checked={hour.is_closed}
+                  value={hour.is_closed ? tAdmin("admin.openingHours.closed") : hour.hours_text}
                   onChange={(event) =>
-                    updateHour(hour.day_of_week, "is_closed", event.target.checked)
+                    updateHour(hour.day_of_week, "hours_text", event.target.value)
                   }
-                  className="h-4 w-4 rounded border-border"
+                  disabled={hour.is_closed}
+                  className="w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm outline-none focus:border-ring disabled:cursor-not-allowed disabled:opacity-60"
+                  placeholder="09:00 - 22:00"
                 />
-                Fermé
-              </label>
-            </div>
-          ))}
+
+                <label className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <input
+                    type="checkbox"
+                    checked={hour.is_closed}
+                    onChange={(event) =>
+                      updateHour(hour.day_of_week, "is_closed", event.target.checked)
+                    }
+                    className="h-4 w-4 rounded border-border"
+                  />
+                  {tAdmin("admin.openingHours.closed")}
+                </label>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
