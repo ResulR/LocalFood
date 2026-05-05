@@ -29,6 +29,9 @@ const adminTranslations = {
     "admin.dashboard.accessNotConfigured": "Access not configured",
     "admin.dashboard.accessNotConfiguredDescription":
       "Your account exists, but no LocalFood role has been assigned to it yet.",
+    "admin.dashboard.noCompanyLinked": "No company is linked to your profile.",
+    "admin.dashboard.noRestaurantLinked": "No restaurant is linked to your company yet.",
+    "admin.dashboard.loadRestaurantsError": "Unable to load your company restaurants.",
 
     "admin.overview.sourcePublicCard": "Restaurant card",
     "admin.overview.sourcePublicDetail": "Restaurant listing",
@@ -89,8 +92,7 @@ const adminTranslations = {
     "admin.profile.cannotSave": "Unable to save",
     "admin.profile.noRestaurantLoaded": "No restaurant is loaded.",
     "admin.profile.savedTitle": "Listing saved",
-    "admin.profile.savedDescription":
-      "Main information, external links and tags have been saved.",
+    "admin.profile.savedDescription": "Main information, external links and tags have been saved.",
     "admin.profile.saveRefused": "Save failed",
     "admin.profile.saveRefusedDescription": "The database refused the update.",
     "admin.profile.loadingListing": "Loading restaurant listing...",
@@ -247,7 +249,8 @@ const adminTranslations = {
     "admin.stats.actionBreakdown": "Action breakdown",
     "admin.stats.noActions": "No action recorded for this restaurant over the selected period.",
     "admin.stats.peakHours": "Peak activity",
-    "admin.stats.noPeaks": "No activity peak recorded for this restaurant over the selected period.",
+    "admin.stats.noPeaks":
+      "No activity peak recorded for this restaurant over the selected period.",
     "admin.stats.topAiSearches": "Top AI searches that displayed your restaurant",
     "admin.stats.noAiData": "No real AI data is available for this restaurant yet.",
     "admin.stats.actionViews": "Views",
@@ -305,7 +308,8 @@ const adminTranslations = {
     "admin.login.heroTitle": "Sign in to your LocalFood area.",
     "admin.login.heroDescription":
       "Manage your restaurant listing, photos, customer reviews and statistics.",
-    "admin.login.restrictedAccess": "Access reserved for LocalFood restaurant owners and administrators.",
+    "admin.login.restrictedAccess":
+      "Access reserved for LocalFood restaurant owners and administrators.",
     "admin.login.title": "Sign in",
     "admin.login.subtitle": "Access your LocalFood professional area.",
     "admin.login.email": "Email",
@@ -319,7 +323,8 @@ const adminTranslations = {
     "admin.superAdmin.restaurants": "Restaurants",
     "admin.superAdmin.loading": "Loading SuperAdmin area...",
     "admin.superAdmin.accessDenied": "Access denied",
-    "admin.superAdmin.accessDeniedDescription": "This section is reserved for LocalFood SuperAdmins.",
+    "admin.superAdmin.accessDeniedDescription":
+      "This section is reserved for LocalFood SuperAdmins.",
     "admin.superAdmin.backToDashboard": "Back to dashboard",
     "admin.superAdmin.signOut": "Sign out",
     "admin.superAdmin.headerTitle": "SuperAdmin area",
@@ -340,16 +345,19 @@ const adminTranslations = {
     "admin.superAdminUsers.companyUpdated": "Company updated",
     "admin.superAdminUsers.updateCompanyError": "Unable to update company",
     "admin.superAdminUsers.companyRequired": "Company required",
-    "admin.superAdminUsers.companyRequiredDescription": "Choose the company the user will be linked to.",
+    "admin.superAdminUsers.companyRequiredDescription":
+      "Choose the company the user will be linked to.",
     "admin.superAdminUsers.userInvited": "User invited",
     "admin.superAdminUsers.createError": "Unable to create user",
     "admin.superAdminUsers.backendRefusedCreate": "The backend refused the creation.",
-    "admin.superAdminUsers.cannotDisableLastSuperAdmin": "Unable to disable the last active SuperAdmin",
+    "admin.superAdminUsers.cannotDisableLastSuperAdmin":
+      "Unable to disable the last active SuperAdmin",
     "admin.superAdminUsers.userActivated": "User activated",
     "admin.superAdminUsers.userDisabled": "User disabled",
     "admin.superAdminUsers.updateImpossible": "Update failed",
     "admin.superAdminUsers.title": "Users",
-    "admin.superAdminUsers.subtitle": "Global view of LocalFood accounts, roles and linked companies.",
+    "admin.superAdminUsers.subtitle":
+      "Global view of LocalFood accounts, roles and linked companies.",
     "admin.superAdminUsers.totalUsers": "Total users",
     "admin.superAdminUsers.addClientUser": "Add a client user",
     "admin.superAdminUsers.fullName": "Full name",
@@ -385,7 +393,8 @@ const adminTranslations = {
     "admin.superAdminCompanies.updated": "Company updated",
     "admin.superAdminCompanies.updatedDescription": "has been updated.",
     "admin.superAdminCompanies.title": "Companies",
-    "admin.superAdminCompanies.subtitle": "Global view of companies linked to LocalFood restaurants.",
+    "admin.superAdminCompanies.subtitle":
+      "Global view of companies linked to LocalFood restaurants.",
     "admin.superAdminCompanies.total": "Total companies",
     "admin.superAdminCompanies.add": "Add a company",
     "admin.superAdminCompanies.name": "Name",
@@ -485,6 +494,10 @@ const adminTranslations = {
     "admin.dashboard.accessNotConfigured": "Aksesi nuk është konfiguruar",
     "admin.dashboard.accessNotConfiguredDescription":
       "Llogaria jote ekziston, por ende nuk i është caktuar asnjë rol LocalFood.",
+    "admin.dashboard.noCompanyLinked": "Asnjë kompani nuk është e lidhur me profilin tënd.",
+    "admin.dashboard.noRestaurantLinked":
+      "Asnjë restorant nuk është ende i lidhur me kompaninë tënde.",
+    "admin.dashboard.loadRestaurantsError": "Nuk mund të ngarkohen restorantet e kompanisë tënde.",
 
     "admin.overview.sourcePublicCard": "Karta e restorantit",
     "admin.overview.sourcePublicDetail": "Ficha e restorantit",
@@ -528,7 +541,8 @@ const adminTranslations = {
     "admin.overview.source": "Burim",
     "admin.overview.when": "Kur",
     "admin.overview.type": "Tipi",
-    "admin.overview.noInteractions": "Asnjë ndërveprim real nuk është regjistruar për këtë restorant.",
+    "admin.overview.noInteractions":
+      "Asnjë ndërveprim real nuk është regjistruar për këtë restorant.",
     "admin.overview.typeView": "Shikim",
     "admin.overview.typeMaps": "Maps",
     "admin.overview.typeWaze": "Waze",
@@ -607,7 +621,8 @@ const adminTranslations = {
     "admin.offers.loading": "Duke u ngarkuar ofertat...",
     "admin.offers.badge": "Ofertat e restorantit",
     "admin.offers.title": "Oferta",
-    "admin.offers.subtitle": "Krijo dhe menaxho ofertat që shfaqen në fichën publike të restorantit.",
+    "admin.offers.subtitle":
+      "Krijo dhe menaxho ofertat që shfaqen në fichën publike të restorantit.",
     "admin.offers.activeOffers": "Oferta aktive",
     "admin.offers.editTitle": "Ndrysho një ofertë",
     "admin.offers.addTitle": "Shto një ofertë",
@@ -701,9 +716,11 @@ const adminTranslations = {
     "admin.stats.views": "Shikime",
     "admin.stats.clicks": "Klikime",
     "admin.stats.actionBreakdown": "Ndarja e veprimeve",
-    "admin.stats.noActions": "Asnjë veprim nuk është regjistruar për këtë restorant gjatë periudhës së zgjedhur.",
+    "admin.stats.noActions":
+      "Asnjë veprim nuk është regjistruar për këtë restorant gjatë periudhës së zgjedhur.",
     "admin.stats.peakHours": "Pikët e aktivitetit",
-    "admin.stats.noPeaks": "Asnjë pik aktiviteti nuk është regjistruar për këtë restorant gjatë periudhës së zgjedhur.",
+    "admin.stats.noPeaks":
+      "Asnjë pik aktiviteti nuk është regjistruar për këtë restorant gjatë periudhës së zgjedhur.",
     "admin.stats.topAiSearches": "Kërkimet kryesore AI që shfaqën restorantin tënd",
     "admin.stats.noAiData": "Ende nuk ka të dhëna reale AI për këtë restorant.",
     "admin.stats.actionViews": "Shikime",
@@ -761,7 +778,8 @@ const adminTranslations = {
     "admin.login.heroTitle": "Lidhu në hapësirën tënde LocalFood.",
     "admin.login.heroDescription":
       "Menaxho fichën e restorantit, fotot, komentet e klientëve dhe statistikat.",
-    "admin.login.restrictedAccess": "Akses i rezervuar për restoratorët dhe administratorët LocalFood.",
+    "admin.login.restrictedAccess":
+      "Akses i rezervuar për restoratorët dhe administratorët LocalFood.",
     "admin.login.title": "Lidhja",
     "admin.login.subtitle": "Hyr në hapësirën tënde profesionale LocalFood.",
     "admin.login.email": "Email",
@@ -775,7 +793,8 @@ const adminTranslations = {
     "admin.superAdmin.restaurants": "Restorantet",
     "admin.superAdmin.loading": "Duke u ngarkuar hapësira SuperAdmin...",
     "admin.superAdmin.accessDenied": "Akses i refuzuar",
-    "admin.superAdmin.accessDeniedDescription": "Kjo seksion është i rezervuar për SuperAdmins LocalFood.",
+    "admin.superAdmin.accessDeniedDescription":
+      "Kjo seksion është i rezervuar për SuperAdmins LocalFood.",
     "admin.superAdmin.backToDashboard": "Kthehu te dashboard-i",
     "admin.superAdmin.signOut": "Dil",
     "admin.superAdmin.headerTitle": "Hapësira SuperAdmin",
@@ -796,16 +815,19 @@ const adminTranslations = {
     "admin.superAdminUsers.companyUpdated": "Kompania u përditësua",
     "admin.superAdminUsers.updateCompanyError": "Nuk mund të ndryshohet kompania",
     "admin.superAdminUsers.companyRequired": "Kompania është e detyrueshme",
-    "admin.superAdminUsers.companyRequiredDescription": "Zgjidh kompaninë me të cilën do të lidhet përdoruesi.",
+    "admin.superAdminUsers.companyRequiredDescription":
+      "Zgjidh kompaninë me të cilën do të lidhet përdoruesi.",
     "admin.superAdminUsers.userInvited": "Përdoruesi u ftua",
     "admin.superAdminUsers.createError": "Krijimi dështoi",
     "admin.superAdminUsers.backendRefusedCreate": "Backend-i refuzoi krijimin.",
-    "admin.superAdminUsers.cannotDisableLastSuperAdmin": "Nuk mund të çaktivizohet SuperAdmin-i i fundit aktiv",
+    "admin.superAdminUsers.cannotDisableLastSuperAdmin":
+      "Nuk mund të çaktivizohet SuperAdmin-i i fundit aktiv",
     "admin.superAdminUsers.userActivated": "Përdoruesi u aktivizua",
     "admin.superAdminUsers.userDisabled": "Përdoruesi u çaktivizua",
     "admin.superAdminUsers.updateImpossible": "Ndryshimi dështoi",
     "admin.superAdminUsers.title": "Përdoruesit",
-    "admin.superAdminUsers.subtitle": "Pamje globale e llogarive LocalFood, roleve dhe kompanive të lidhura.",
+    "admin.superAdminUsers.subtitle":
+      "Pamje globale e llogarive LocalFood, roleve dhe kompanive të lidhura.",
     "admin.superAdminUsers.totalUsers": "Totali i përdoruesve",
     "admin.superAdminUsers.addClientUser": "Shto një përdorues klient",
     "admin.superAdminUsers.fullName": "Emri i plotë",
@@ -841,7 +863,8 @@ const adminTranslations = {
     "admin.superAdminCompanies.updated": "Kompania u përditësua",
     "admin.superAdminCompanies.updatedDescription": "u ndryshua.",
     "admin.superAdminCompanies.title": "Kompanitë",
-    "admin.superAdminCompanies.subtitle": "Pamje globale e kompanive të lidhura me restorantet LocalFood.",
+    "admin.superAdminCompanies.subtitle":
+      "Pamje globale e kompanive të lidhura me restorantet LocalFood.",
     "admin.superAdminCompanies.total": "Totali i kompanive",
     "admin.superAdminCompanies.add": "Shto një kompani",
     "admin.superAdminCompanies.name": "Emri",
@@ -872,20 +895,23 @@ const adminTranslations = {
     "admin.superAdminRestaurants.unknownCompany": "Kompani e panjohur",
     "admin.superAdminRestaurants.noCompany": "Asnjë kompani",
     "admin.superAdminRestaurants.loadError": "Nuk mund të ngarkohen restorantet.",
-    "admin.superAdminRestaurants.updateCompanyError": "Nuk mund të ndryshohet kompania e restorantit",
+    "admin.superAdminRestaurants.updateCompanyError":
+      "Nuk mund të ndryshohet kompania e restorantit",
     "admin.superAdminRestaurants.updated": "Restoranti u përditësua",
     "admin.superAdminRestaurants.updateStatusError": "Nuk mund të ndryshohet statusi i restorantit",
     "admin.superAdminRestaurants.statusUpdated": "Statusi u përditësua",
     "admin.superAdminRestaurants.isNow": "është tani",
     "admin.superAdminRestaurants.activeLower": "aktiv",
     "admin.superAdminRestaurants.inactiveLower": "joaktiv",
-    "admin.superAdminRestaurants.requiredFields": "Fushat kryesore të restorantit janë të detyrueshme",
+    "admin.superAdminRestaurants.requiredFields":
+      "Fushat kryesore të restorantit janë të detyrueshme",
     "admin.superAdminRestaurants.updateError": "Nuk mund të ndryshohet restoranti",
     "admin.superAdminRestaurants.updatedDescription": "u ndryshua.",
     "admin.superAdminRestaurants.title": "Restorantet",
     "admin.superAdminRestaurants.subtitle": "Pamje globale e restoranteve dhe kompanisë pronare.",
     "admin.superAdminRestaurants.total": "Totali i restoranteve",
-    "admin.superAdminRestaurants.searchPlaceholder": "Kërko sipas restorantit, qytetit, kompanisë...",
+    "admin.superAdminRestaurants.searchPlaceholder":
+      "Kërko sipas restorantit, qytetit, kompanisë...",
     "admin.superAdminRestaurants.loading": "Duke u ngarkuar restorantet...",
     "admin.superAdminRestaurants.empty": "Asnjë restorant nuk u gjet.",
     "admin.superAdminRestaurants.restaurant": "Restoranti",
@@ -941,6 +967,10 @@ const adminTranslations = {
     "admin.dashboard.accessNotConfigured": "Accès non configuré",
     "admin.dashboard.accessNotConfiguredDescription":
       "Votre compte existe, mais aucun rôle LocalFood ne lui est encore associé.",
+    "admin.dashboard.noCompanyLinked": "Aucune entreprise n’est liée à votre profil.",
+    "admin.dashboard.noRestaurantLinked": "Aucun restaurant n’est encore lié à votre entreprise.",
+    "admin.dashboard.loadRestaurantsError":
+      "Impossible de charger les restaurants de votre entreprise.",
 
     "admin.overview.sourcePublicCard": "Carte restaurant",
     "admin.overview.sourcePublicDetail": "Fiche restaurant",
@@ -975,7 +1005,8 @@ const adminTranslations = {
     "admin.overview.chartClicks": "Clics",
     "admin.overview.aiPerformance": "Performance Assistant IA",
     "admin.overview.aiDescription": "Données IA réelles liées à ce restaurant.",
-    "admin.overview.noAiData": "Aucune donnée IA réelle n’est encore disponible pour ce restaurant.",
+    "admin.overview.noAiData":
+      "Aucune donnée IA réelle n’est encore disponible pour ce restaurant.",
     "admin.overview.aiInteractions": "interactions IA",
     "admin.overview.aiClicks": "clics IA",
     "admin.overview.latestInteractions": "Dernières interactions",
@@ -1063,7 +1094,8 @@ const adminTranslations = {
     "admin.offers.loading": "Chargement des offres...",
     "admin.offers.badge": "Offres restaurant",
     "admin.offers.title": "Offres",
-    "admin.offers.subtitle": "Créez et gérez les offres visibles sur la fiche publique du restaurant.",
+    "admin.offers.subtitle":
+      "Créez et gérez les offres visibles sur la fiche publique du restaurant.",
     "admin.offers.activeOffers": "Offres actives",
     "admin.offers.editTitle": "Modifier une offre",
     "admin.offers.addTitle": "Ajouter une offre",
@@ -1157,9 +1189,11 @@ const adminTranslations = {
     "admin.stats.views": "Vues",
     "admin.stats.clicks": "Clics",
     "admin.stats.actionBreakdown": "Répartition des actions",
-    "admin.stats.noActions": "Aucune action enregistrée pour ce restaurant sur la période sélectionnée.",
+    "admin.stats.noActions":
+      "Aucune action enregistrée pour ce restaurant sur la période sélectionnée.",
     "admin.stats.peakHours": "Pics d'activité",
-    "admin.stats.noPeaks": "Aucun pic d’activité enregistré pour ce restaurant sur la période sélectionnée.",
+    "admin.stats.noPeaks":
+      "Aucun pic d’activité enregistré pour ce restaurant sur la période sélectionnée.",
     "admin.stats.topAiSearches": "Top recherches IA ayant affiché votre restaurant",
     "admin.stats.noAiData": "Aucune donnée IA réelle n’est encore disponible pour ce restaurant.",
     "admin.stats.actionViews": "Vues",
@@ -1224,14 +1258,16 @@ const adminTranslations = {
     "admin.login.password": "Mot de passe",
     "admin.login.loading": "Connexion...",
     "admin.login.submit": "Se connecter",
-    "admin.login.noAccess": "Si vous n’avez pas encore d’accès, contactez l’administrateur LocalFood.",
+    "admin.login.noAccess":
+      "Si vous n’avez pas encore d’accès, contactez l’administrateur LocalFood.",
 
     "admin.superAdmin.users": "Utilisateurs",
     "admin.superAdmin.companies": "Entreprises",
     "admin.superAdmin.restaurants": "Restaurants",
     "admin.superAdmin.loading": "Chargement de l’espace SuperAdmin...",
     "admin.superAdmin.accessDenied": "Accès refusé",
-    "admin.superAdmin.accessDeniedDescription": "Cette section est réservée aux SuperAdmins LocalFood.",
+    "admin.superAdmin.accessDeniedDescription":
+      "Cette section est réservée aux SuperAdmins LocalFood.",
     "admin.superAdmin.backToDashboard": "Retour dashboard",
     "admin.superAdmin.signOut": "Se déconnecter",
     "admin.superAdmin.headerTitle": "Espace SuperAdmin",
@@ -1244,7 +1280,8 @@ const adminTranslations = {
     "admin.superAdminUsers.unknownCompany": "Entreprise inconnue",
     "admin.superAdminUsers.noCompany": "Aucune entreprise",
     "admin.superAdminUsers.loadError": "Impossible de charger les utilisateurs.",
-    "admin.superAdminUsers.cannotRemoveLastSuperAdmin": "Impossible de retirer le dernier SuperAdmin",
+    "admin.superAdminUsers.cannotRemoveLastSuperAdmin":
+      "Impossible de retirer le dernier SuperAdmin",
     "admin.superAdminUsers.roleUpdated": "Rôle mis à jour",
     "admin.superAdminUsers.isNow": "est maintenant",
     "admin.superAdminUsers.updateRoleError": "Impossible de modifier le rôle",
@@ -1252,16 +1289,19 @@ const adminTranslations = {
     "admin.superAdminUsers.companyUpdated": "Entreprise mise à jour",
     "admin.superAdminUsers.updateCompanyError": "Impossible de modifier l’entreprise",
     "admin.superAdminUsers.companyRequired": "Entreprise obligatoire",
-    "admin.superAdminUsers.companyRequiredDescription": "Choisissez l’entreprise à laquelle l’utilisateur sera lié.",
+    "admin.superAdminUsers.companyRequiredDescription":
+      "Choisissez l’entreprise à laquelle l’utilisateur sera lié.",
     "admin.superAdminUsers.userInvited": "Utilisateur invité",
     "admin.superAdminUsers.createError": "Création impossible",
     "admin.superAdminUsers.backendRefusedCreate": "Le backend a refusé la création.",
-    "admin.superAdminUsers.cannotDisableLastSuperAdmin": "Impossible de désactiver le dernier SuperAdmin actif",
+    "admin.superAdminUsers.cannotDisableLastSuperAdmin":
+      "Impossible de désactiver le dernier SuperAdmin actif",
     "admin.superAdminUsers.userActivated": "Utilisateur activé",
     "admin.superAdminUsers.userDisabled": "Utilisateur désactivé",
     "admin.superAdminUsers.updateImpossible": "Modification impossible",
     "admin.superAdminUsers.title": "Utilisateurs",
-    "admin.superAdminUsers.subtitle": "Vue globale des comptes LocalFood, rôles et entreprises liées.",
+    "admin.superAdminUsers.subtitle":
+      "Vue globale des comptes LocalFood, rôles et entreprises liées.",
     "admin.superAdminUsers.totalUsers": "Total utilisateurs",
     "admin.superAdminUsers.addClientUser": "Ajouter un utilisateur client",
     "admin.superAdminUsers.fullName": "Nom complet",
@@ -1297,7 +1337,8 @@ const adminTranslations = {
     "admin.superAdminCompanies.updated": "Entreprise mise à jour",
     "admin.superAdminCompanies.updatedDescription": "a été modifiée.",
     "admin.superAdminCompanies.title": "Entreprises",
-    "admin.superAdminCompanies.subtitle": "Vue globale des entreprises liées aux restaurants LocalFood.",
+    "admin.superAdminCompanies.subtitle":
+      "Vue globale des entreprises liées aux restaurants LocalFood.",
     "admin.superAdminCompanies.total": "Total entreprises",
     "admin.superAdminCompanies.add": "Ajouter une entreprise",
     "admin.superAdminCompanies.name": "Nom",
@@ -1328,20 +1369,25 @@ const adminTranslations = {
     "admin.superAdminRestaurants.unknownCompany": "Entreprise inconnue",
     "admin.superAdminRestaurants.noCompany": "Aucune entreprise",
     "admin.superAdminRestaurants.loadError": "Impossible de charger les restaurants.",
-    "admin.superAdminRestaurants.updateCompanyError": "Impossible de modifier l’entreprise du restaurant",
+    "admin.superAdminRestaurants.updateCompanyError":
+      "Impossible de modifier l’entreprise du restaurant",
     "admin.superAdminRestaurants.updated": "Restaurant mis à jour",
-    "admin.superAdminRestaurants.updateStatusError": "Impossible de modifier le statut du restaurant",
+    "admin.superAdminRestaurants.updateStatusError":
+      "Impossible de modifier le statut du restaurant",
     "admin.superAdminRestaurants.statusUpdated": "Statut mis à jour",
     "admin.superAdminRestaurants.isNow": "est maintenant",
     "admin.superAdminRestaurants.activeLower": "actif",
     "admin.superAdminRestaurants.inactiveLower": "inactif",
-    "admin.superAdminRestaurants.requiredFields": "Les champs principaux du restaurant sont obligatoires",
+    "admin.superAdminRestaurants.requiredFields":
+      "Les champs principaux du restaurant sont obligatoires",
     "admin.superAdminRestaurants.updateError": "Impossible de modifier le restaurant",
     "admin.superAdminRestaurants.updatedDescription": "a été modifié.",
     "admin.superAdminRestaurants.title": "Restaurants",
-    "admin.superAdminRestaurants.subtitle": "Vue globale des restaurants et de leur entreprise propriétaire.",
+    "admin.superAdminRestaurants.subtitle":
+      "Vue globale des restaurants et de leur entreprise propriétaire.",
     "admin.superAdminRestaurants.total": "Total restaurants",
-    "admin.superAdminRestaurants.searchPlaceholder": "Rechercher par restaurant, ville, entreprise...",
+    "admin.superAdminRestaurants.searchPlaceholder":
+      "Rechercher par restaurant, ville, entreprise...",
     "admin.superAdminRestaurants.loading": "Chargement des restaurants...",
     "admin.superAdminRestaurants.empty": "Aucun restaurant trouvé.",
     "admin.superAdminRestaurants.restaurant": "Restaurant",

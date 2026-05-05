@@ -110,8 +110,7 @@ function HomePage() {
               {t("home.heroTitle")}
             </h1>
             <p className="mt-5 text-lg text-primary-foreground/85 max-w-xl">
-              Restaurants, snacks, brunchs, desserts… Comparez, choisissez, et lancez l'itinéraire
-              en un clic.
+              {t("home.heroDescription")}
             </p>
 
             <div className="mt-8 flex flex-col sm:flex-row gap-3">

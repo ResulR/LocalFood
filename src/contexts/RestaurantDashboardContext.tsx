@@ -12,6 +12,7 @@ import {
   fetchSupabaseRestaurantsByCompanyId,
   type SupabaseCompanyRestaurant,
 } from "@/lib/restaurants-api";
+import { useAdminI18n } from "@/lib/admin-i18n";
 
 const STORAGE_KEY = "localfood-dashboard-restaurant-id";
 
@@ -31,6 +32,7 @@ const RestaurantDashboardContext = createContext<RestaurantDashboardContextValue
 
 export function RestaurantDashboardProvider({ children }: { children: ReactNode }) {
   const { profile } = useAuth();
+  const { tAdmin } = useAdminI18n();
   const [restaurants, setRestaurants] = useState<SupabaseCompanyRestaurant[]>([]);
   const [selectedRestaurantId, setSelectedRestaurantIdState] = useState<string | null>(null);
   const [loadingRestaurants, setLoadingRestaurants] = useState(true);
@@ -43,7 +45,7 @@ export function RestaurantDashboardProvider({ children }: { children: ReactNode 
     if (!profile?.current_company_id) {
       setRestaurants([]);
       setSelectedRestaurantIdState(null);
-      setRestaurantMessage("Aucune entreprise n’est liée à votre profil.");
+      setRestaurantMessage(tAdmin("admin.dashboard.noCompanyLinked"));
       setLoadingRestaurants(false);
       return;
     }
@@ -54,20 +56,22 @@ export function RestaurantDashboardProvider({ children }: { children: ReactNode 
 
     if (data.length === 0) {
       setSelectedRestaurantIdState(null);
-      setRestaurantMessage("Aucun restaurant n’est encore lié à votre entreprise.");
+      setRestaurantMessage(tAdmin("admin.dashboard.noRestaurantLinked"));
       setLoadingRestaurants(false);
       return;
     }
 
     const storedRestaurantId = window.localStorage.getItem(STORAGE_KEY);
-    const storedRestaurantExists = data.some((restaurant) => restaurant.id === storedRestaurantId);
+    const storedRestaurantExists =
+      storedRestaurantId !== null &&
+      data.some((restaurant) => restaurant.id === storedRestaurantId);
 
     const nextRestaurantId = storedRestaurantExists ? storedRestaurantId : data[0].id;
 
     setSelectedRestaurantIdState(nextRestaurantId);
     window.localStorage.setItem(STORAGE_KEY, nextRestaurantId);
     setLoadingRestaurants(false);
-  }, [profile?.current_company_id]);
+  }, [profile?.current_company_id, tAdmin]);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,7 +82,7 @@ export function RestaurantDashboardProvider({ children }: { children: ReactNode 
       if (!cancelled) {
         setRestaurants([]);
         setSelectedRestaurantIdState(null);
-        setRestaurantMessage("Impossible de charger les restaurants de votre entreprise.");
+        setRestaurantMessage(tAdmin("admin.dashboard.loadRestaurantsError"));
         setLoadingRestaurants(false);
       }
     });

@@ -147,9 +147,7 @@ function AIAssistantPage() {
     } catch (error) {
       console.error("Failed to search restaurants with AI:", error);
       setResult(null);
-      setErrorMessage(
-        error instanceof Error ? error.message : "Impossible de contacter l'assistant LocalFood.",
-      );
+      setErrorMessage(error instanceof Error ? error.message : t("aiPage.unavailableFallback"));
     } finally {
       setLoading(false);
     }
