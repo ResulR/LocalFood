@@ -28,6 +28,10 @@ import {
   type SupabaseRestaurantInteraction,
   type SupabaseRestaurantInteractionType,
 } from "@/lib/restaurants-api";
+import { useAdminI18n } from "@/lib/admin-i18n";
+import type { Language } from "@/lib/i18n";
+
+type TAdmin = ReturnType<typeof useAdminI18n>["tAdmin"];
 
 type KpiItem = {
   label: string;
@@ -42,18 +46,34 @@ type ChartRow = {
   clics: number;
 };
 
-const SOURCE_LABELS: Record<string, string> = {
-  public_card: "Carte restaurant",
-  public_detail: "Fiche restaurant",
-  ai_assistant: "Assistant IA",
-  dashboard_seed: "Données initiales",
-};
+function formatInteractionSource(source: string, tAdmin: TAdmin) {
+  const sourceLabels: Record<string, string> = {
+    public_card: tAdmin("admin.overview.sourcePublicCard"),
+    public_detail: tAdmin("admin.overview.sourcePublicDetail"),
+    ai_assistant: tAdmin("admin.overview.sourceAiAssistant"),
+    dashboard_seed: tAdmin("admin.overview.sourceDashboardSeed"),
+  };
 
-function formatInteractionSource(source: string) {
-  return SOURCE_LABELS[source] ?? source;
+  return sourceLabels[source] ?? source;
 }
 
-function formatWhen(createdAt: string) {
+function formatInteractionType(type: SupabaseRestaurantInteractionType, tAdmin: TAdmin) {
+  const typeLabels: Record<SupabaseRestaurantInteractionType, string> = {
+    Vue: tAdmin("admin.overview.typeView"),
+    Maps: tAdmin("admin.overview.typeMaps"),
+    Waze: tAdmin("admin.overview.typeWaze"),
+    Appel: tAdmin("admin.overview.typeCall"),
+    Menu: tAdmin("admin.overview.typeMenu"),
+    Intent: tAdmin("admin.overview.typeIntent"),
+    AI: tAdmin("admin.overview.typeAi"),
+    Avis: tAdmin("admin.overview.typeReview"),
+    Offre: tAdmin("admin.overview.typeOffer"),
+  };
+
+  return typeLabels[type] ?? type;
+}
+
+function formatWhen(createdAt: string, tAdmin: TAdmin) {
   const createdDate = new Date(createdAt);
   const now = new Date();
   const diffMs = now.getTime() - createdDate.getTime();
@@ -61,15 +81,27 @@ function formatWhen(createdAt: string) {
   const diffHours = Math.floor(diffMinutes / 60);
   const diffDays = Math.floor(diffHours / 24);
 
-  if (diffMinutes < 1) return "À l’instant";
-  if (diffMinutes < 60) return `Il y a ${diffMinutes} min`;
-  if (diffHours < 24) return `Il y a ${diffHours} h`;
-  if (diffDays === 1) return "Il y a 1 jour";
-  return `Il y a ${diffDays} jours`;
+  if (diffMinutes < 1) return tAdmin("admin.overview.justNow");
+  if (diffMinutes < 60) {
+    return `${tAdmin("admin.overview.ago")} ${diffMinutes} ${tAdmin("admin.overview.minuteShort")}`;
+  }
+  if (diffHours < 24) {
+    return `${tAdmin("admin.overview.ago")} ${diffHours} ${tAdmin("admin.overview.hourShort")}`;
+  }
+  if (diffDays === 1) return tAdmin("admin.overview.oneDayAgo");
+
+  return `${tAdmin("admin.overview.ago")} ${diffDays} ${tAdmin("admin.overview.daysAgo")}`;
 }
 
-function buildChartData(interactions: SupabaseRestaurantInteraction[]): ChartRow[] {
+function getChartLocale(language: Language) {
+  if (language === "en") return "en-US";
+  if (language === "al") return "sq-AL";
+  return "fr-FR";
+}
+
+function buildChartData(interactions: SupabaseRestaurantInteraction[], language: Language): ChartRow[] {
   const now = new Date();
+  const locale = getChartLocale(language);
 
   return Array.from({ length: 7 }, (_, index) => {
     const date = new Date(now);
@@ -86,7 +118,7 @@ function buildChartData(interactions: SupabaseRestaurantInteraction[]): ChartRow
     });
 
     return {
-      day: date.toLocaleDateString("fr-FR", { weekday: "short" }).replace(".", ""),
+      day: date.toLocaleDateString(locale, { weekday: "short" }).replace(".", ""),
       views: dayInteractions.filter((interaction) => interaction.interaction_type === "Vue").length,
       clics: dayInteractions.filter((interaction) => interaction.interaction_type !== "Vue").length,
     };
@@ -101,6 +133,7 @@ function countType(
 }
 
 export function DashboardOverview() {
+  const { language, tAdmin } = useAdminI18n();
   const { selectedRestaurant, loadingRestaurants, restaurantMessage } = useRestaurantDashboard();
   const currentRestaurant = selectedRestaurant;
   const [interactions, setInteractions] = useState<SupabaseRestaurantInteraction[]>([]);
@@ -120,7 +153,7 @@ export function DashboardOverview() {
       }
 
       if (!currentRestaurant) {
-        setDashboardMessage(restaurantMessage || "Aucun restaurant n’est sélectionné.");
+        setDashboardMessage(restaurantMessage || tAdmin("admin.overview.noRestaurantSelected"));
         setLoadingDashboard(false);
         return;
       }
@@ -137,7 +170,7 @@ export function DashboardOverview() {
       console.error("Failed to load tenant dashboard:", error);
 
       if (!cancelled) {
-        setDashboardMessage("Impossible de charger les données du dashboard.");
+        setDashboardMessage(tAdmin("admin.overview.loadError"));
         setInteractions([]);
         setLoadingDashboard(false);
       }
@@ -146,7 +179,7 @@ export function DashboardOverview() {
     return () => {
       cancelled = true;
     };
-  }, [currentRestaurant, loadingRestaurants, restaurantMessage]);
+  }, [currentRestaurant, loadingRestaurants, restaurantMessage, tAdmin]);
 
   const last7dInteractions = useMemo(() => {
     const now = new Date();
@@ -159,7 +192,10 @@ export function DashboardOverview() {
     });
   }, [interactions]);
 
-  const chartData7d = useMemo(() => buildChartData(last7dInteractions), [last7dInteractions]);
+  const chartData7d = useMemo(
+    () => buildChartData(last7dInteractions, language),
+    [last7dInteractions, language],
+  );
 
   const views = countType(last7dInteractions, "Vue");
   const maps = countType(last7dInteractions, "Maps");
@@ -172,14 +208,19 @@ export function DashboardOverview() {
   const offers = countType(last7dInteractions, "Offre");
 
   const kpis: KpiItem[] = [
-    { label: "Vues de fiche", value: String(views), change: "7 jours", icon: Eye },
-    { label: "Clics Google Maps", value: String(maps), change: "7 jours", icon: Navigation },
-    { label: "Clics Waze", value: String(waze), change: "7 jours", icon: MapPin },
-    { label: "Appels", value: String(calls), change: "7 jours", icon: Phone },
-    { label: "Voir le menu", value: String(menu), change: "7 jours", icon: MenuSquare },
-    { label: "« J'y vais »", value: String(intent), change: "Conversion", icon: Heart },
-    { label: "Clics depuis IA", value: String(ai), change: "Assistant", icon: Bot },
-    { label: "Avis reçus", value: String(reviews), change: `${offers} offre(s)`, icon: Star },
+    { label: tAdmin("admin.overview.kpiViews"), value: String(views), change: tAdmin("admin.common.days7"), icon: Eye },
+    { label: tAdmin("admin.overview.kpiMaps"), value: String(maps), change: tAdmin("admin.common.days7"), icon: Navigation },
+    { label: tAdmin("admin.overview.kpiWaze"), value: String(waze), change: tAdmin("admin.common.days7"), icon: MapPin },
+    { label: tAdmin("admin.overview.kpiCalls"), value: String(calls), change: tAdmin("admin.common.days7"), icon: Phone },
+    { label: tAdmin("admin.overview.kpiMenu"), value: String(menu), change: tAdmin("admin.common.days7"), icon: MenuSquare },
+    { label: tAdmin("admin.overview.kpiIntent"), value: String(intent), change: tAdmin("admin.overview.conversion"), icon: Heart },
+    { label: tAdmin("admin.overview.kpiAi"), value: String(ai), change: tAdmin("admin.overview.assistant"), icon: Bot },
+    {
+      label: tAdmin("admin.overview.kpiReviews"),
+      value: String(reviews),
+      change: `${offers} ${tAdmin("admin.overview.offers")}`,
+      icon: Star,
+    },
   ];
 
   const recentInteractions = interactions.slice(0, 8);
@@ -188,7 +229,7 @@ export function DashboardOverview() {
     <div className="space-y-8 max-w-[1400px]">
       {loadingDashboard && (
         <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
-          Chargement de la vue d’ensemble...
+          {tAdmin("admin.overview.loadingOverview")}
         </div>
       )}
       {dashboardMessage && (
@@ -199,11 +240,10 @@ export function DashboardOverview() {
 
       <div>
         <h1 className="font-display text-3xl font-semibold">
-          Bonjour, {currentRestaurant?.name ?? "restaurateur"} 👋
+          {tAdmin("admin.overview.hello")},{" "}
+          {currentRestaurant?.name ?? tAdmin("admin.overview.ownerFallback")} 👋
         </h1>
-        <p className="text-muted-foreground mt-1">
-          Voici comment votre fiche performe ces 7 derniers jours.
-        </p>
+        <p className="text-muted-foreground mt-1">{tAdmin("admin.overview.subtitle")}</p>
       </div>
 
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -230,14 +270,16 @@ export function DashboardOverview() {
         <div className="lg:col-span-2 rounded-2xl bg-card border border-border p-6">
           <div className="flex items-center justify-between mb-5">
             <div>
-              <h2 className="font-display text-lg font-semibold">Vues & interactions</h2>
-              <p className="text-xs text-muted-foreground">7 derniers jours</p>
+              <h2 className="font-display text-lg font-semibold">
+                {tAdmin("admin.overview.viewsInteractions")}
+              </h2>
+              <p className="text-xs text-muted-foreground">{tAdmin("admin.common.days7")}</p>
             </div>
             <Link
               to="/restaurant-dashboard/statistiques"
               className="text-xs text-primary hover:underline inline-flex items-center gap-1"
             >
-              Voir tout <ArrowUpRight className="h-3 w-3" />
+              {tAdmin("admin.overview.seeAll")} <ArrowUpRight className="h-3 w-3" />
             </Link>
           </div>
           <div className="h-72">
@@ -267,6 +309,7 @@ export function DashboardOverview() {
                 <Area
                   type="monotone"
                   dataKey="views"
+                  name={tAdmin("admin.overview.chartViews")}
                   stroke="oklch(0.55 0.18 35)"
                   strokeWidth={2.5}
                   fill="url(#g1)"
@@ -274,6 +317,7 @@ export function DashboardOverview() {
                 <Line
                   type="monotone"
                   dataKey="clics"
+                  name={tAdmin("admin.overview.chartClicks")}
                   stroke="oklch(0.62 0.13 155)"
                   strokeWidth={2.5}
                   dot={false}
@@ -286,24 +330,30 @@ export function DashboardOverview() {
         <div className="rounded-2xl bg-card border border-border p-6">
           <div className="flex items-center gap-2 mb-1">
             <Sparkles className="h-4 w-4 text-primary" />
-            <h2 className="font-display text-lg font-semibold">Performance Assistant IA</h2>
+            <h2 className="font-display text-lg font-semibold">
+              {tAdmin("admin.overview.aiPerformance")}
+            </h2>
           </div>
           <p className="text-xs text-muted-foreground mb-4">
-            Données IA réelles liées à ce restaurant.
+            {tAdmin("admin.overview.aiDescription")}
           </p>
 
           <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-            Aucune donnée IA réelle n’est encore disponible pour ce restaurant.
+            {tAdmin("admin.overview.noAiData")}
           </div>
 
           <div className="mt-5 pt-4 border-t border-border grid grid-cols-2 gap-3 text-center">
             <div>
               <div className="font-display text-2xl font-semibold">{ai}</div>
-              <div className="text-[11px] text-muted-foreground">interactions IA</div>
+              <div className="text-[11px] text-muted-foreground">
+                {tAdmin("admin.overview.aiInteractions")}
+              </div>
             </div>
             <div>
               <div className="font-display text-2xl font-semibold">{ai}</div>
-              <div className="text-[11px] text-muted-foreground">clics IA</div>
+              <div className="text-[11px] text-muted-foreground">
+                {tAdmin("admin.overview.aiClicks")}
+              </div>
             </div>
           </div>
         </div>
@@ -311,25 +361,29 @@ export function DashboardOverview() {
 
       <div className="rounded-2xl bg-card border border-border overflow-hidden">
         <div className="p-6 pb-3 flex items-center justify-between">
-          <h2 className="font-display text-lg font-semibold">Dernières interactions</h2>
-          <span className="text-xs text-muted-foreground">Mises à jour récentes</span>
+          <h2 className="font-display text-lg font-semibold">
+            {tAdmin("admin.overview.latestInteractions")}
+          </h2>
+          <span className="text-xs text-muted-foreground">
+            {tAdmin("admin.overview.recentUpdates")}
+          </span>
         </div>
         <div className="overflow-x-auto">
           <table className="w-full text-sm">
             <thead className="text-xs text-muted-foreground border-y border-border bg-secondary/40">
               <tr>
-                <th className="text-left font-medium px-6 py-3">Action</th>
-                <th className="text-left font-medium px-6 py-3">Source</th>
-                <th className="text-left font-medium px-6 py-3">Restaurant</th>
-                <th className="text-left font-medium px-6 py-3">Quand</th>
-                <th className="text-right font-medium px-6 py-3">Type</th>
+                <th className="text-left font-medium px-6 py-3">{tAdmin("admin.overview.action")}</th>
+                <th className="text-left font-medium px-6 py-3">{tAdmin("admin.overview.source")}</th>
+                <th className="text-left font-medium px-6 py-3">{tAdmin("admin.common.restaurant")}</th>
+                <th className="text-left font-medium px-6 py-3">{tAdmin("admin.overview.when")}</th>
+                <th className="text-right font-medium px-6 py-3">{tAdmin("admin.overview.type")}</th>
               </tr>
             </thead>
             <tbody>
               {recentInteractions.length === 0 ? (
                 <tr>
                   <td colSpan={5} className="px-6 py-10 text-center text-sm text-muted-foreground">
-                    Aucune interaction réelle enregistrée pour ce restaurant.
+                    {tAdmin("admin.overview.noInteractions")}
                   </td>
                 </tr>
               ) : (
@@ -340,13 +394,13 @@ export function DashboardOverview() {
                   >
                     <td className="px-6 py-3.5 font-medium">{row.action}</td>
                     <td className="px-6 py-3.5 text-muted-foreground">
-                      {formatInteractionSource(row.source)}
+                      {formatInteractionSource(row.source, tAdmin)}
                     </td>
                     <td className="px-6 py-3.5 text-muted-foreground">
-                      {currentRestaurant?.name ?? "Restaurant"}
+                      {currentRestaurant?.name ?? tAdmin("admin.common.restaurant")}
                     </td>
                     <td className="px-6 py-3.5 text-muted-foreground">
-                      {formatWhen(row.created_at)}
+                      {formatWhen(row.created_at, tAdmin)}
                     </td>
                     <td className="px-6 py-3.5 text-right">
                       <span
@@ -358,7 +412,7 @@ export function DashboardOverview() {
                               : "bg-secondary text-muted-foreground"
                         }`}
                       >
-                        {row.interaction_type}
+                        {formatInteractionType(row.interaction_type, tAdmin)}
                       </span>
                     </td>
                   </tr>

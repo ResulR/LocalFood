@@ -10,6 +10,7 @@ import {
   type SupabaseRestaurantListItem,
   type SupabaseRestaurantTag,
 } from "@/lib/restaurants-api";
+import { useAdminI18n } from "@/lib/admin-i18n";
 
 type ProfileForm = {
   restaurantId: string;
@@ -54,6 +55,7 @@ function buildProfileForm(restaurant: SupabaseRestaurantListItem): ProfileForm {
 }
 
 export function ProfileEditor() {
+  const { tAdmin } = useAdminI18n();
   const { selectedRestaurant, loadingRestaurants, restaurantMessage } = useRestaurantDashboard();
   const [form, setForm] = useState<ProfileForm | null>(null);
   const [tags, setTags] = useState<ProfileTag[]>([]);
@@ -76,7 +78,7 @@ export function ProfileEditor() {
       }
 
       if (!selectedRestaurant) {
-        setProfileMessage(restaurantMessage || "Aucun restaurant n’est sélectionné.");
+        setProfileMessage(restaurantMessage || tAdmin("admin.profile.noRestaurantSelected"));
         setLoadingRestaurant(false);
         return;
       }
@@ -86,7 +88,7 @@ export function ProfileEditor() {
       if (cancelled) return;
 
       if (!data) {
-        setProfileMessage("Impossible de charger la fiche de ce restaurant.");
+        setProfileMessage(tAdmin("admin.profile.loadListingError"));
         setLoadingRestaurant(false);
         return;
       }
@@ -100,7 +102,7 @@ export function ProfileEditor() {
       console.error("Failed to load profile restaurant from Supabase:", error);
 
       if (!cancelled) {
-        setProfileMessage("Impossible de charger la fiche restaurant.");
+        setProfileMessage(tAdmin("admin.profile.loadProfileError"));
         setLoadingRestaurant(false);
       }
     });
@@ -108,7 +110,7 @@ export function ProfileEditor() {
     return () => {
       cancelled = true;
     };
-  }, [selectedRestaurant, loadingRestaurants, restaurantMessage]);
+  }, [selectedRestaurant, loadingRestaurants, restaurantMessage, tAdmin]);
 
   const f = form;
 
@@ -126,8 +128,8 @@ export function ProfileEditor() {
 
   const save = async () => {
     if (!f) {
-      toast.error("Impossible d’enregistrer", {
-        description: "Aucun restaurant n’est chargé.",
+      toast.error(tAdmin("admin.profile.cannotSave"), {
+        description: tAdmin("admin.profile.noRestaurantLoaded"),
       });
       return;
     }
@@ -160,14 +162,14 @@ export function ProfileEditor() {
       });
 
       setSaved(true);
-      toast.success("Fiche enregistrée", {
-        description: "Les informations principales, liens externes et tags ont été sauvegardés.",
+      toast.success(tAdmin("admin.profile.savedTitle"), {
+        description: tAdmin("admin.profile.savedDescription"),
       });
       setTimeout(() => setSaved(false), 2500);
     } catch (error) {
       console.error("Failed to update restaurant profile:", error);
-      toast.error("Enregistrement impossible", {
-        description: "La base de données a refusé la modification.",
+      toast.error(tAdmin("admin.profile.saveRefused"), {
+        description: tAdmin("admin.profile.saveRefusedDescription"),
       });
     } finally {
       setSaving(false);
@@ -178,7 +180,7 @@ export function ProfileEditor() {
     <div className="space-y-8 max-w-4xl">
       {loadingRestaurant && (
         <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
-          Chargement de la fiche restaurant...
+          {tAdmin("admin.profile.loadingListing")}
         </div>
       )}
       {profileMessage && (
@@ -189,7 +191,9 @@ export function ProfileEditor() {
 
       <div className="flex items-end justify-between">
         <div>
-          <h1 className="font-display text-3xl font-semibold">Ma fiche restaurant</h1>
+          <h1 className="font-display text-3xl font-semibold">
+            {tAdmin("admin.profile.title")}
+          </h1>
         </div>
         <button
           onClick={save}
@@ -197,33 +201,37 @@ export function ProfileEditor() {
           className="inline-flex items-center gap-2 rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-medium hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Save className="h-4 w-4" />{" "}
-          {saving ? "Enregistrement..." : saved ? "Enregistré ✓" : "Enregistrer"}
+          {saving
+            ? tAdmin("admin.common.saving")
+            : saved
+              ? tAdmin("admin.common.saved")
+              : tAdmin("admin.common.save")}
         </button>
       </div>
 
-      <Section title="Informations générales">
-        <Field label="Nom du restaurant">
+      <Section title={tAdmin("admin.profile.generalInfo")}>
+        <Field label={tAdmin("admin.profile.restaurantName")}>
           <input
             value={f?.name ?? ""}
             onChange={(event) => updateForm("name", event.target.value)}
             className={inputCls}
           />
         </Field>
-        <Field label="Catégorie">
+        <Field label={tAdmin("admin.profile.category")}>
           <input
             value={f?.category ?? ""}
             onChange={(event) => updateForm("category", event.target.value)}
             className={inputCls}
           />
         </Field>
-        <Field label="Type de cuisine">
+        <Field label={tAdmin("admin.profile.cuisineType")}>
           <input
             value={f?.cuisineType ?? ""}
             onChange={(event) => updateForm("cuisineType", event.target.value)}
             className={inputCls}
           />
         </Field>
-        <Field label="Niveau de prix">
+        <Field label={tAdmin("admin.profile.priceLevel")}>
           <select
             value={f?.priceLabel ?? "€€"}
             onChange={(event) =>
@@ -236,7 +244,7 @@ export function ProfileEditor() {
             <option>€€€</option>
           </select>
         </Field>
-        <Field label="Description" full>
+        <Field label={tAdmin("admin.profile.description")} full>
           <textarea
             value={f?.description ?? ""}
             onChange={(event) => updateForm("description", event.target.value)}
@@ -245,22 +253,22 @@ export function ProfileEditor() {
         </Field>
       </Section>
 
-      <Section title="Coordonnées">
-        <Field label="Adresse" full>
+      <Section title={tAdmin("admin.profile.contact")}>
+        <Field label={tAdmin("admin.profile.address")} full>
           <input
             value={f?.address ?? ""}
             onChange={(event) => updateForm("address", event.target.value)}
             className={inputCls}
           />
         </Field>
-        <Field label="Ville">
+        <Field label={tAdmin("admin.profile.city")}>
           <input
             value={f?.city ?? ""}
             onChange={(event) => updateForm("city", event.target.value)}
             className={inputCls}
           />
         </Field>
-        <Field label="Téléphone">
+        <Field label={tAdmin("admin.profile.phone")}>
           <input
             value={f?.phone ?? ""}
             onChange={(event) => updateForm("phone", event.target.value)}
@@ -269,17 +277,17 @@ export function ProfileEditor() {
         </Field>
       </Section>
 
-      <Section title="Horaires & liens externes">
-        <Field label="Résumé horaires" full>
+      <Section title={tAdmin("admin.profile.hoursAndLinks")}>
+        <Field label={tAdmin("admin.profile.hoursSummary")} full>
           <input
             value={f?.hoursSummary ?? ""}
             onChange={(event) => updateForm("hoursSummary", event.target.value)}
             className={inputCls}
-            placeholder="Ex : Ouvert aujourd’hui jusqu’à 22:30"
+            placeholder={tAdmin("admin.profile.hoursPlaceholder")}
           />
         </Field>
 
-        <Field label="Lien menu" full>
+        <Field label={tAdmin("admin.profile.menuLink")} full>
           <input
             value={f?.menuUrl ?? ""}
             onChange={(event) => updateForm("menuUrl", event.target.value)}
@@ -288,7 +296,7 @@ export function ProfileEditor() {
           />
         </Field>
 
-        <Field label="Lien Google Maps" full>
+        <Field label={tAdmin("admin.profile.googleMapsLink")} full>
           <input
             value={f?.googleMapsUrl ?? ""}
             onChange={(event) => updateForm("googleMapsUrl", event.target.value)}
@@ -297,7 +305,7 @@ export function ProfileEditor() {
           />
         </Field>
 
-        <Field label="Lien Waze" full>
+        <Field label={tAdmin("admin.profile.wazeLink")} full>
           <input
             value={f?.wazeUrl ?? ""}
             onChange={(event) => updateForm("wazeUrl", event.target.value)}
@@ -307,7 +315,7 @@ export function ProfileEditor() {
         </Field>
       </Section>
 
-      <Section title="Tags & filtres">
+      <Section title={tAdmin("admin.profile.tagsFilters")}>
         <div className="md:col-span-2 flex flex-wrap gap-2">
           {QUICK_FILTERS.map((label) => {
             const slug = label
