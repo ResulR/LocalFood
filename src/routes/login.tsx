@@ -3,6 +3,7 @@ import { useEffect, useState } from "react";
 import { ArrowLeft, Loader2, LogIn, UtensilsCrossed } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminI18n } from "@/lib/admin-i18n";
 
 export const Route = createFileRoute("/login")({
   head: () => ({
@@ -19,6 +20,7 @@ export const Route = createFileRoute("/login")({
 
 function LoginPage() {
   const navigate = useNavigate();
+  const { tAdmin } = useAdminI18n();
   const { user, role, loading, signIn } = useAuth();
   const [email, setEmail] = useState("resulramadani35@gmail.com");
   const [password, setPassword] = useState("");
@@ -39,11 +41,11 @@ function LoginPage() {
     setSubmitting(false);
 
     if (result.error) {
-      toast.error("Connexion impossible", { description: result.error });
+      toast.error(tAdmin("admin.login.errorTitle"), { description: result.error });
       return;
     }
 
-    toast.success("Connexion réussie");
+    toast.success(tAdmin("admin.login.success"));
     navigate({ to: "/restaurant-dashboard" });
   };
 
@@ -57,7 +59,7 @@ function LoginPage() {
               className="inline-flex w-fit items-center gap-2 rounded-full bg-background/10 px-4 py-2 text-sm font-medium backdrop-blur hover:bg-background/20"
             >
               <ArrowLeft className="h-4 w-4" />
-              Retour au site
+              {tAdmin("admin.login.backToSite")}
             </Link>
 
             <div>
@@ -65,15 +67,15 @@ function LoginPage() {
                 <UtensilsCrossed className="h-7 w-7" />
               </div>
               <h1 className="font-display text-4xl font-semibold leading-tight">
-                Connectez-vous à votre espace LocalFood.
+                {tAdmin("admin.login.heroTitle")}
               </h1>
               <p className="mt-4 max-w-md text-sm text-primary-foreground/85">
-                Gérez votre fiche restaurant, vos photos, vos avis clients et vos statistiques.
+                {tAdmin("admin.login.heroDescription")}
               </p>
             </div>
 
             <p className="text-xs text-primary-foreground/70">
-              Accès réservé aux restaurateurs et administrateurs LocalFood.
+              {tAdmin("admin.login.restrictedAccess")}
             </p>
           </div>
 
@@ -83,23 +85,23 @@ function LoginPage() {
               className="mb-8 inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground lg:hidden"
             >
               <ArrowLeft className="h-4 w-4" />
-              Retour au site
+              {tAdmin("admin.login.backToSite")}
             </Link>
 
             <div className="mb-8">
               <div className="mb-4 inline-flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-primary text-primary-foreground shadow-glow">
                 <UtensilsCrossed className="h-6 w-6" />
               </div>
-              <h2 className="font-display text-3xl font-semibold">Connexion</h2>
+              <h2 className="font-display text-3xl font-semibold">{tAdmin("admin.login.title")}</h2>
               <p className="mt-2 text-sm text-muted-foreground">
-                Accédez à votre espace professionnel LocalFood.
+                {tAdmin("admin.login.subtitle")}
               </p>
             </div>
 
             <form onSubmit={submit} className="space-y-4">
               <div>
                 <label htmlFor="email" className="text-sm font-medium">
-                  Email
+                  {tAdmin("admin.login.email")}
                 </label>
                 <input
                   id="email"
@@ -114,7 +116,7 @@ function LoginPage() {
 
               <div>
                 <label htmlFor="password" className="text-sm font-medium">
-                  Mot de passe
+                  {tAdmin("admin.login.password")}
                 </label>
                 <input
                   id="password"
@@ -135,19 +137,19 @@ function LoginPage() {
                 {submitting || loading ? (
                   <>
                     <Loader2 className="h-4 w-4 animate-spin" />
-                    Connexion...
+                    {tAdmin("admin.login.loading")}
                   </>
                 ) : (
                   <>
                     <LogIn className="h-4 w-4" />
-                    Se connecter
+                    {tAdmin("admin.login.submit")}
                   </>
                 )}
               </button>
             </form>
 
             <p className="mt-6 text-center text-xs text-muted-foreground">
-              Si vous n’avez pas encore d’accès, contactez l’administrateur LocalFood.
+              {tAdmin("admin.login.noAccess")}
             </p>
           </div>
         </div>

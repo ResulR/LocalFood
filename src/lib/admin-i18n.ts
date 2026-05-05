@@ -298,6 +298,21 @@ const adminTranslations = {
     "admin.subscription.featureDetailedClickStats": "Detailed click statistics",
     "admin.subscription.featureHighlightedResults": "Highlighted in results",
     "admin.subscription.featureAssistantStats": "AI Assistant stats",
+
+    "admin.login.errorTitle": "Unable to sign in",
+    "admin.login.success": "Signed in successfully",
+    "admin.login.backToSite": "Back to site",
+    "admin.login.heroTitle": "Sign in to your LocalFood area.",
+    "admin.login.heroDescription":
+      "Manage your restaurant listing, photos, customer reviews and statistics.",
+    "admin.login.restrictedAccess": "Access reserved for LocalFood restaurant owners and administrators.",
+    "admin.login.title": "Sign in",
+    "admin.login.subtitle": "Access your LocalFood professional area.",
+    "admin.login.email": "Email",
+    "admin.login.password": "Password",
+    "admin.login.loading": "Signing in...",
+    "admin.login.submit": "Sign in",
+    "admin.login.noAccess": "If you do not have access yet, contact the LocalFood administrator.",
   },
   al: {
     "admin.common.loading": "Duke u ngarkuar...",
@@ -596,6 +611,21 @@ const adminTranslations = {
     "admin.subscription.featureDetailedClickStats": "Statistika të detajuara klikimesh",
     "admin.subscription.featureHighlightedResults": "Vendosje në pah në rezultate",
     "admin.subscription.featureAssistantStats": "Statistika të Asistentit AI",
+
+    "admin.login.errorTitle": "Lidhja dështoi",
+    "admin.login.success": "U lidhe me sukses",
+    "admin.login.backToSite": "Kthehu te faqja",
+    "admin.login.heroTitle": "Lidhu në hapësirën tënde LocalFood.",
+    "admin.login.heroDescription":
+      "Menaxho fichën e restorantit, fotot, komentet e klientëve dhe statistikat.",
+    "admin.login.restrictedAccess": "Akses i rezervuar për restoratorët dhe administratorët LocalFood.",
+    "admin.login.title": "Lidhja",
+    "admin.login.subtitle": "Hyr në hapësirën tënde profesionale LocalFood.",
+    "admin.login.email": "Email",
+    "admin.login.password": "Fjalëkalimi",
+    "admin.login.loading": "Duke u lidhur...",
+    "admin.login.submit": "Lidhu",
+    "admin.login.noAccess": "Nëse ende nuk ke akses, kontakto administratorin LocalFood.",
   },
   fr: {
     "admin.common.loading": "Chargement...",
@@ -894,6 +924,21 @@ const adminTranslations = {
     "admin.subscription.featureDetailedClickStats": "Statistiques de clics détaillées",
     "admin.subscription.featureHighlightedResults": "Mise en avant dans les résultats",
     "admin.subscription.featureAssistantStats": "Stats Assistant IA",
+
+    "admin.login.errorTitle": "Connexion impossible",
+    "admin.login.success": "Connexion réussie",
+    "admin.login.backToSite": "Retour au site",
+    "admin.login.heroTitle": "Connectez-vous à votre espace LocalFood.",
+    "admin.login.heroDescription":
+      "Gérez votre fiche restaurant, vos photos, vos avis clients et vos statistiques.",
+    "admin.login.restrictedAccess": "Accès réservé aux restaurateurs et administrateurs LocalFood.",
+    "admin.login.title": "Connexion",
+    "admin.login.subtitle": "Accédez à votre espace professionnel LocalFood.",
+    "admin.login.email": "Email",
+    "admin.login.password": "Mot de passe",
+    "admin.login.loading": "Connexion...",
+    "admin.login.submit": "Se connecter",
+    "admin.login.noAccess": "Si vous n’avez pas encore d’accès, contactez l’administrateur LocalFood.",
   },
 } as const satisfies Record<Language, Record<string, string>>;
 
