@@ -10,6 +10,7 @@ import {
   updateAdminUserRole,
   updateAdminUserStatus,
 } from "@/lib/admin-users-api";
+import { useAdminI18n } from "@/lib/admin-i18n";
 
 export const Route = createFileRoute("/super-admin/users")({
   head: () => ({ meta: [{ title: "Utilisateurs — SuperAdmin LocalFood" }] }),
@@ -18,6 +19,7 @@ export const Route = createFileRoute("/super-admin/users")({
 
 const ROLES: AppRole[] = ["superadmin", "admin", "user"];
 const CLIENT_ROLES = ["admin", "user"] as const;
+const UNDEFINED_ROLE = "non défini";
 
 type ProfileRow = {
   id: string;
@@ -44,13 +46,14 @@ type UserListRow = {
   userId: string;
   email: string;
   fullName: string;
-  role: AppRole | "non défini";
+  role: AppRole | typeof UNDEFINED_ROLE;
   companyId: string | null;
   companyName: string;
   isActive: boolean;
 };
 
 function SuperAdminUsersPage() {
+  const { tAdmin } = useAdminI18n();
   const [profiles, setProfiles] = useState<ProfileRow[]>([]);
   const [roles, setRoles] = useState<UserRoleRow[]>([]);
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
@@ -108,7 +111,7 @@ function SuperAdminUsersPage() {
       console.error("Failed to load super admin users:", error);
 
       if (!cancelled) {
-        setErrorMessage("Impossible de charger les utilisateurs.");
+        setErrorMessage(tAdmin("admin.superAdminUsers.loadError"));
         setLoadingUsers(false);
       }
     });
@@ -116,7 +119,7 @@ function SuperAdminUsersPage() {
     return () => {
       cancelled = true;
     };
-  }, [loadUsers]);
+  }, [loadUsers, tAdmin]);
 
   const rows = useMemo<UserListRow[]>(() => {
     const roleByUserId = new Map(roles.map((role) => [role.user_id, role.role]));
@@ -124,16 +127,17 @@ function SuperAdminUsersPage() {
 
     return profiles.map((profile) => ({
       userId: profile.user_id,
-      email: profile.email ?? "Email non renseigné",
-      fullName: profile.full_name ?? "Nom non renseigné",
-      role: roleByUserId.get(profile.user_id) ?? "non défini",
+      email: profile.email ?? tAdmin("admin.superAdminUsers.emailMissing"),
+      fullName: profile.full_name ?? tAdmin("admin.superAdminUsers.nameMissing"),
+      role: roleByUserId.get(profile.user_id) ?? UNDEFINED_ROLE,
       companyId: profile.current_company_id,
       companyName: profile.current_company_id
-        ? (companyById.get(profile.current_company_id) ?? "Entreprise inconnue")
-        : "Aucune entreprise",
+        ? (companyById.get(profile.current_company_id) ??
+          tAdmin("admin.superAdminUsers.unknownCompany"))
+        : tAdmin("admin.superAdminUsers.noCompany"),
       isActive: profile.is_active,
     }));
-  }, [companies, profiles, roles]);
+  }, [companies, profiles, roles, tAdmin]);
 
   const superadminCount = useMemo(
     () => rows.filter((row) => row.role === "superadmin").length,
@@ -148,12 +152,17 @@ function SuperAdminUsersPage() {
     }
 
     return rows.filter((row) =>
-      [row.email, row.fullName, row.role, row.companyName]
+      [
+        row.email,
+        row.fullName,
+        row.role === UNDEFINED_ROLE ? tAdmin("admin.superAdminUsers.undefinedRole") : row.role,
+        row.companyName,
+      ]
         .join(" ")
         .toLowerCase()
         .includes(normalizedSearch),
     );
-  }, [rows, search]);
+  }, [rows, search, tAdmin]);
 
   const changeUserRole = async (row: UserListRow, nextRole: AppRole) => {
     if (row.role === nextRole) {
@@ -161,7 +170,7 @@ function SuperAdminUsersPage() {
     }
 
     if (row.role === "superadmin" && superadminCount <= 1 && nextRole !== "superadmin") {
-      toast.error("Impossible de retirer le dernier SuperAdmin");
+      toast.error(tAdmin("admin.superAdminUsers.cannotRemoveLastSuperAdmin"));
       return;
     }
 
@@ -173,16 +182,18 @@ function SuperAdminUsersPage() {
         role: nextRole,
       });
 
-      toast.success("Rôle mis à jour", {
-        description: `${row.email} est maintenant ${nextRole}.`,
+      toast.success(tAdmin("admin.superAdminUsers.roleUpdated"), {
+        description: `${row.email} ${tAdmin("admin.superAdminUsers.isNow")} ${nextRole}.`,
       });
 
       await loadUsers();
     } catch (error) {
       console.error("Failed to update user role:", error);
-      toast.error("Impossible de modifier le rôle", {
+      toast.error(tAdmin("admin.superAdminUsers.updateRoleError"), {
         description:
-          error instanceof Error ? error.message : "Le backend a refusé la modification.",
+          error instanceof Error
+            ? error.message
+            : tAdmin("admin.superAdminUsers.backendRefusedUpdate"),
       });
     } finally {
       setSavingUserId(null);
@@ -206,18 +217,20 @@ function SuperAdminUsersPage() {
 
       const companyName = companyId
         ? companies.find((company) => company.id === companyId)?.name
-        : "Aucune entreprise";
+        : tAdmin("admin.superAdminUsers.noCompany");
 
-      toast.success("Entreprise mise à jour", {
-        description: `${row.email} → ${companyName ?? "Entreprise inconnue"}.`,
+      toast.success(tAdmin("admin.superAdminUsers.companyUpdated"), {
+        description: `${row.email} → ${companyName ?? tAdmin("admin.superAdminUsers.unknownCompany")}.`,
       });
 
       await loadUsers();
     } catch (error) {
       console.error("Failed to update user company:", error);
-      toast.error("Impossible de modifier l’entreprise", {
+      toast.error(tAdmin("admin.superAdminUsers.updateCompanyError"), {
         description:
-          error instanceof Error ? error.message : "Le backend a refusé la modification.",
+          error instanceof Error
+            ? error.message
+            : tAdmin("admin.superAdminUsers.backendRefusedUpdate"),
       });
     } finally {
       setSavingUserId(null);
@@ -228,8 +241,8 @@ function SuperAdminUsersPage() {
     event.preventDefault();
 
     if (!newUserCompanyId) {
-      toast.error("Entreprise obligatoire", {
-        description: "Choisissez l’entreprise à laquelle l’utilisateur sera lié.",
+      toast.error(tAdmin("admin.superAdminUsers.companyRequired"), {
+        description: tAdmin("admin.superAdminUsers.companyRequiredDescription"),
       });
       return;
     }
@@ -244,8 +257,8 @@ function SuperAdminUsersPage() {
         companyId: newUserCompanyId,
       });
 
-      toast.success("Utilisateur invité", {
-        description: `${createdUser.email} a été lié à ${createdUser.companyName}.`,
+      toast.success(tAdmin("admin.superAdminUsers.userInvited"), {
+        description: `${createdUser.email} → ${createdUser.companyName}.`,
       });
 
       setNewUserEmail("");
@@ -256,8 +269,11 @@ function SuperAdminUsersPage() {
       await loadUsers();
     } catch (error) {
       console.error("Failed to create admin user:", error);
-      toast.error("Création impossible", {
-        description: error instanceof Error ? error.message : "Le backend a refusé la création.",
+      toast.error(tAdmin("admin.superAdminUsers.createError"), {
+        description:
+          error instanceof Error
+            ? error.message
+            : tAdmin("admin.superAdminUsers.backendRefusedCreate"),
       });
     } finally {
       setCreatingUser(false);
@@ -270,7 +286,7 @@ function SuperAdminUsersPage() {
     }
 
     if (row.role === "superadmin" && superadminCount <= 1 && !nextIsActive) {
-      toast.error("Impossible de désactiver le dernier SuperAdmin actif");
+      toast.error(tAdmin("admin.superAdminUsers.cannotDisableLastSuperAdmin"));
       return;
     }
 
@@ -282,16 +298,23 @@ function SuperAdminUsersPage() {
         isActive: nextIsActive,
       });
 
-      toast.success(nextIsActive ? "Utilisateur activé" : "Utilisateur désactivé", {
-        description: row.email,
-      });
+      toast.success(
+        nextIsActive
+          ? tAdmin("admin.superAdminUsers.userActivated")
+          : tAdmin("admin.superAdminUsers.userDisabled"),
+        {
+          description: row.email,
+        },
+      );
 
       await loadUsers();
     } catch (error) {
       console.error("Failed to update user status:", error);
-      toast.error("Modification impossible", {
+      toast.error(tAdmin("admin.superAdminUsers.updateImpossible"), {
         description:
-          error instanceof Error ? error.message : "Le backend a refusé la modification.",
+          error instanceof Error
+            ? error.message
+            : tAdmin("admin.superAdminUsers.backendRefusedUpdate"),
       });
     } finally {
       setSavingUserId(null);
@@ -306,14 +329,18 @@ function SuperAdminUsersPage() {
             <Shield className="h-3.5 w-3.5" />
             SuperAdmin
           </div>
-          <h1 className="mt-1 font-display text-3xl font-semibold">Utilisateurs</h1>
+          <h1 className="mt-1 font-display text-3xl font-semibold">
+            {tAdmin("admin.superAdminUsers.title")}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Vue globale des comptes LocalFood, rôles et entreprises liées.
+            {tAdmin("admin.superAdminUsers.subtitle")}
           </p>
         </div>
 
         <div className="rounded-2xl border border-border bg-card px-5 py-4">
-          <div className="text-xs text-muted-foreground">Total utilisateurs</div>
+          <div className="text-xs text-muted-foreground">
+            {tAdmin("admin.superAdminUsers.totalUsers")}
+          </div>
           <div className="font-display text-2xl font-semibold">{rows.length}</div>
         </div>
       </div>
@@ -321,23 +348,29 @@ function SuperAdminUsersPage() {
       <form onSubmit={handleCreateUser} className="rounded-2xl border border-border bg-card p-5">
         <div className="mb-4 flex items-center gap-2">
           <UserPlus className="h-4 w-4 text-primary" />
-          <h2 className="font-display text-lg font-semibold">Ajouter un utilisateur client</h2>
+          <h2 className="font-display text-lg font-semibold">
+            {tAdmin("admin.superAdminUsers.addClientUser")}
+          </h2>
         </div>
 
         <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
           <label className="block">
-            <span className="text-xs font-medium text-muted-foreground">Nom complet</span>
+            <span className="text-xs font-medium text-muted-foreground">
+              {tAdmin("admin.superAdminUsers.fullName")}
+            </span>
             <input
               value={newUserFullName}
               onChange={(event) => setNewUserFullName(event.target.value)}
               required
               className="mt-1.5 w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm outline-none focus:border-ring"
-              placeholder="Ex : Jean Dupont"
+              placeholder={tAdmin("admin.superAdminUsers.fullNamePlaceholder")}
             />
           </label>
 
           <label className="block">
-            <span className="text-xs font-medium text-muted-foreground">Email</span>
+            <span className="text-xs font-medium text-muted-foreground">
+              {tAdmin("admin.superAdminUsers.email")}
+            </span>
             <input
               type="email"
               value={newUserEmail}
@@ -349,7 +382,9 @@ function SuperAdminUsersPage() {
           </label>
 
           <label className="block">
-            <span className="text-xs font-medium text-muted-foreground">Rôle</span>
+            <span className="text-xs font-medium text-muted-foreground">
+              {tAdmin("admin.superAdminUsers.role")}
+            </span>
             <select
               value={newUserRole}
               onChange={(event) => setNewUserRole(event.target.value as typeof newUserRole)}
@@ -364,14 +399,16 @@ function SuperAdminUsersPage() {
           </label>
 
           <label className="block">
-            <span className="text-xs font-medium text-muted-foreground">Entreprise</span>
+            <span className="text-xs font-medium text-muted-foreground">
+              {tAdmin("admin.superAdminUsers.company")}
+            </span>
             <select
               value={newUserCompanyId}
               onChange={(event) => setNewUserCompanyId(event.target.value)}
               required
               className="mt-1.5 w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm outline-none focus:border-ring"
             >
-              <option value="">Choisir une entreprise</option>
+              <option value="">{tAdmin("admin.superAdminUsers.chooseCompany")}</option>
               {companies
                 .filter((company) => company.is_active)
                 .map((company) => (
@@ -390,7 +427,9 @@ function SuperAdminUsersPage() {
             className="inline-flex items-center gap-2 rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
           >
             {creatingUser && <Loader2 className="h-4 w-4 animate-spin" />}
-            {creatingUser ? "Invitation..." : "Inviter l’utilisateur"}
+            {creatingUser
+              ? tAdmin("admin.superAdminUsers.inviting")
+              : tAdmin("admin.superAdminUsers.inviteUser")}
           </button>
         </div>
       </form>
@@ -401,7 +440,7 @@ function SuperAdminUsersPage() {
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Rechercher par email, nom, rôle, entreprise..."
+            placeholder={tAdmin("admin.superAdminUsers.searchPlaceholder")}
             className="w-full rounded-full border border-border bg-background py-2 pl-9 pr-4 text-sm outline-none focus:border-ring"
           />
         </div>
@@ -411,7 +450,7 @@ function SuperAdminUsersPage() {
         <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
           <div className="inline-flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Chargement des utilisateurs...
+            {tAdmin("admin.superAdminUsers.loading")}
           </div>
         </div>
       )}
@@ -425,7 +464,9 @@ function SuperAdminUsersPage() {
       {!loadingUsers && !errorMessage && filteredRows.length === 0 && (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center">
           <Users className="mx-auto h-8 w-8 text-muted-foreground" />
-          <p className="mt-3 text-sm text-muted-foreground">Aucun utilisateur trouvé.</p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            {tAdmin("admin.superAdminUsers.empty")}
+          </p>
         </div>
       )}
 
@@ -435,10 +476,18 @@ function SuperAdminUsersPage() {
             <table className="w-full text-sm">
               <thead className="border-b border-border bg-secondary/40 text-xs text-muted-foreground">
                 <tr>
-                  <th className="px-5 py-3 text-left font-medium">Utilisateur</th>
-                  <th className="px-5 py-3 text-left font-medium">Rôle</th>
-                  <th className="px-5 py-3 text-left font-medium">Entreprise actuelle</th>
-                  <th className="px-5 py-3 text-left font-medium">Statut</th>
+                  <th className="px-5 py-3 text-left font-medium">
+                    {tAdmin("admin.superAdminUsers.user")}
+                  </th>
+                  <th className="px-5 py-3 text-left font-medium">
+                    {tAdmin("admin.superAdminUsers.role")}
+                  </th>
+                  <th className="px-5 py-3 text-left font-medium">
+                    {tAdmin("admin.superAdminUsers.currentCompany")}
+                  </th>
+                  <th className="px-5 py-3 text-left font-medium">
+                    {tAdmin("admin.superAdminUsers.status")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -455,7 +504,7 @@ function SuperAdminUsersPage() {
                       <td className="px-5 py-4">
                         <div className="flex flex-col gap-1">
                           <select
-                            value={row.role === "non défini" ? "user" : row.role}
+                            value={row.role === UNDEFINED_ROLE ? "user" : row.role}
                             disabled={isSaving || isOnlySuperadmin}
                             onChange={(event) => changeUserRole(row, event.target.value as AppRole)}
                             className="w-fit rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium outline-none disabled:cursor-not-allowed disabled:opacity-60"
@@ -467,16 +516,22 @@ function SuperAdminUsersPage() {
                             ))}
                           </select>
 
+                          {row.role === UNDEFINED_ROLE && (
+                            <span className="text-[11px] text-muted-foreground">
+                              {tAdmin("admin.superAdminUsers.undefinedRole")}
+                            </span>
+                          )}
+
                           {isOnlySuperadmin && (
                             <span className="text-[11px] text-muted-foreground">
-                              Dernier SuperAdmin
+                              {tAdmin("admin.superAdminUsers.lastSuperAdmin")}
                             </span>
                           )}
 
                           {isSaving && (
                             <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
                               <Loader2 className="h-3 w-3 animate-spin" />
-                              Sauvegarde...
+                              {tAdmin("admin.superAdminUsers.saving")}
                             </span>
                           )}
                         </div>
@@ -488,7 +543,7 @@ function SuperAdminUsersPage() {
                           onChange={(event) => changeUserCompany(row, event.target.value)}
                           className="w-fit max-w-[220px] rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium outline-none disabled:cursor-not-allowed disabled:opacity-60"
                         >
-                          <option value="">Aucune entreprise</option>
+                          <option value="">{tAdmin("admin.superAdminUsers.noCompany")}</option>
                           {companies.map((company) => (
                             <option key={company.id} value={company.id}>
                               {company.name}
@@ -505,7 +560,9 @@ function SuperAdminUsersPage() {
                                 : "bg-destructive/10 text-destructive"
                             }`}
                           >
-                            {row.isActive ? "Actif" : "Inactif"}
+                            {row.isActive
+                              ? tAdmin("admin.superAdminUsers.active")
+                              : tAdmin("admin.superAdminUsers.inactive")}
                           </span>
 
                           <button
@@ -516,7 +573,9 @@ function SuperAdminUsersPage() {
                             onClick={() => changeUserStatus(row, !row.isActive)}
                             className="w-fit rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            {row.isActive ? "Désactiver" : "Activer"}
+                            {row.isActive
+                              ? tAdmin("admin.superAdminUsers.disable")
+                              : tAdmin("admin.superAdminUsers.enable")}
                           </button>
                         </div>
                       </td>
@@ -530,9 +589,7 @@ function SuperAdminUsersPage() {
       )}
 
       <div className="rounded-2xl border border-border bg-secondary/40 p-5 text-sm text-muted-foreground">
-        Vous pouvez modifier les rôles et l’entreprise actuelle d’un utilisateur. Pour cette V1,
-        changer l’entreprise remplace ses anciennes associations d’entreprise afin de garder une
-        gestion simple et lisible.
+        {tAdmin("admin.superAdminUsers.note")}
       </div>
     </div>
   );
