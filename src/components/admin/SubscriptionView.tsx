@@ -1,45 +1,69 @@
 import { Check, Sparkles, CreditCard } from "lucide-react";
 import { toast } from "sonner";
+import { useAdminI18n, type AdminTranslationKey } from "@/lib/admin-i18n";
 
-const PLANS = [
+type Plan = {
+  nameKey: AdminTranslationKey;
+  price: string;
+  current?: boolean;
+  popular?: boolean;
+  features: AdminTranslationKey[];
+};
+
+const PLANS: Plan[] = [
   {
-    name: "Gratuit",
+    nameKey: "admin.subscription.free",
     price: "0€",
-    features: ["Fiche standard", "Coordonnées & horaires", "Visible dans les résultats"],
+    features: [
+      "admin.subscription.featureStandardListing",
+      "admin.subscription.featureContactHours",
+      "admin.subscription.featureVisibleResults",
+    ],
   },
   {
-    name: "Premium",
+    nameKey: "admin.subscription.premium",
     price: "29€",
     current: true,
     popular: true,
     features: [
-      "Fiche premium",
-      "Statistiques détaillées",
-      "Photos clients",
-      "Avis internes",
-      "Mise en avant",
-      "Statistiques IA",
+      "admin.subscription.featurePremiumListing",
+      "admin.subscription.featureDetailedStats",
+      "admin.subscription.featureCustomerPhotos",
+      "admin.subscription.featureInternalReviews",
+      "admin.subscription.featureHighlight",
+      "admin.subscription.featureAiStats",
     ],
   },
   {
-    name: "Pro",
+    nameKey: "admin.subscription.pro",
     price: "59€",
     features: [
-      "Tout Premium",
-      "Top des résultats",
-      "Badge Pro vérifié",
-      "Recommandations IA prioritaires",
-      "Support dédié",
+      "admin.subscription.featureAllPremium",
+      "admin.subscription.featureTopResults",
+      "admin.subscription.featureVerifiedPro",
+      "admin.subscription.featurePriorityAi",
+      "admin.subscription.featureDedicatedSupport",
     ],
   },
 ];
 
+const INCLUDED_BENEFITS: AdminTranslationKey[] = [
+  "admin.subscription.featurePremiumListing",
+  "admin.subscription.featureDetailedClickStats",
+  "admin.subscription.featureCustomerPhotos",
+  "admin.subscription.featureInternalReviews",
+  "admin.subscription.featureHighlightedResults",
+  "admin.subscription.featureAssistantStats",
+];
+
 export function SubscriptionView() {
+  const { tAdmin } = useAdminI18n();
+
   return (
     <div className="space-y-8 max-w-5xl">
       <div>
-        <h1 className="font-display text-3xl font-semibold">Abonnement</h1>
-        <p className="text-muted-foreground mt-1">Gérez votre plan et vos avantages LocalFood.</p>
+        <h1 className="font-display text-3xl font-semibold">{tAdmin("admin.subscription.title")}</h1>
+        <p className="text-muted-foreground mt-1">{tAdmin("admin.subscription.subtitle")}</p>
       </div>
 
       <div className="rounded-3xl bg-gradient-primary text-primary-foreground p-7 sm:p-9 shadow-elevated relative overflow-hidden">
@@ -47,90 +71,101 @@ export function SubscriptionView() {
         <div className="relative flex items-center justify-between flex-wrap gap-6">
           <div>
             <span className="inline-flex items-center gap-2 rounded-full bg-primary-foreground/15 px-3 py-1.5 text-xs font-semibold">
-              <Sparkles className="h-3.5 w-3.5" /> Plan actuel
+              <Sparkles className="h-3.5 w-3.5" /> {tAdmin("admin.subscription.currentPlan")}
             </span>
-            <div className="font-display text-3xl font-semibold mt-3">Premium</div>
+            <div className="font-display text-3xl font-semibold mt-3">
+              {tAdmin("admin.subscription.premium")}
+            </div>
             <div className="opacity-90 text-sm mt-1">
-              Statut : <span className="font-semibold">Actif</span> · Prochaine facturation le 18
-              mai 2026
+              {tAdmin("admin.subscription.status")}{" "}
+              <span className="font-semibold">{tAdmin("admin.subscription.active")}</span> ·{" "}
+              {tAdmin("admin.subscription.nextBilling")}
             </div>
           </div>
           <div className="flex items-center gap-3">
             <button
-              onClick={() => toast("Changement de plan en préparation")}
+              onClick={() => toast(tAdmin("admin.subscription.changePlanToast"))}
               className="rounded-full bg-background text-foreground px-5 py-2.5 text-sm font-medium hover:bg-background/90"
             >
-              Changer de plan
+              {tAdmin("admin.subscription.changePlan")}
             </button>
             <button
-              onClick={() => toast("Gestion du paiement bientôt disponible")}
+              onClick={() => toast(tAdmin("admin.subscription.paymentToast"))}
               className="rounded-full border border-primary-foreground/40 px-5 py-2.5 text-sm font-medium hover:bg-primary-foreground/10 inline-flex items-center gap-2"
             >
-              <CreditCard className="h-4 w-4" /> Paiement
+              <CreditCard className="h-4 w-4" /> {tAdmin("admin.subscription.payment")}
             </button>
           </div>
         </div>
       </div>
 
       <div>
-        <h2 className="font-display text-xl font-semibold mb-4">Avantages inclus</h2>
+        <h2 className="font-display text-xl font-semibold mb-4">
+          {tAdmin("admin.subscription.includedBenefits")}
+        </h2>
         <div className="grid sm:grid-cols-2 gap-3">
-          {[
-            "Fiche premium",
-            "Statistiques de clics détaillées",
-            "Photos clients",
-            "Avis internes",
-            "Mise en avant dans les résultats",
-            "Stats Assistant IA",
-          ].map((a) => (
+          {INCLUDED_BENEFITS.map((benefitKey) => (
             <div
-              key={a}
+              key={benefitKey}
               className="flex items-center gap-3 rounded-xl bg-card border border-border p-4 text-sm"
             >
-              <Check className="h-4 w-4 text-success" /> {a}
+              <Check className="h-4 w-4 text-success" /> {tAdmin(benefitKey)}
             </div>
           ))}
         </div>
       </div>
 
       <div>
-        <h2 className="font-display text-xl font-semibold mb-4">Tous les plans</h2>
+        <h2 className="font-display text-xl font-semibold mb-4">
+          {tAdmin("admin.subscription.allPlans")}
+        </h2>
         <div className="grid md:grid-cols-3 gap-4">
-          {PLANS.map((p) => (
-            <div
-              key={p.name}
-              className={`rounded-2xl border p-6 ${p.current ? "border-primary bg-card shadow-soft" : "border-border bg-card"}`}
-            >
-              <div className="flex items-center justify-between">
-                <div className="font-display text-lg font-semibold">{p.name}</div>
-                {p.current && (
-                  <span className="rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-[11px] font-semibold">
-                    Actuel
-                  </span>
-                )}
-              </div>
-              <div className="mt-2 flex items-baseline gap-1">
-                <span className="font-display text-3xl font-semibold">{p.price}</span>
-                <span className="text-sm text-muted-foreground">/ mois</span>
-              </div>
-              <ul className="mt-4 space-y-2">
-                {p.features.map((f) => (
-                  <li key={f} className="text-sm flex items-start gap-2">
-                    <Check className="h-4 w-4 text-success mt-0.5 shrink-0" />
-                    {f}
-                  </li>
-                ))}
-              </ul>
-              <button
-                onClick={() =>
-                  !p.current && toast.success(`Demande de passage au plan ${p.name} enregistrée`)
-                }
-                className={`mt-5 w-full rounded-full px-4 py-2.5 text-sm font-medium transition ${p.current ? "bg-secondary text-muted-foreground cursor-default" : p.popular ? "bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95" : "border border-border hover:bg-secondary"}`}
+          {PLANS.map((p) => {
+            const planName = tAdmin(p.nameKey);
+
+            return (
+              <div
+                key={p.nameKey}
+                className={`rounded-2xl border p-6 ${p.current ? "border-primary bg-card shadow-soft" : "border-border bg-card"}`}
               >
-                {p.current ? "Plan actif" : `Passer à ${p.name}`}
-              </button>
-            </div>
-          ))}
+                <div className="flex items-center justify-between">
+                  <div className="font-display text-lg font-semibold">{planName}</div>
+                  {p.current && (
+                    <span className="rounded-full bg-primary/10 text-primary px-2.5 py-0.5 text-[11px] font-semibold">
+                      {tAdmin("admin.subscription.current")}
+                    </span>
+                  )}
+                </div>
+                <div className="mt-2 flex items-baseline gap-1">
+                  <span className="font-display text-3xl font-semibold">{p.price}</span>
+                  <span className="text-sm text-muted-foreground">
+                    {tAdmin("admin.subscription.perMonth")}
+                  </span>
+                </div>
+                <ul className="mt-4 space-y-2">
+                  {p.features.map((featureKey) => (
+                    <li key={featureKey} className="text-sm flex items-start gap-2">
+                      <Check className="h-4 w-4 text-success mt-0.5 shrink-0" />
+                      {tAdmin(featureKey)}
+                    </li>
+                  ))}
+                </ul>
+                <button
+                  onClick={() =>
+                    !p.current &&
+                    toast.success(
+                      `${tAdmin("admin.subscription.switchToastBefore")} ${planName} ${tAdmin("admin.subscription.switchToastAfter")}`,
+                    )
+                  }
+                  className={`mt-5 w-full rounded-full px-4 py-2.5 text-sm font-medium transition ${p.current ? "bg-secondary text-muted-foreground cursor-default" : p.popular ? "bg-gradient-primary text-primary-foreground shadow-glow hover:opacity-95" : "border border-border hover:bg-secondary"}`}
+                >
+                  {p.current
+                    ? tAdmin("admin.subscription.activePlan")
+                    : `${tAdmin("admin.subscription.switchTo")} ${planName}`}
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>

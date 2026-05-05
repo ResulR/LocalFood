@@ -16,8 +16,11 @@ import {
   type SupabaseRestaurantInteraction,
   type SupabaseRestaurantInteractionType,
 } from "@/lib/restaurants-api";
+import { useAdminI18n, type AdminTranslationKey } from "@/lib/admin-i18n";
+import type { Language } from "@/lib/i18n";
 
 type Range = "7d" | "30d";
+type TAdmin = ReturnType<typeof useAdminI18n>["tAdmin"];
 
 type ChartRow = {
   day: string;
@@ -31,16 +34,16 @@ type ActionBreakdownRow = {
   p: number;
 };
 
-const ACTION_LABELS: Record<SupabaseRestaurantInteractionType, string> = {
-  Vue: "Vues",
-  Maps: "Itinéraire Maps",
-  Waze: "Itinéraire Waze",
-  Appel: "Appels",
-  Menu: "Voir le menu",
-  Intent: "« J'y vais »",
-  AI: "Assistant IA",
-  Avis: "Avis",
-  Offre: "Offres",
+const ACTION_LABEL_KEYS: Record<SupabaseRestaurantInteractionType, AdminTranslationKey> = {
+  Vue: "admin.stats.actionViews",
+  Maps: "admin.stats.actionMaps",
+  Waze: "admin.stats.actionWaze",
+  Appel: "admin.stats.actionCalls",
+  Menu: "admin.stats.actionMenu",
+  Intent: "admin.stats.actionIntent",
+  AI: "admin.stats.actionAi",
+  Avis: "admin.stats.actionReviews",
+  Offre: "admin.stats.actionOffers",
 };
 
 const INTERACTION_TYPES: SupabaseRestaurantInteractionType[] = [
@@ -55,43 +58,14 @@ const INTERACTION_TYPES: SupabaseRestaurantInteractionType[] = [
   "Vue",
 ];
 
-const FALLBACK_INTERACTIONS: SupabaseRestaurantInteraction[] = [
-  {
-    id: "fallback-1",
-    restaurant_id: "local",
-    action: "Vue de fiche",
-    source: "Recherche restaurants",
-    interaction_type: "Vue",
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "fallback-2",
-    restaurant_id: "local",
-    action: "Itinéraire lancé",
-    source: "Google Maps",
-    interaction_type: "Maps",
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "fallback-3",
-    restaurant_id: "local",
-    action: "Menu consulté",
-    source: "Fiche restaurant",
-    interaction_type: "Menu",
-    created_at: new Date().toISOString(),
-  },
-  {
-    id: "fallback-4",
-    restaurant_id: "local",
-    action: "Appel téléphonique",
-    source: "Fiche restaurant",
-    interaction_type: "Appel",
-    created_at: new Date().toISOString(),
-  },
-];
-
 function getRangeDays(range: Range) {
   return range === "7d" ? 7 : 30;
+}
+
+function getChartLocale(language: Language) {
+  if (language === "en") return "en-US";
+  if (language === "al") return "sq-AL";
+  return "fr-FR";
 }
 
 function isInsideRange(createdAt: string, range: Range) {
@@ -103,9 +77,14 @@ function isInsideRange(createdAt: string, range: Range) {
   return diffDays <= getRangeDays(range);
 }
 
-function buildChartData(interactions: SupabaseRestaurantInteraction[], range: Range): ChartRow[] {
+function buildChartData(
+  interactions: SupabaseRestaurantInteraction[],
+  range: Range,
+  language: Language,
+): ChartRow[] {
   const days = getRangeDays(range);
   const now = new Date();
+  const locale = getChartLocale(language);
 
   return Array.from({ length: days }, (_, index) => {
     const date = new Date(now);
@@ -131,7 +110,7 @@ function buildChartData(interactions: SupabaseRestaurantInteraction[], range: Ra
     return {
       day:
         range === "7d"
-          ? date.toLocaleDateString("fr-FR", { weekday: "short" }).replace(".", "")
+          ? date.toLocaleDateString(locale, { weekday: "short" }).replace(".", "")
           : String(date.getDate()),
       views,
       clics,
@@ -139,7 +118,10 @@ function buildChartData(interactions: SupabaseRestaurantInteraction[], range: Ra
   });
 }
 
-function buildActionBreakdown(interactions: SupabaseRestaurantInteraction[]): ActionBreakdownRow[] {
+function buildActionBreakdown(
+  interactions: SupabaseRestaurantInteraction[],
+  tAdmin: TAdmin,
+): ActionBreakdownRow[] {
   const actionInteractions = interactions.filter(
     (interaction) => interaction.interaction_type !== "Vue",
   );
@@ -152,7 +134,7 @@ function buildActionBreakdown(interactions: SupabaseRestaurantInteraction[]): Ac
       ).length;
 
       return {
-        l: ACTION_LABELS[type],
+        l: tAdmin(ACTION_LABEL_KEYS[type]),
         v: count,
         p: Math.round((count / total) * 100),
       };
@@ -180,6 +162,7 @@ function buildPeakHours(interactions: SupabaseRestaurantInteraction[]): ActionBr
 }
 
 export function StatsView() {
+  const { language, tAdmin } = useAdminI18n();
   const { selectedRestaurant, loadingRestaurants, restaurantMessage } = useRestaurantDashboard();
   const currentRestaurant = selectedRestaurant;
   const [range, setRange] = useState<Range>("7d");
@@ -200,7 +183,7 @@ export function StatsView() {
       }
 
       if (!currentRestaurant) {
-        setStatsMessage(restaurantMessage || "Aucun restaurant n’est sélectionné.");
+        setStatsMessage(restaurantMessage || tAdmin("admin.stats.noRestaurantSelected"));
         setLoadingStats(false);
         return;
       }
@@ -217,7 +200,7 @@ export function StatsView() {
       console.error("Failed to load tenant stats:", error);
 
       if (!cancelled) {
-        setStatsMessage("Impossible de charger les statistiques.");
+        setStatsMessage(tAdmin("admin.stats.loadError"));
         setInteractions([]);
         setLoadingStats(false);
       }
@@ -226,14 +209,17 @@ export function StatsView() {
     return () => {
       cancelled = true;
     };
-  }, [currentRestaurant, loadingRestaurants, restaurantMessage]);
+  }, [currentRestaurant, loadingRestaurants, restaurantMessage, tAdmin]);
 
   const rangeInteractions = useMemo(
     () => interactions.filter((interaction) => isInsideRange(interaction.created_at, range)),
     [interactions, range],
   );
 
-  const data = useMemo(() => buildChartData(rangeInteractions, range), [rangeInteractions, range]);
+  const data = useMemo(
+    () => buildChartData(rangeInteractions, range, language),
+    [rangeInteractions, range, language],
+  );
 
   const totalViews = useMemo(
     () => rangeInteractions.filter((interaction) => interaction.interaction_type === "Vue").length,
@@ -265,8 +251,8 @@ export function StatsView() {
     totalViews > 0 ? `${((intentClicks / totalViews) * 100).toFixed(1).replace(".", ",")}%` : "0%";
 
   const actionBreakdown = useMemo(
-    () => buildActionBreakdown(rangeInteractions),
-    [rangeInteractions],
+    () => buildActionBreakdown(rangeInteractions, tAdmin),
+    [rangeInteractions, tAdmin],
   );
 
   const peakHourRows = useMemo(() => buildPeakHours(rangeInteractions), [rangeInteractions]);
@@ -275,7 +261,7 @@ export function StatsView() {
     <div className="space-y-6 max-w-[1400px]">
       {loadingStats && (
         <div className="rounded-2xl border border-border bg-card p-4 text-sm text-muted-foreground">
-          Chargement des statistiques...
+          {tAdmin("admin.stats.loading")}
         </div>
       )}
       {statsMessage && (
@@ -286,9 +272,11 @@ export function StatsView() {
 
       <div className="flex items-end justify-between flex-wrap gap-4">
         <div>
-          <h1 className="font-display text-3xl font-semibold">Statistiques</h1>
+          <h1 className="font-display text-3xl font-semibold">{tAdmin("admin.stats.title")}</h1>
           <p className="text-muted-foreground mt-1">
-            Suivez l'évolution de {currentRestaurant?.name ?? "votre fiche"} dans le temps.
+            {tAdmin("admin.stats.subtitleBefore")}{" "}
+            {currentRestaurant?.name ?? tAdmin("admin.stats.subtitleFallback")}{" "}
+            {tAdmin("admin.stats.subtitleAfter")}
           </p>
         </div>
         <div className="inline-flex rounded-full bg-secondary p-1">
@@ -300,7 +288,7 @@ export function StatsView() {
                 range === r ? "bg-background shadow-soft font-medium" : "text-muted-foreground"
               }`}
             >
-              {r === "7d" ? "7 jours" : "30 jours"}
+              {r === "7d" ? tAdmin("admin.stats.days7") : tAdmin("admin.stats.days30")}
             </button>
           ))}
         </div>
@@ -308,10 +296,10 @@ export function StatsView() {
 
       <div className="grid md:grid-cols-4 gap-3">
         {[
-          { l: "Total vues", v: String(totalViews), c: "Fiche restaurant" },
-          { l: "Clics itinéraire", v: String(itineraryClicks), c: "Maps + Waze" },
-          { l: "Appels", v: String(calls), c: "Fiche restaurant" },
-          { l: "Conversion", v: conversionRate, c: "J’y vais / vues" },
+          { l: tAdmin("admin.stats.totalViews"), v: String(totalViews), c: tAdmin("admin.stats.listing") },
+          { l: tAdmin("admin.stats.routeClicks"), v: String(itineraryClicks), c: "Maps + Waze" },
+          { l: tAdmin("admin.stats.calls"), v: String(calls), c: tAdmin("admin.stats.listing") },
+          { l: tAdmin("admin.stats.conversion"), v: conversionRate, c: tAdmin("admin.stats.intentOverViews") },
         ].map((k) => (
           <div key={k.l} className="rounded-2xl bg-card border border-border p-5">
             <div className="text-xs text-muted-foreground">{k.l}</div>
@@ -322,7 +310,9 @@ export function StatsView() {
       </div>
 
       <div className="rounded-2xl bg-card border border-border p-6">
-        <h2 className="font-display text-lg font-semibold mb-4">Vues vs interactions</h2>
+        <h2 className="font-display text-lg font-semibold mb-4">
+          {tAdmin("admin.stats.viewsVsInteractions")}
+        </h2>
         <div className="h-80">
           <ResponsiveContainer width="100%" height="100%">
             <BarChart data={data}>
@@ -333,8 +323,18 @@ export function StatsView() {
                 contentStyle={{ borderRadius: 12, border: "1px solid oklch(0.92 0.01 70)" }}
               />
               <Legend />
-              <Bar dataKey="views" fill="oklch(0.55 0.18 35)" radius={[6, 6, 0, 0]} />
-              <Bar dataKey="clics" fill="oklch(0.68 0.19 45)" radius={[6, 6, 0, 0]} />
+              <Bar
+                dataKey="views"
+                name={tAdmin("admin.stats.views")}
+                fill="oklch(0.55 0.18 35)"
+                radius={[6, 6, 0, 0]}
+              />
+              <Bar
+                dataKey="clics"
+                name={tAdmin("admin.stats.clicks")}
+                fill="oklch(0.68 0.19 45)"
+                radius={[6, 6, 0, 0]}
+              />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -342,11 +342,13 @@ export function StatsView() {
 
       <div className="grid md:grid-cols-2 gap-5">
         <div className="rounded-2xl bg-card border border-border p-6">
-          <h3 className="font-display text-base font-semibold mb-4">Répartition des actions</h3>
+          <h3 className="font-display text-base font-semibold mb-4">
+            {tAdmin("admin.stats.actionBreakdown")}
+          </h3>
           <div className="space-y-3">
             {actionBreakdown.length === 0 ? (
               <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-                Aucune action enregistrée pour ce restaurant sur la période sélectionnée.
+                {tAdmin("admin.stats.noActions")}
               </div>
             ) : (
               actionBreakdown.map((row) => (
@@ -365,11 +367,13 @@ export function StatsView() {
         </div>
 
         <div className="rounded-2xl bg-card border border-border p-6">
-          <h3 className="font-display text-base font-semibold mb-4">Pics d'activité</h3>
+          <h3 className="font-display text-base font-semibold mb-4">
+            {tAdmin("admin.stats.peakHours")}
+          </h3>
 
           {peakHourRows.length === 0 ? (
             <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-              Aucun pic d’activité enregistré pour ce restaurant sur la période sélectionnée.
+              {tAdmin("admin.stats.noPeaks")}
             </div>
           ) : (
             <ul className="space-y-3 text-sm">
@@ -388,12 +392,12 @@ export function StatsView() {
         <div className="flex items-center gap-2 mb-4">
           <Sparkles className="h-4 w-4 text-primary" />
           <h3 className="font-display text-base font-semibold">
-            Top recherches IA ayant affiché votre restaurant
+            {tAdmin("admin.stats.topAiSearches")}
           </h3>
         </div>
 
         <div className="rounded-xl border border-dashed border-border p-6 text-center text-sm text-muted-foreground">
-          Aucune donnée IA réelle n’est encore disponible pour ce restaurant.
+          {tAdmin("admin.stats.noAiData")}
         </div>
       </div>
     </div>
