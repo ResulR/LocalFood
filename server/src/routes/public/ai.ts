@@ -1,3 +1,4 @@
+import OpenAI from "openai";
 import { Router } from "express";
 import { z } from "zod";
 import { env } from "../../config/env.js";
@@ -14,6 +15,155 @@ type RateLimitEntry = {
 };
 
 const requestCountsByIp = new Map<string, RateLimitEntry>();
+
+const LOCALFOOD_TOPIC_TERMS = [
+  "restaurant",
+  "resto",
+  "manger",
+  "food",
+  "snack",
+  "brunch",
+  "dessert",
+  "halal",
+  "vegan",
+  "terrasse",
+  "parking",
+  "livraison",
+  "emporter",
+  "menu",
+  "ouvert",
+  "ferme",
+  "date night",
+  "pas cher",
+  "sushi",
+  "pizza",
+  "burger",
+  "pates",
+  "pasta",
+  "cuisine",
+  "adresse",
+  "itineraire",
+  "maps",
+  "waze",
+];
+
+function isLocalFoodRelated(message: string, activeTags: RelatedLabel[]) {
+  const normalizedMessage = normalizeText(message).replace(/-/g, " ");
+
+  const tagTerms = activeTags.flatMap((tag) => buildTagSearchTerms(tag));
+
+  return [...LOCALFOOD_TOPIC_TERMS, ...tagTerms].some((term) =>
+    normalizedMessage.includes(normalizeText(term).replace(/-/g, " ")),
+  );
+}
+
+function createOpenAIClient() {
+  if (!env.OPENAI_API_KEY) {
+    return null;
+  }
+
+  return new OpenAI({
+    apiKey: env.OPENAI_API_KEY,
+  });
+}
+
+type AiRecommendation = {
+  id: string;
+  slug: string;
+  name: string;
+  category: string;
+  cuisineType: string;
+  description: string;
+  imageUrl: string | null;
+  rating: number;
+  reviewsCount: number;
+  priceLabel: "€" | "€€" | "€€€";
+  isOpen: boolean;
+  hoursSummary: string | null;
+  address: string;
+  city: string;
+  phone: string | null;
+  menuUrl: string | null;
+  googleMapsUrl: string | null;
+  wazeUrl: string | null;
+  tags: RelatedLabel[];
+  badges: RelatedLabel[];
+  offer:
+    | {
+        id: string;
+        code: string;
+        title: string;
+        description: string;
+        conditions: string | null;
+        is_active: boolean;
+      }
+    | null;
+  matchScore: number;
+  matchReasons: string[];
+};
+
+async function generateAiAnswer({
+  message,
+  recommendations,
+  detectedIntents,
+}: {
+  message: string;
+  recommendations: AiRecommendation[];
+  detectedIntents: DetectedIntent[];
+}) {
+  const fallbackAnswer =
+    recommendations.length > 0
+      ? `J'ai trouvé ${recommendations.length} restaurant(s) qui correspondent à votre recherche.`
+      : "Je n'ai pas trouvé de restaurant actif qui correspond clairement à cette recherche pour le moment.";
+
+  const client = createOpenAIClient();
+
+  if (!client) {
+    return fallbackAnswer;
+  }
+
+  const compactRestaurants = recommendations.map((restaurant) => ({
+    name: restaurant.name,
+    category: restaurant.category,
+    cuisineType: restaurant.cuisineType,
+    city: restaurant.city,
+    rating: restaurant.rating,
+    reviewsCount: restaurant.reviewsCount,
+    priceLabel: restaurant.priceLabel,
+    isOpen: restaurant.isOpen,
+    hoursSummary: restaurant.hoursSummary,
+    tags: restaurant.tags.map((tag) => tag.label),
+    badges: restaurant.badges.map((badge) => badge.label),
+    offer: restaurant.offer
+      ? {
+          title: restaurant.offer.title,
+          description: restaurant.offer.description,
+          code: restaurant.offer.code,
+        }
+      : null,
+    matchScore: restaurant.matchScore,
+    matchReasons: restaurant.matchReasons,
+  }));
+
+  try {
+    const response = await client.responses.create({
+      model: env.OPENAI_MODEL,
+      instructions:
+        "Tu es l'assistant LocalFood. Réponds uniquement avec les restaurants fournis dans le contexte. Ne crée jamais de restaurant, d'adresse, d'offre, de note ou de donnée non fournie. Réponds en français, de façon courte, utile et naturelle. Si aucun restaurant n'est fourni, explique simplement qu'aucun restaurant actif ne correspond clairement pour le moment. Ne parle pas de base de données, d'algorithme ou de scoring interne.",
+      input: JSON.stringify({
+        userRequest: message,
+        detectedCriteria: detectedIntents.map((intent) => intent.label),
+        restaurants: compactRestaurants,
+      }),
+      max_output_tokens: 220,
+    });
+
+    return response.output_text?.trim() || fallbackAnswer;
+  } catch (error) {
+    console.error("OpenAI LocalFood answer generation failed:", error);
+    return fallbackAnswer;
+  }
+}
 
 const restaurantSearchSchema = z.object({
   message: z.string().trim().min(2).max(500),
@@ -265,21 +415,6 @@ function scoreRestaurant(row: RestaurantRow, message: string, detectedIntents: D
 }
 
 publicAiRouter.post("/restaurant-search", async (req, res) => {
-  const ip = getClientIp(req);
-  const rateLimit = checkRateLimit(ip);
-
-  res.setHeader("X-RateLimit-Limit", String(DAILY_REQUEST_LIMIT));
-  res.setHeader("X-RateLimit-Remaining", String(rateLimit.remaining));
-  res.setHeader("X-RateLimit-Reset", new Date(rateLimit.resetAt).toISOString());
-
-  if (!rateLimit.allowed) {
-    return res.status(429).json({
-      ok: false,
-      code: "AI_RATE_LIMIT_EXCEEDED",
-      message: "Limite quotidienne atteinte pour l'assistant LocalFood.",
-    });
-  }
-
   const parsed = restaurantSearchSchema.safeParse(req.body);
 
   if (!parsed.success) {
@@ -319,6 +454,34 @@ publicAiRouter.post("/restaurant-search", async (req, res) => {
   }
 
   const activeTags = (activeTagsData ?? []) as RelatedLabel[];
+
+  if (!isLocalFoodRelated(message, activeTags)) {
+    return res.json({
+      ok: true,
+      data: {
+        answer:
+          "Je peux uniquement vous aider à trouver un restaurant LocalFood selon vos envies : halal, terrasse, brunch, parking, dessert, ouvert maintenant, livraison, à emporter, etc.",
+        detectedTags: [],
+        recommendations: [],
+      },
+    });
+  }
+
+  const ip = getClientIp(req);
+  const rateLimit = checkRateLimit(ip);
+
+  res.setHeader("X-RateLimit-Limit", String(DAILY_REQUEST_LIMIT));
+  res.setHeader("X-RateLimit-Remaining", String(rateLimit.remaining));
+  res.setHeader("X-RateLimit-Reset", new Date(rateLimit.resetAt).toISOString());
+
+  if (!rateLimit.allowed) {
+    return res.status(429).json({
+      ok: false,
+      code: "AI_RATE_LIMIT_EXCEEDED",
+      message: "Limite quotidienne atteinte pour l'assistant LocalFood.",
+    });
+  }
+
   const detectedIntents = detectIntents(message, activeTags);
 
   const { data, error } = await supabaseAdmin
@@ -442,22 +605,21 @@ publicAiRouter.post("/restaurant-search", async (req, res) => {
       };
     })
     .filter((restaurant) => {
-      if (detectedIntents.length === 0) return restaurant.matchScore >= 20;
-
-      if (detectedIntents.length >= 3) {
-        return restaurant.intentMatchCount >= 2;
+      if (detectedIntents.length === 0) {
+        return restaurant.matchScore >= 35;
       }
 
-      return restaurant.intentMatchCount >= 1;
+      return restaurant.intentMatchCount >= detectedIntents.length;
     })
     .map(({ intentMatchCount, ...restaurant }) => restaurant)
     .sort((a, b) => b.matchScore - a.matchScore)
     .slice(0, 5);
 
-  const answer =
-    recommendations.length > 0
-      ? `J'ai trouvé ${recommendations.length} restaurant(s) qui correspondent à votre recherche.`
-      : "Je n'ai pas trouvé de restaurant actif qui correspond clairement à cette recherche pour le moment.";
+  const answer = await generateAiAnswer({
+    message,
+    recommendations,
+    detectedIntents,
+  });
 
   return res.json({
     ok: true,
