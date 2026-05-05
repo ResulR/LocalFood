@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Building2, Edit3, Loader2, Plus, Save, Search, Shield, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { useAdminI18n } from "@/lib/admin-i18n";
 
 export const Route = createFileRoute("/super-admin/companies")({
   head: () => ({ meta: [{ title: "Entreprises — SuperAdmin LocalFood" }] }),
@@ -75,6 +76,7 @@ function buildUniqueSlug(name: string, existingSlugs: string[]) {
 }
 
 function SuperAdminCompaniesPage() {
+  const { tAdmin } = useAdminI18n();
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [restaurants, setRestaurants] = useState<RestaurantRow[]>([]);
   const [companyUsers, setCompanyUsers] = useState<CompanyUserRow[]>([]);
@@ -131,7 +133,7 @@ function SuperAdminCompaniesPage() {
       console.error("Failed to load super admin companies:", error);
 
       if (!cancelled) {
-        setErrorMessage("Impossible de charger les entreprises.");
+        setErrorMessage(tAdmin("admin.superAdminCompanies.loadError"));
         setLoadingCompanies(false);
       }
     });
@@ -139,20 +141,20 @@ function SuperAdminCompaniesPage() {
     return () => {
       cancelled = true;
     };
-  }, [loadCompanies]);
+  }, [loadCompanies, tAdmin]);
 
   const rows = useMemo<CompanyListRow[]>(() => {
     return companies.map((company) => ({
       id: company.id,
       name: company.name,
       slug: company.slug,
-      description: company.description ?? "Aucune description",
+      description: company.description ?? tAdmin("admin.superAdminCompanies.noDescription"),
       isActive: company.is_active,
       restaurantsCount: restaurants.filter((restaurant) => restaurant.company_id === company.id)
         .length,
       usersCount: companyUsers.filter((membership) => membership.company_id === company.id).length,
     }));
-  }, [companies, companyUsers, restaurants]);
+  }, [companies, companyUsers, restaurants, tAdmin]);
 
   const filteredRows = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -173,7 +175,7 @@ function SuperAdminCompaniesPage() {
     const description = newCompanyDescription.trim();
 
     if (!name) {
-      toast.error("Le nom de l’entreprise est obligatoire");
+      toast.error(tAdmin("admin.superAdminCompanies.nameRequired"));
       return;
     }
 
@@ -193,12 +195,12 @@ function SuperAdminCompaniesPage() {
 
     if (error) {
       setCreatingCompany(false);
-      toast.error("Impossible de créer l’entreprise", { description: error.message });
+      toast.error(tAdmin("admin.superAdminCompanies.createError"), { description: error.message });
       return;
     }
 
-    toast.success("Entreprise créée", {
-      description: `${name} a été ajoutée à LocalFood.`,
+    toast.success(tAdmin("admin.superAdminCompanies.created"), {
+      description: `${name} ${tAdmin("admin.superAdminCompanies.addedToLocalFood")}`,
     });
 
     setNewCompanyName("");
@@ -211,7 +213,10 @@ function SuperAdminCompaniesPage() {
     setEditingCompany({
       id: row.id,
       name: row.name,
-      description: row.description === "Aucune description" ? "" : row.description,
+      description:
+        row.description === tAdmin("admin.superAdminCompanies.noDescription")
+          ? ""
+          : row.description,
       isActive: row.isActive,
     });
   };
@@ -229,7 +234,7 @@ function SuperAdminCompaniesPage() {
     const description = editingCompany.description.trim();
 
     if (!name) {
-      toast.error("Le nom de l’entreprise est obligatoire");
+      toast.error(tAdmin("admin.superAdminCompanies.nameRequired"));
       return;
     }
 
@@ -246,12 +251,12 @@ function SuperAdminCompaniesPage() {
 
     if (error) {
       setSavingCompanyId(null);
-      toast.error("Impossible de modifier l’entreprise", { description: error.message });
+      toast.error(tAdmin("admin.superAdminCompanies.updateError"), { description: error.message });
       return;
     }
 
-    toast.success("Entreprise mise à jour", {
-      description: `${name} a été modifiée.`,
+    toast.success(tAdmin("admin.superAdminCompanies.updated"), {
+      description: `${name} ${tAdmin("admin.superAdminCompanies.updatedDescription")}`,
     });
 
     setEditingCompany(null);
@@ -267,14 +272,18 @@ function SuperAdminCompaniesPage() {
             <Shield className="h-3.5 w-3.5" />
             SuperAdmin
           </div>
-          <h1 className="mt-1 font-display text-3xl font-semibold">Entreprises</h1>
+          <h1 className="mt-1 font-display text-3xl font-semibold">
+            {tAdmin("admin.superAdminCompanies.title")}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Vue globale des entreprises liées aux restaurants LocalFood.
+            {tAdmin("admin.superAdminCompanies.subtitle")}
           </p>
         </div>
 
         <div className="rounded-2xl border border-border bg-card px-5 py-4">
-          <div className="text-xs text-muted-foreground">Total entreprises</div>
+          <div className="text-xs text-muted-foreground">
+            {tAdmin("admin.superAdminCompanies.total")}
+          </div>
           <div className="font-display text-2xl font-semibold">{rows.length}</div>
         </div>
       </div>
@@ -282,19 +291,21 @@ function SuperAdminCompaniesPage() {
       <form onSubmit={createCompany} className="rounded-2xl border border-border bg-card p-5">
         <div className="mb-4 flex items-center gap-2">
           <Plus className="h-4 w-4 text-primary" />
-          <h2 className="font-display text-lg font-semibold">Ajouter une entreprise</h2>
+          <h2 className="font-display text-lg font-semibold">
+            {tAdmin("admin.superAdminCompanies.add")}
+          </h2>
         </div>
 
         <div className="grid gap-3 lg:grid-cols-[1fr_1.5fr_auto]">
           <div>
             <label htmlFor="company-name" className="text-xs font-medium text-muted-foreground">
-              Nom
+              {tAdmin("admin.superAdminCompanies.name")}
             </label>
             <input
               id="company-name"
               value={newCompanyName}
               onChange={(event) => setNewCompanyName(event.target.value)}
-              placeholder="Ex : Groupe Maison Zayna"
+              placeholder={tAdmin("admin.superAdminCompanies.namePlaceholder")}
               className="mt-1 w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-ring"
             />
           </div>
@@ -304,13 +315,13 @@ function SuperAdminCompaniesPage() {
               htmlFor="company-description"
               className="text-xs font-medium text-muted-foreground"
             >
-              Description optionnelle
+              {tAdmin("admin.superAdminCompanies.optionalDescription")}
             </label>
             <input
               id="company-description"
               value={newCompanyDescription}
               onChange={(event) => setNewCompanyDescription(event.target.value)}
-              placeholder="Description interne de l’entreprise..."
+              placeholder={tAdmin("admin.superAdminCompanies.descriptionPlaceholder")}
               className="mt-1 w-full rounded-xl border border-border bg-background px-4 py-2.5 text-sm outline-none focus:border-ring"
             />
           </div>
@@ -324,12 +335,12 @@ function SuperAdminCompaniesPage() {
               {creatingCompany ? (
                 <>
                   <Loader2 className="h-4 w-4 animate-spin" />
-                  Création...
+                  {tAdmin("admin.superAdminCompanies.creating")}
                 </>
               ) : (
                 <>
                   <Plus className="h-4 w-4" />
-                  Ajouter
+                  {tAdmin("admin.superAdminCompanies.addButton")}
                 </>
               )}
             </button>
@@ -337,8 +348,7 @@ function SuperAdminCompaniesPage() {
         </div>
 
         <p className="mt-3 text-xs text-muted-foreground">
-          Le slug est généré automatiquement à partir du nom. En cas de doublon, LocalFood ajoute
-          automatiquement un suffixe comme -01, -02, etc.
+          {tAdmin("admin.superAdminCompanies.slugHelp")}
         </p>
       </form>
 
@@ -348,7 +358,7 @@ function SuperAdminCompaniesPage() {
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Rechercher par nom, slug, description..."
+            placeholder={tAdmin("admin.superAdminCompanies.searchPlaceholder")}
             className="w-full rounded-full border border-border bg-background py-2 pl-9 pr-4 text-sm outline-none focus:border-ring"
           />
         </div>
@@ -358,7 +368,7 @@ function SuperAdminCompaniesPage() {
         <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
           <div className="inline-flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Chargement des entreprises...
+            {tAdmin("admin.superAdminCompanies.loading")}
           </div>
         </div>
       )}
@@ -372,7 +382,9 @@ function SuperAdminCompaniesPage() {
       {!loadingCompanies && !errorMessage && filteredRows.length === 0 && (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center">
           <Building2 className="mx-auto h-8 w-8 text-muted-foreground" />
-          <p className="mt-3 text-sm text-muted-foreground">Aucune entreprise trouvée.</p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            {tAdmin("admin.superAdminCompanies.empty")}
+          </p>
         </div>
       )}
 
@@ -382,12 +394,24 @@ function SuperAdminCompaniesPage() {
             <table className="w-full text-sm">
               <thead className="border-b border-border bg-secondary/40 text-xs text-muted-foreground">
                 <tr>
-                  <th className="px-5 py-3 text-left font-medium">Entreprise</th>
-                  <th className="px-5 py-3 text-left font-medium">Slug</th>
-                  <th className="px-5 py-3 text-left font-medium">Restaurants</th>
-                  <th className="px-5 py-3 text-left font-medium">Utilisateurs</th>
-                  <th className="px-5 py-3 text-left font-medium">Statut</th>
-                  <th className="px-5 py-3 text-right font-medium">Actions</th>
+                  <th className="px-5 py-3 text-left font-medium">
+                    {tAdmin("admin.superAdminCompanies.company")}
+                  </th>
+                  <th className="px-5 py-3 text-left font-medium">
+                    {tAdmin("admin.superAdminCompanies.slug")}
+                  </th>
+                  <th className="px-5 py-3 text-left font-medium">
+                    {tAdmin("admin.superAdminCompanies.restaurants")}
+                  </th>
+                  <th className="px-5 py-3 text-left font-medium">
+                    {tAdmin("admin.superAdminCompanies.users")}
+                  </th>
+                  <th className="px-5 py-3 text-left font-medium">
+                    {tAdmin("admin.superAdminCompanies.status")}
+                  </th>
+                  <th className="px-5 py-3 text-right font-medium">
+                    {tAdmin("admin.superAdminCompanies.actions")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -418,7 +442,7 @@ function SuperAdminCompaniesPage() {
                                   description: event.target.value,
                                 })
                               }
-                              placeholder="Description optionnelle"
+                              placeholder={tAdmin("admin.superAdminCompanies.optionalDescription")}
                               className="w-full rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-ring"
                             />
                           </div>
@@ -448,8 +472,12 @@ function SuperAdminCompaniesPage() {
                             }
                             className="rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium outline-none"
                           >
-                            <option value="active">Active</option>
-                            <option value="inactive">Inactive</option>
+                            <option value="active">
+                              {tAdmin("admin.superAdminCompanies.active")}
+                            </option>
+                            <option value="inactive">
+                              {tAdmin("admin.superAdminCompanies.inactive")}
+                            </option>
                           </select>
                         ) : (
                           <span
@@ -459,7 +487,9 @@ function SuperAdminCompaniesPage() {
                                 : "bg-destructive/10 text-destructive"
                             }`}
                           >
-                            {row.isActive ? "Active" : "Inactive"}
+                            {row.isActive
+                              ? tAdmin("admin.superAdminCompanies.active")
+                              : tAdmin("admin.superAdminCompanies.inactive")}
                           </span>
                         )}
                       </td>
@@ -478,7 +508,7 @@ function SuperAdminCompaniesPage() {
                                 ) : (
                                   <Save className="h-3.5 w-3.5" />
                                 )}
-                                Sauver
+                                {tAdmin("admin.superAdminCompanies.save")}
                               </button>
 
                               <button
@@ -487,7 +517,7 @@ function SuperAdminCompaniesPage() {
                                 className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
                               >
                                 <X className="h-3.5 w-3.5" />
-                                Annuler
+                                {tAdmin("admin.superAdminCompanies.cancel")}
                               </button>
                             </>
                           ) : (
@@ -496,7 +526,7 @@ function SuperAdminCompaniesPage() {
                               className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary"
                             >
                               <Edit3 className="h-3.5 w-3.5" />
-                              Modifier
+                              {tAdmin("admin.superAdminCompanies.edit")}
                             </button>
                           )}
                         </div>
@@ -511,8 +541,7 @@ function SuperAdminCompaniesPage() {
       )}
 
       <div className="rounded-2xl border border-border bg-secondary/40 p-5 text-sm text-muted-foreground">
-        Vous pouvez créer et modifier les entreprises. Le slug reste stable après création pour
-        éviter de casser de futures URLs ou relations.
+        {tAdmin("admin.superAdminCompanies.note")}
       </div>
     </div>
   );
