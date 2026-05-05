@@ -3,6 +3,7 @@ import { useCallback, useEffect, useMemo, useState } from "react";
 import { Edit3, Loader2, Save, Search, Shield, Store, X } from "lucide-react";
 import { toast } from "sonner";
 import { supabase } from "@/lib/supabase";
+import { useAdminI18n } from "@/lib/admin-i18n";
 
 export const Route = createFileRoute("/super-admin/restaurants")({
   head: () => ({ meta: [{ title: "Restaurants — SuperAdmin LocalFood" }] }),
@@ -84,6 +85,7 @@ function getPriceLevel(priceLabel: PriceLabel) {
 }
 
 function SuperAdminRestaurantsPage() {
+  const { tAdmin } = useAdminI18n();
   const [restaurants, setRestaurants] = useState<RestaurantRow[]>([]);
   const [companies, setCompanies] = useState<CompanyRow[]>([]);
   const [loadingRestaurants, setLoadingRestaurants] = useState(true);
@@ -148,7 +150,7 @@ function SuperAdminRestaurantsPage() {
       console.error("Failed to load super admin restaurants:", error);
 
       if (!cancelled) {
-        setErrorMessage("Impossible de charger les restaurants.");
+        setErrorMessage(tAdmin("admin.superAdminRestaurants.loadError"));
         setLoadingRestaurants(false);
       }
     });
@@ -156,7 +158,7 @@ function SuperAdminRestaurantsPage() {
     return () => {
       cancelled = true;
     };
-  }, [loadRestaurants]);
+  }, [loadRestaurants, tAdmin]);
 
   const rows = useMemo<RestaurantListRow[]>(() => {
     const companyById = new Map(companies.map((company) => [company.id, company.name]));
@@ -180,10 +182,11 @@ function SuperAdminRestaurantsPage() {
       isActive: restaurant.is_active,
       companyId: restaurant.company_id,
       companyName: restaurant.company_id
-        ? (companyById.get(restaurant.company_id) ?? "Entreprise inconnue")
-        : "Aucune entreprise",
+        ? (companyById.get(restaurant.company_id) ??
+          tAdmin("admin.superAdminRestaurants.unknownCompany"))
+        : tAdmin("admin.superAdminRestaurants.noCompany"),
     }));
-  }, [companies, restaurants]);
+  }, [companies, restaurants, tAdmin]);
 
   const filteredRows = useMemo(() => {
     const normalizedSearch = search.trim().toLowerCase();
@@ -229,7 +232,7 @@ function SuperAdminRestaurantsPage() {
 
     if (error) {
       setSavingRestaurantId(null);
-      toast.error("Impossible de modifier l’entreprise du restaurant", {
+      toast.error(tAdmin("admin.superAdminRestaurants.updateCompanyError"), {
         description: error.message,
       });
       await loadRestaurants();
@@ -238,10 +241,10 @@ function SuperAdminRestaurantsPage() {
 
     const companyName = companyId
       ? companies.find((company) => company.id === companyId)?.name
-      : "Aucune entreprise";
+      : tAdmin("admin.superAdminRestaurants.noCompany");
 
-    toast.success("Restaurant mis à jour", {
-      description: `${row.name} → ${companyName ?? "Entreprise inconnue"}.`,
+    toast.success(tAdmin("admin.superAdminRestaurants.updated"), {
+      description: `${row.name} → ${companyName ?? tAdmin("admin.superAdminRestaurants.unknownCompany")}.`,
     });
 
     setSavingRestaurantId(null);
@@ -266,15 +269,19 @@ function SuperAdminRestaurantsPage() {
 
     if (error) {
       setSavingRestaurantId(null);
-      toast.error("Impossible de modifier le statut du restaurant", {
+      toast.error(tAdmin("admin.superAdminRestaurants.updateStatusError"), {
         description: error.message,
       });
       await loadRestaurants();
       return;
     }
 
-    toast.success("Statut mis à jour", {
-      description: `${row.name} est maintenant ${nextIsActive ? "actif" : "inactif"}.`,
+    toast.success(tAdmin("admin.superAdminRestaurants.statusUpdated"), {
+      description: `${row.name} ${tAdmin("admin.superAdminRestaurants.isNow")} ${
+        nextIsActive
+          ? tAdmin("admin.superAdminRestaurants.activeLower")
+          : tAdmin("admin.superAdminRestaurants.inactiveLower")
+      }.`,
     });
 
     setSavingRestaurantId(null);
@@ -316,7 +323,7 @@ function SuperAdminRestaurantsPage() {
     const phone = editingRestaurant.phone.trim();
 
     if (!name || !category || !cuisineType || !description || !address || !city || !country) {
-      toast.error("Les champs principaux du restaurant sont obligatoires");
+      toast.error(tAdmin("admin.superAdminRestaurants.requiredFields"));
       return;
     }
 
@@ -343,13 +350,13 @@ function SuperAdminRestaurantsPage() {
 
     if (error) {
       setSavingRestaurantId(null);
-      toast.error("Impossible de modifier le restaurant", { description: error.message });
+      toast.error(tAdmin("admin.superAdminRestaurants.updateError"), { description: error.message });
       await loadRestaurants();
       return;
     }
 
-    toast.success("Restaurant mis à jour", {
-      description: `${name} a été modifié.`,
+    toast.success(tAdmin("admin.superAdminRestaurants.updated"), {
+      description: `${name} ${tAdmin("admin.superAdminRestaurants.updatedDescription")}`,
     });
 
     setEditingRestaurant(null);
@@ -365,14 +372,18 @@ function SuperAdminRestaurantsPage() {
             <Shield className="h-3.5 w-3.5" />
             SuperAdmin
           </div>
-          <h1 className="mt-1 font-display text-3xl font-semibold">Restaurants</h1>
+          <h1 className="mt-1 font-display text-3xl font-semibold">
+            {tAdmin("admin.superAdminRestaurants.title")}
+          </h1>
           <p className="mt-1 text-sm text-muted-foreground">
-            Vue globale des restaurants et de leur entreprise propriétaire.
+            {tAdmin("admin.superAdminRestaurants.subtitle")}
           </p>
         </div>
 
         <div className="rounded-2xl border border-border bg-card px-5 py-4">
-          <div className="text-xs text-muted-foreground">Total restaurants</div>
+          <div className="text-xs text-muted-foreground">
+            {tAdmin("admin.superAdminRestaurants.total")}
+          </div>
           <div className="font-display text-2xl font-semibold">{rows.length}</div>
         </div>
       </div>
@@ -383,7 +394,7 @@ function SuperAdminRestaurantsPage() {
           <input
             value={search}
             onChange={(event) => setSearch(event.target.value)}
-            placeholder="Rechercher par restaurant, ville, entreprise..."
+            placeholder={tAdmin("admin.superAdminRestaurants.searchPlaceholder")}
             className="w-full rounded-full border border-border bg-background py-2 pl-9 pr-4 text-sm outline-none focus:border-ring"
           />
         </div>
@@ -393,7 +404,7 @@ function SuperAdminRestaurantsPage() {
         <div className="rounded-2xl border border-border bg-card p-5 text-sm text-muted-foreground">
           <div className="inline-flex items-center gap-2">
             <Loader2 className="h-4 w-4 animate-spin" />
-            Chargement des restaurants...
+            {tAdmin("admin.superAdminRestaurants.loading")}
           </div>
         </div>
       )}
@@ -407,7 +418,9 @@ function SuperAdminRestaurantsPage() {
       {!loadingRestaurants && !errorMessage && filteredRows.length === 0 && (
         <div className="rounded-2xl border border-dashed border-border p-10 text-center">
           <Store className="mx-auto h-8 w-8 text-muted-foreground" />
-          <p className="mt-3 text-sm text-muted-foreground">Aucun restaurant trouvé.</p>
+          <p className="mt-3 text-sm text-muted-foreground">
+            {tAdmin("admin.superAdminRestaurants.empty")}
+          </p>
         </div>
       )}
 
@@ -417,11 +430,21 @@ function SuperAdminRestaurantsPage() {
             <table className="w-full text-sm">
               <thead className="border-b border-border bg-secondary/40 text-xs text-muted-foreground">
                 <tr>
-                  <th className="px-5 py-3 text-left font-medium">Restaurant</th>
-                  <th className="px-5 py-3 text-left font-medium">Infos</th>
-                  <th className="px-5 py-3 text-left font-medium">Entreprise</th>
-                  <th className="px-5 py-3 text-left font-medium">Statut</th>
-                  <th className="px-5 py-3 text-right font-medium">Actions</th>
+                  <th className="px-5 py-3 text-left font-medium">
+                    {tAdmin("admin.superAdminRestaurants.restaurant")}
+                  </th>
+                  <th className="px-5 py-3 text-left font-medium">
+                    {tAdmin("admin.superAdminRestaurants.infos")}
+                  </th>
+                  <th className="px-5 py-3 text-left font-medium">
+                    {tAdmin("admin.superAdminRestaurants.company")}
+                  </th>
+                  <th className="px-5 py-3 text-left font-medium">
+                    {tAdmin("admin.superAdminRestaurants.status")}
+                  </th>
+                  <th className="px-5 py-3 text-right font-medium">
+                    {tAdmin("admin.superAdminRestaurants.actions")}
+                  </th>
                 </tr>
               </thead>
               <tbody>
@@ -455,7 +478,7 @@ function SuperAdminRestaurantsPage() {
                               className="min-h-20 w-full rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-ring"
                             />
                             <div className="text-xs text-muted-foreground">
-                              Slug stable : {row.slug}
+                              {tAdmin("admin.superAdminRestaurants.stableSlug")} {row.slug}
                             </div>
                           </div>
                         ) : (
@@ -480,7 +503,7 @@ function SuperAdminRestaurantsPage() {
                                   category: event.target.value,
                                 })
                               }
-                              placeholder="Catégorie"
+                              placeholder={tAdmin("admin.superAdminRestaurants.category")}
                               className="rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-ring"
                             />
                             <input
@@ -491,7 +514,7 @@ function SuperAdminRestaurantsPage() {
                                   cuisineType: event.target.value,
                                 })
                               }
-                              placeholder="Type cuisine"
+                              placeholder={tAdmin("admin.superAdminRestaurants.cuisineType")}
                               className="rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-ring"
                             />
                             <input
@@ -502,7 +525,7 @@ function SuperAdminRestaurantsPage() {
                                   address: event.target.value,
                                 })
                               }
-                              placeholder="Adresse"
+                              placeholder={tAdmin("admin.superAdminRestaurants.address")}
                               className="rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-ring"
                             />
                             <div className="grid grid-cols-2 gap-2">
@@ -514,7 +537,7 @@ function SuperAdminRestaurantsPage() {
                                     city: event.target.value,
                                   })
                                 }
-                                placeholder="Ville"
+                                placeholder={tAdmin("admin.superAdminRestaurants.city")}
                                 className="rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-ring"
                               />
                               <input
@@ -525,7 +548,7 @@ function SuperAdminRestaurantsPage() {
                                     country: event.target.value,
                                   })
                                 }
-                                placeholder="Pays"
+                                placeholder={tAdmin("admin.superAdminRestaurants.country")}
                                 className="rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-ring"
                               />
                             </div>
@@ -537,7 +560,7 @@ function SuperAdminRestaurantsPage() {
                                   phone: event.target.value,
                                 })
                               }
-                              placeholder="Téléphone"
+                              placeholder={tAdmin("admin.superAdminRestaurants.phone")}
                               className="rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-ring"
                             />
                             <div className="grid grid-cols-2 gap-2">
@@ -568,14 +591,19 @@ function SuperAdminRestaurantsPage() {
                                 }
                                 className="rounded-xl border border-border bg-background px-3 py-2 text-xs outline-none focus:border-ring"
                               >
-                                <option value="open">Ouvert</option>
-                                <option value="closed">Fermé</option>
+                                <option value="open">
+                                  {tAdmin("admin.superAdminRestaurants.open")}
+                                </option>
+                                <option value="closed">
+                                  {tAdmin("admin.superAdminRestaurants.closed")}
+                                </option>
                               </select>
                             </div>
 
                             <div className="rounded-xl bg-secondary/50 px-3 py-2 text-xs text-muted-foreground">
-                              Note et avis en lecture seule : {row.rating.toFixed(1)} ★ ·{" "}
-                              {row.reviewsCount} avis
+                              {tAdmin("admin.superAdminRestaurants.ratingReadonly")}{" "}
+                              {row.rating.toFixed(1)} ★ · {row.reviewsCount}{" "}
+                              {tAdmin("admin.superAdminRestaurants.reviews")}
                             </div>
                           </div>
                         ) : (
@@ -586,8 +614,11 @@ function SuperAdminRestaurantsPage() {
                               {row.address}, {row.city}, {row.country}
                             </div>
                             <div className="mt-1 text-xs text-muted-foreground">
-                              {row.priceLabel} · {row.rating.toFixed(1)} ★ · {row.reviewsCount} avis
-                              · {row.isOpen ? " Ouvert" : " Fermé"}
+                              {row.priceLabel} · {row.rating.toFixed(1)} ★ · {row.reviewsCount}{" "}
+                              {tAdmin("admin.superAdminRestaurants.reviews")} ·{" "}
+                              {row.isOpen
+                                ? tAdmin("admin.superAdminRestaurants.open")
+                                : tAdmin("admin.superAdminRestaurants.closed")}
                             </div>
                           </>
                         )}
@@ -601,7 +632,9 @@ function SuperAdminRestaurantsPage() {
                             onChange={(event) => changeRestaurantCompany(row, event.target.value)}
                             className="w-fit max-w-[240px] rounded-full border border-border bg-background px-3 py-1.5 text-xs font-medium outline-none disabled:cursor-not-allowed disabled:opacity-60"
                           >
-                            <option value="">Aucune entreprise</option>
+                            <option value="">
+                              {tAdmin("admin.superAdminRestaurants.noCompany")}
+                            </option>
                             {companies.map((company) => (
                               <option key={company.id} value={company.id}>
                                 {company.name}
@@ -612,7 +645,7 @@ function SuperAdminRestaurantsPage() {
                           {isSaving && (
                             <span className="inline-flex items-center gap-1 text-[11px] text-muted-foreground">
                               <Loader2 className="h-3 w-3 animate-spin" />
-                              Sauvegarde...
+                              {tAdmin("admin.superAdminRestaurants.saving")}
                             </span>
                           )}
                         </div>
@@ -631,8 +664,12 @@ function SuperAdminRestaurantsPage() {
                               : "border-destructive/30 bg-destructive/10 text-destructive"
                           }`}
                         >
-                          <option value="active">Actif</option>
-                          <option value="inactive">Inactif</option>
+                          <option value="active">
+                            {tAdmin("admin.superAdminRestaurants.active")}
+                          </option>
+                          <option value="inactive">
+                            {tAdmin("admin.superAdminRestaurants.inactive")}
+                          </option>
                         </select>
                       </td>
 
@@ -650,7 +687,7 @@ function SuperAdminRestaurantsPage() {
                                 ) : (
                                   <Save className="h-3.5 w-3.5" />
                                 )}
-                                Sauver
+                                {tAdmin("admin.superAdminRestaurants.save")}
                               </button>
 
                               <button
@@ -659,7 +696,7 @@ function SuperAdminRestaurantsPage() {
                                 className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary disabled:cursor-not-allowed disabled:opacity-60"
                               >
                                 <X className="h-3.5 w-3.5" />
-                                Annuler
+                                {tAdmin("admin.superAdminRestaurants.cancel")}
                               </button>
                             </>
                           ) : (
@@ -668,7 +705,7 @@ function SuperAdminRestaurantsPage() {
                               className="inline-flex items-center gap-1 rounded-full border border-border px-3 py-1.5 text-xs font-medium hover:bg-secondary"
                             >
                               <Edit3 className="h-3.5 w-3.5" />
-                              Modifier
+                              {tAdmin("admin.superAdminRestaurants.edit")}
                             </button>
                           )}
                         </div>
@@ -683,9 +720,7 @@ function SuperAdminRestaurantsPage() {
       )}
 
       <div className="rounded-2xl border border-border bg-secondary/40 p-5 text-sm text-muted-foreground">
-        Cette page permet de modifier les informations principales d’un restaurant, son entreprise,
-        son statut public et son état ouvert/fermé. Les photos, horaires, tags, badges et offres
-        seront gérés dans des étapes séparées.
+        {tAdmin("admin.superAdminRestaurants.note")}
       </div>
     </div>
   );
