@@ -99,7 +99,10 @@ function getChartLocale(language: Language) {
   return "fr-FR";
 }
 
-function buildChartData(interactions: SupabaseRestaurantInteraction[], language: Language): ChartRow[] {
+function buildChartData(
+  interactions: SupabaseRestaurantInteraction[],
+  language: Language,
+): ChartRow[] {
   const now = new Date();
   const locale = getChartLocale(language);
 
@@ -208,13 +211,48 @@ export function DashboardOverview() {
   const offers = countType(last7dInteractions, "Offre");
 
   const kpis: KpiItem[] = [
-    { label: tAdmin("admin.overview.kpiViews"), value: String(views), change: tAdmin("admin.common.days7"), icon: Eye },
-    { label: tAdmin("admin.overview.kpiMaps"), value: String(maps), change: tAdmin("admin.common.days7"), icon: Navigation },
-    { label: tAdmin("admin.overview.kpiWaze"), value: String(waze), change: tAdmin("admin.common.days7"), icon: MapPin },
-    { label: tAdmin("admin.overview.kpiCalls"), value: String(calls), change: tAdmin("admin.common.days7"), icon: Phone },
-    { label: tAdmin("admin.overview.kpiMenu"), value: String(menu), change: tAdmin("admin.common.days7"), icon: MenuSquare },
-    { label: tAdmin("admin.overview.kpiIntent"), value: String(intent), change: tAdmin("admin.overview.conversion"), icon: Heart },
-    { label: tAdmin("admin.overview.kpiAi"), value: String(ai), change: tAdmin("admin.overview.assistant"), icon: Bot },
+    {
+      label: tAdmin("admin.overview.kpiViews"),
+      value: String(views),
+      change: tAdmin("admin.common.days7"),
+      icon: Eye,
+    },
+    {
+      label: tAdmin("admin.overview.kpiMaps"),
+      value: String(maps),
+      change: tAdmin("admin.common.days7"),
+      icon: Navigation,
+    },
+    {
+      label: tAdmin("admin.overview.kpiWaze"),
+      value: String(waze),
+      change: tAdmin("admin.common.days7"),
+      icon: MapPin,
+    },
+    {
+      label: tAdmin("admin.overview.kpiCalls"),
+      value: String(calls),
+      change: tAdmin("admin.common.days7"),
+      icon: Phone,
+    },
+    {
+      label: tAdmin("admin.overview.kpiMenu"),
+      value: String(menu),
+      change: tAdmin("admin.common.days7"),
+      icon: MenuSquare,
+    },
+    {
+      label: tAdmin("admin.overview.kpiIntent"),
+      value: String(intent),
+      change: tAdmin("admin.overview.conversion"),
+      icon: Heart,
+    },
+    {
+      label: tAdmin("admin.overview.kpiAi"),
+      value: String(ai),
+      change: tAdmin("admin.overview.assistant"),
+      icon: Bot,
+    },
     {
       label: tAdmin("admin.overview.kpiReviews"),
       value: String(reviews),
@@ -372,11 +410,19 @@ export function DashboardOverview() {
           <table className="w-full text-sm">
             <thead className="text-xs text-muted-foreground border-y border-border bg-secondary/40">
               <tr>
-                <th className="text-left font-medium px-6 py-3">{tAdmin("admin.overview.action")}</th>
-                <th className="text-left font-medium px-6 py-3">{tAdmin("admin.overview.source")}</th>
-                <th className="text-left font-medium px-6 py-3">{tAdmin("admin.common.restaurant")}</th>
+                <th className="text-left font-medium px-6 py-3">
+                  {tAdmin("admin.overview.action")}
+                </th>
+                <th className="text-left font-medium px-6 py-3">
+                  {tAdmin("admin.overview.source")}
+                </th>
+                <th className="text-left font-medium px-6 py-3">
+                  {tAdmin("admin.common.restaurant")}
+                </th>
                 <th className="text-left font-medium px-6 py-3">{tAdmin("admin.overview.when")}</th>
-                <th className="text-right font-medium px-6 py-3">{tAdmin("admin.overview.type")}</th>
+                <th className="text-right font-medium px-6 py-3">
+                  {tAdmin("admin.overview.type")}
+                </th>
               </tr>
             </thead>
             <tbody>

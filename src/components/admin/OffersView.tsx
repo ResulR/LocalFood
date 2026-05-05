@@ -224,9 +224,7 @@ export function OffersView() {
           <h1 className="mt-1 font-display text-3xl font-semibold">
             {tAdmin("admin.offers.title")}
           </h1>
-          <p className="mt-1 text-sm text-muted-foreground">
-            {tAdmin("admin.offers.subtitle")}
-          </p>
+          <p className="mt-1 text-sm text-muted-foreground">{tAdmin("admin.offers.subtitle")}</p>
         </div>
 
         <div className="rounded-2xl border border-border bg-card px-5 py-4">

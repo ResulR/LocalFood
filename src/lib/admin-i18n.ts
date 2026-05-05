@@ -1,3 +1,4 @@
+import { useCallback } from "react";
 import { useI18n, type Language } from "@/lib/i18n";
 
 const adminTranslations = {
@@ -1422,8 +1423,13 @@ export type AdminTranslationKey = keyof typeof adminTranslations.fr;
 export function useAdminI18n() {
   const { language } = useI18n();
 
+  const tAdmin = useCallback(
+    (key: AdminTranslationKey) => adminTranslations[language][key],
+    [language],
+  );
+
   return {
     language,
-    tAdmin: (key: AdminTranslationKey) => adminTranslations[language][key],
+    tAdmin,
   };
 }

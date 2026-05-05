@@ -350,7 +350,9 @@ function SuperAdminRestaurantsPage() {
 
     if (error) {
       setSavingRestaurantId(null);
-      toast.error(tAdmin("admin.superAdminRestaurants.updateError"), { description: error.message });
+      toast.error(tAdmin("admin.superAdminRestaurants.updateError"), {
+        description: error.message,
+      });
       await loadRestaurants();
       return;
     }

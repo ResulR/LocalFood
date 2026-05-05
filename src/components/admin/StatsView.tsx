@@ -296,10 +296,18 @@ export function StatsView() {
 
       <div className="grid md:grid-cols-4 gap-3">
         {[
-          { l: tAdmin("admin.stats.totalViews"), v: String(totalViews), c: tAdmin("admin.stats.listing") },
+          {
+            l: tAdmin("admin.stats.totalViews"),
+            v: String(totalViews),
+            c: tAdmin("admin.stats.listing"),
+          },
           { l: tAdmin("admin.stats.routeClicks"), v: String(itineraryClicks), c: "Maps + Waze" },
           { l: tAdmin("admin.stats.calls"), v: String(calls), c: tAdmin("admin.stats.listing") },
-          { l: tAdmin("admin.stats.conversion"), v: conversionRate, c: tAdmin("admin.stats.intentOverViews") },
+          {
+            l: tAdmin("admin.stats.conversion"),
+            v: conversionRate,
+            c: tAdmin("admin.stats.intentOverViews"),
+          },
         ].map((k) => (
           <div key={k.l} className="rounded-2xl bg-card border border-border p-5">
             <div className="text-xs text-muted-foreground">{k.l}</div>

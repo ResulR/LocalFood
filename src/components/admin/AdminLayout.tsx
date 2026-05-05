@@ -33,7 +33,12 @@ type NavItem = {
 };
 
 const NAV: NavItem[] = [
-  { to: "/restaurant-dashboard", labelKey: "admin.layout.overview", icon: LayoutDashboard, exact: true },
+  {
+    to: "/restaurant-dashboard",
+    labelKey: "admin.layout.overview",
+    icon: LayoutDashboard,
+    exact: true,
+  },
   { to: "/restaurant-dashboard/profile", labelKey: "admin.layout.profile", icon: Store },
   { to: "/restaurant-dashboard/horaires", labelKey: "admin.layout.openingHours", icon: Clock },
   { to: "/restaurant-dashboard/offres", labelKey: "admin.layout.offers", icon: BadgePercent },
@@ -58,7 +63,9 @@ export function AdminLayout() {
 
   const restaurantName =
     selectedRestaurant?.name ??
-    (loadingRestaurants ? tAdmin("admin.common.loading") : restaurantMessage || tAdmin("admin.layout.proArea"));
+    (loadingRestaurants
+      ? tAdmin("admin.common.loading")
+      : restaurantMessage || tAdmin("admin.layout.proArea"));
 
   const handleSignOut = async () => {
     await signOut();
@@ -74,7 +81,9 @@ export function AdminLayout() {
           </span>
           <div className="leading-tight">
             <div className="font-display font-semibold">LocalFood</div>
-            <div className="text-[11px] text-muted-foreground">{tAdmin("admin.layout.ownerArea")}</div>
+            <div className="text-[11px] text-muted-foreground">
+              {tAdmin("admin.layout.ownerArea")}
+            </div>
           </div>
         </div>
         <nav className="flex-1 p-3 space-y-1">

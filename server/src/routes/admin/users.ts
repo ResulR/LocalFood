@@ -375,11 +375,7 @@ adminUsersRouter.patch(
         .eq("user_id", userId);
 
       if (deleteMembershipsError) {
-        throw new HttpError(
-          500,
-          deleteMembershipsError.message,
-          "COMPANY_MEMBERSHIP_RESET_FAILED",
-        );
+        throw new HttpError(500, deleteMembershipsError.message, "COMPANY_MEMBERSHIP_RESET_FAILED");
       }
 
       if (payload.companyId) {
@@ -389,11 +385,7 @@ adminUsersRouter.patch(
         });
 
         if (membershipError) {
-          throw new HttpError(
-            500,
-            membershipError.message,
-            "COMPANY_MEMBERSHIP_INSERT_FAILED",
-          );
+          throw new HttpError(500, membershipError.message, "COMPANY_MEMBERSHIP_INSERT_FAILED");
         }
       }
 

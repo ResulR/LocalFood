@@ -192,13 +192,21 @@ export function ReviewsView() {
       </div>
 
       <div className="grid sm:grid-cols-3 gap-3">
-        <Stat label={tAdmin("admin.reviews.averageRating")} value={averageRating} sub={tAdmin("admin.reviews.outOf5")} />
+        <Stat
+          label={tAdmin("admin.reviews.averageRating")}
+          value={averageRating}
+          sub={tAdmin("admin.reviews.outOf5")}
+        />
         <Stat
           label={tAdmin("admin.reviews.displayedReviews")}
           value={String(reviews.length)}
           sub={currentRestaurant?.name ?? tAdmin("admin.common.restaurant")}
         />
-        <Stat label={tAdmin("admin.reviews.pending")} value={String(pendingCount)} sub={tAdmin("admin.reviews.toModerate")} />
+        <Stat
+          label={tAdmin("admin.reviews.pending")}
+          value={String(pendingCount)}
+          sub={tAdmin("admin.reviews.toModerate")}
+        />
       </div>
 
       <div className="rounded-2xl bg-card border border-border divide-y divide-border">

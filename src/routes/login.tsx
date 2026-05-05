@@ -93,9 +93,7 @@ function LoginPage() {
                 <UtensilsCrossed className="h-6 w-6" />
               </div>
               <h2 className="font-display text-3xl font-semibold">{tAdmin("admin.login.title")}</h2>
-              <p className="mt-2 text-sm text-muted-foreground">
-                {tAdmin("admin.login.subtitle")}
-              </p>
+              <p className="mt-2 text-sm text-muted-foreground">{tAdmin("admin.login.subtitle")}</p>
             </div>
 
             <form onSubmit={submit} className="space-y-4">

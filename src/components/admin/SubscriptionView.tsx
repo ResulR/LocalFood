@@ -62,7 +62,9 @@ export function SubscriptionView() {
   return (
     <div className="space-y-8 max-w-5xl">
       <div>
-        <h1 className="font-display text-3xl font-semibold">{tAdmin("admin.subscription.title")}</h1>
+        <h1 className="font-display text-3xl font-semibold">
+          {tAdmin("admin.subscription.title")}
+        </h1>
         <p className="text-muted-foreground mt-1">{tAdmin("admin.subscription.subtitle")}</p>
       </div>
 
