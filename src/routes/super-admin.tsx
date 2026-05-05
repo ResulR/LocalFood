@@ -8,26 +8,33 @@ import {
 } from "@tanstack/react-router";
 import { ArrowLeft, Building2, Loader2, LogOut, Shield, Store, Users } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
+import { useAdminI18n, type AdminTranslationKey } from "@/lib/admin-i18n";
 
 export const Route = createFileRoute("/super-admin")({
   head: () => ({ meta: [{ title: "SuperAdmin — LocalFood" }] }),
   component: SuperAdminLayout,
 });
 
-const NAV = [
+type SuperAdminNavItem = {
+  to: string;
+  labelKey: AdminTranslationKey;
+  icon: typeof Users;
+};
+
+const NAV: SuperAdminNavItem[] = [
   {
     to: "/super-admin/users",
-    label: "Utilisateurs",
+    labelKey: "admin.superAdmin.users",
     icon: Users,
   },
   {
     to: "/super-admin/companies",
-    label: "Entreprises",
+    labelKey: "admin.superAdmin.companies",
     icon: Building2,
   },
   {
     to: "/super-admin/restaurants",
-    label: "Restaurants",
+    labelKey: "admin.superAdmin.restaurants",
     icon: Store,
   },
 ];
@@ -35,6 +42,7 @@ const NAV = [
 function SuperAdminLayout() {
   const location = useLocation();
   const navigate = useNavigate();
+  const { tAdmin } = useAdminI18n();
   const { user, role, loading, signOut } = useAuth();
 
   const handleSignOut = async () => {
@@ -47,7 +55,7 @@ function SuperAdminLayout() {
       <div className="flex min-h-screen items-center justify-center bg-secondary/30 px-4">
         <div className="flex items-center gap-3 rounded-2xl border border-border bg-background px-5 py-4 text-sm text-muted-foreground shadow-soft">
           <Loader2 className="h-4 w-4 animate-spin" />
-          Chargement de l’espace SuperAdmin...
+          {tAdmin("admin.superAdmin.loading")}
         </div>
       </div>
     );
@@ -64,15 +72,17 @@ function SuperAdminLayout() {
           <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-destructive/10 text-destructive">
             <Shield className="h-6 w-6" />
           </div>
-          <h1 className="font-display text-2xl font-semibold">Accès refusé</h1>
+          <h1 className="font-display text-2xl font-semibold">
+            {tAdmin("admin.superAdmin.accessDenied")}
+          </h1>
           <p className="mt-3 text-sm text-muted-foreground">
-            Cette section est réservée aux SuperAdmins LocalFood.
+            {tAdmin("admin.superAdmin.accessDeniedDescription")}
           </p>
           <Link
             to="/restaurant-dashboard"
             className="mt-6 inline-flex items-center justify-center rounded-full bg-foreground px-5 py-2.5 text-sm font-medium text-background hover:opacity-90"
           >
-            Retour au dashboard
+            {tAdmin("admin.superAdmin.backToDashboard")}
           </Link>
         </div>
       </div>
@@ -107,7 +117,7 @@ function SuperAdminLayout() {
                 }`}
               >
                 <item.icon className="h-4 w-4" />
-                {item.label}
+                {tAdmin(item.labelKey)}
               </Link>
             );
           })}
@@ -119,7 +129,7 @@ function SuperAdminLayout() {
             className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground"
           >
             <ArrowLeft className="h-3.5 w-3.5" />
-            Retour dashboard
+            {tAdmin("admin.superAdmin.backToDashboard")}
           </Link>
 
           <button
@@ -127,7 +137,7 @@ function SuperAdminLayout() {
             className="flex items-center gap-2 text-xs text-muted-foreground hover:text-foreground"
           >
             <LogOut className="h-3.5 w-3.5" />
-            Se déconnecter
+            {tAdmin("admin.superAdmin.signOut")}
           </button>
         </div>
       </aside>
@@ -135,8 +145,10 @@ function SuperAdminLayout() {
       <div className="flex-1 min-w-0">
         <header className="h-16 sticky top-0 z-30 bg-background/85 backdrop-blur border-b border-border flex items-center justify-between px-4 sm:px-6 gap-4">
           <div>
-            <div className="text-sm font-semibold">Espace SuperAdmin</div>
-            <div className="text-xs text-muted-foreground">Gestion globale LocalFood</div>
+            <div className="text-sm font-semibold">{tAdmin("admin.superAdmin.headerTitle")}</div>
+            <div className="text-xs text-muted-foreground">
+              {tAdmin("admin.superAdmin.headerSubtitle")}
+            </div>
           </div>
 
           <button
@@ -144,7 +156,7 @@ function SuperAdminLayout() {
             className="inline-flex items-center gap-2 rounded-full border border-border px-4 py-2 text-sm hover:bg-secondary"
           >
             <LogOut className="h-4 w-4" />
-            Déconnexion
+            {tAdmin("admin.superAdmin.logout")}
           </button>
         </header>
 
