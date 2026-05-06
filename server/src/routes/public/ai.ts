@@ -2,7 +2,7 @@ import OpenAI from "openai";
 import { Router } from "express";
 import { z } from "zod";
 import { env } from "../../config/env.js";
-import { createSupabaseAdminClient } from "../../lib/supabase-server.js";
+import { dbQuery } from "../../lib/db.js";
 
 export const publicAiRouter = Router();
 
@@ -65,6 +65,151 @@ function createOpenAIClient() {
   return new OpenAI({
     apiKey: env.OPENAI_API_KEY,
   });
+}
+
+async function fetchActiveTagsFromPostgres() {
+  const result = await dbQuery<RelatedLabel>(
+    `
+      select
+        label,
+        slug
+      from public.tags
+      where is_active = true
+      order by sort_order asc, label asc
+    `,
+  );
+
+  return result.rows;
+}
+
+async function fetchActiveRestaurantsFromPostgres() {
+  const result = await dbQuery<RestaurantRow>(
+    `
+      select
+        r.id,
+        r.name,
+        r.slug,
+        r.category,
+        r.cuisine_type,
+        r.description,
+        r.main_image_url,
+        r.rating,
+        r.reviews_count,
+        r.distance_km,
+        r.latitude,
+        r.longitude,
+        r.price_level,
+        r.price_label,
+        r.is_open,
+        r.hours_summary,
+        r.address,
+        r.city,
+        r.country,
+        r.phone,
+        r.menu_url,
+        r.google_maps_url,
+        r.waze_url,
+        r.localfood_match_score,
+        r.is_new,
+        r.is_active,
+        coalesce(
+          (
+            select json_agg(
+              json_build_object(
+                'tags',
+                json_build_object(
+                  'label', t.label,
+                  'slug', t.slug
+                )
+              )
+              order by t.sort_order asc, t.label asc
+            )
+            from public.restaurant_tags rt
+            join public.tags t on t.id = rt.tag_id
+            where rt.restaurant_id = r.id
+              and t.is_active = true
+          ),
+          '[]'::json
+        ) as restaurant_tags,
+        coalesce(
+          (
+            select json_agg(
+              json_build_object(
+                'badges',
+                json_build_object(
+                  'label', b.label,
+                  'slug', b.slug
+                )
+              )
+              order by b.sort_order asc, b.label asc
+            )
+            from public.restaurant_badges rb
+            join public.badges b on b.id = rb.badge_id
+            where rb.restaurant_id = r.id
+              and b.is_active = true
+          ),
+          '[]'::json
+        ) as restaurant_badges,
+        coalesce(
+          (
+            select json_agg(
+              json_build_object(
+                'id', rp.id,
+                'url', rp.url,
+                'category', rp.category,
+                'is_client_photo', rp.is_client_photo,
+                'author_name', rp.author_name,
+                'sort_order', rp.sort_order
+              )
+              order by rp.sort_order asc, rp.created_at asc
+            )
+            from public.restaurant_photos rp
+            where rp.restaurant_id = r.id
+          ),
+          '[]'::json
+        ) as restaurant_photos,
+        coalesce(
+          (
+            select json_agg(
+              json_build_object(
+                'id', roh.id,
+                'day_of_week', roh.day_of_week,
+                'day_label', roh.day_label,
+                'hours_text', roh.hours_text,
+                'is_closed', roh.is_closed
+              )
+              order by roh.day_of_week asc
+            )
+            from public.restaurant_opening_hours roh
+            where roh.restaurant_id = r.id
+          ),
+          '[]'::json
+        ) as restaurant_opening_hours,
+        coalesce(
+          (
+            select json_agg(
+              json_build_object(
+                'id', ro.id,
+                'code', ro.code,
+                'title', ro.title,
+                'description', ro.description,
+                'conditions', ro.conditions,
+                'is_active', ro.is_active
+              )
+              order by ro.created_at desc
+            )
+            from public.restaurant_offers ro
+            where ro.restaurant_id = r.id
+          ),
+          '[]'::json
+        ) as restaurant_offers
+      from public.restaurants r
+      where r.is_active = true
+      order by r.reviews_count desc
+    `,
+  );
+
+  return result.rows;
 }
 
 type AiRecommendation = {
@@ -426,34 +571,21 @@ publicAiRouter.post("/restaurant-search", async (req, res) => {
     });
   }
 
-  let supabaseAdmin;
-
-  try {
-    supabaseAdmin = createSupabaseAdminClient();
-  } catch {
-    return res.status(503).json({
-      ok: false,
-      code: "SERVER_SUPABASE_NOT_CONFIGURED",
-      message: "Supabase n'est pas configuré côté serveur.",
-    });
-  }
-
   const { message } = parsed.data;
 
-  const { data: activeTagsData, error: activeTagsError } = await supabaseAdmin
-    .from("tags")
-    .select("label, slug")
-    .eq("is_active", true);
+  let activeTags: RelatedLabel[];
 
-  if (activeTagsError) {
-    return res.status(500).json({
+  try {
+    activeTags = await fetchActiveTagsFromPostgres();
+  } catch (error) {
+    console.error("LocalFood AI tags PostgreSQL query failed:", error);
+
+    return res.status(503).json({
       ok: false,
-      code: "AI_TAGS_QUERY_FAILED",
-      message: "Impossible de charger les tags LocalFood.",
+      code: "SERVER_DATABASE_NOT_CONFIGURED",
+      message: "La base de données LocalFood n'est pas configurée côté serveur.",
     });
   }
-
-  const activeTags = (activeTagsData ?? []) as RelatedLabel[];
 
   if (!isLocalFoodRelated(message, activeTags)) {
     return res.json({
@@ -484,85 +616,19 @@ publicAiRouter.post("/restaurant-search", async (req, res) => {
 
   const detectedIntents = detectIntents(message, activeTags);
 
-  const { data, error } = await supabaseAdmin
-    .from("restaurants")
-    .select(
-      `
-        id,
-        name,
-        slug,
-        category,
-        cuisine_type,
-        description,
-        main_image_url,
-        rating,
-        reviews_count,
-        distance_km,
-        latitude,
-        longitude,
-        price_level,
-        price_label,
-        is_open,
-        hours_summary,
-        address,
-        city,
-        country,
-        phone,
-        menu_url,
-        google_maps_url,
-        waze_url,
-        localfood_match_score,
-        is_new,
-        is_active,
-        restaurant_tags (
-          tags (
-            label,
-            slug
-          )
-        ),
-        restaurant_badges (
-          badges (
-            label,
-            slug
-          )
-        ),
-        restaurant_photos (
-          id,
-          url,
-          category,
-          is_client_photo,
-          author_name,
-          sort_order
-        ),
-        restaurant_opening_hours (
-          id,
-          day_of_week,
-          day_label,
-          hours_text,
-          is_closed
-        ),
-        restaurant_offers (
-          id,
-          code,
-          title,
-          description,
-          conditions,
-          is_active
-        )
-      `,
-    )
-    .eq("is_active", true)
-    .order("reviews_count", { ascending: false });
+  let rows: RestaurantRow[];
 
-  if (error) {
+  try {
+    rows = await fetchActiveRestaurantsFromPostgres();
+  } catch (error) {
+    console.error("LocalFood AI restaurants PostgreSQL query failed:", error);
+
     return res.status(500).json({
       ok: false,
       code: "AI_RESTAURANTS_QUERY_FAILED",
       message: "Impossible de charger les restaurants LocalFood.",
     });
   }
-
-  const rows = (data ?? []) as unknown as RestaurantRow[];
 
   const recommendations = rows
     .map((row) => {
