@@ -1,6 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
-import { createSupabaseUserClient } from "../lib/supabase-server.js";
 import { dbQuery } from "../lib/db.js";
+import { verifyLocalAuthToken } from "../lib/local-auth.js";
 import { HttpError } from "./error-handler.js";
 
 declare global {
@@ -15,6 +15,12 @@ declare global {
     }
   }
 }
+
+type ProfileRow = {
+  user_id: string;
+  email: string | null;
+  is_active: boolean;
+};
 
 type UserRoleRow = {
   role: "superadmin" | "admin" | "user";
@@ -38,44 +44,58 @@ export async function requireAuth(request: Request, _response: Response, next: N
       throw new HttpError(401, "Missing bearer token.", "AUTH_TOKEN_MISSING");
     }
 
-    let supabase;
+    let tokenPayload: { userId: string };
 
     try {
-      supabase = createSupabaseUserClient(accessToken);
+      tokenPayload = verifyLocalAuthToken(accessToken);
     } catch {
-      throw new HttpError(
-        503,
-        "Server authentication is not configured.",
-        "SERVER_AUTH_NOT_CONFIGURED",
-      );
-    }
-
-    const { data: userData, error: userError } = await supabase.auth.getUser();
-
-    if (userError || !userData.user) {
       throw new HttpError(401, "Invalid bearer token.", "AUTH_TOKEN_INVALID");
     }
 
-    const roleResult = await dbQuery<UserRoleRow>(
-      `
-        select role
-        from public.user_roles
-        where user_id = $1
-        order by
-          case role
-            when 'superadmin' then 1
-            when 'admin' then 2
-            when 'user' then 3
-          end
-        limit 1
-      `,
-      [userData.user.id],
-    );
+    const [profileResult, roleResult] = await Promise.all([
+      dbQuery<ProfileRow>(
+        `
+          select
+            user_id,
+            email,
+            is_active
+          from public.profiles
+          where user_id = $1
+          limit 1
+        `,
+        [tokenPayload.userId],
+      ),
+      dbQuery<UserRoleRow>(
+        `
+          select role
+          from public.user_roles
+          where user_id = $1
+          order by
+            case role
+              when 'superadmin' then 1
+              when 'admin' then 2
+              when 'user' then 3
+            end
+          limit 1
+        `,
+        [tokenPayload.userId],
+      ),
+    ]);
+
+    const profile = profileResult.rows[0];
+
+    if (!profile) {
+      throw new HttpError(401, "Invalid bearer token.", "AUTH_TOKEN_INVALID");
+    }
+
+    if (!profile.is_active) {
+      throw new HttpError(403, "User account is disabled.", "USER_DISABLED");
+    }
 
     request.auth = {
       accessToken,
-      userId: userData.user.id,
-      email: userData.user.email ?? null,
+      userId: profile.user_id,
+      email: profile.email,
       role: roleResult.rows[0]?.role ?? null,
     };
 

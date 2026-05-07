@@ -1,6 +1,6 @@
+import { randomUUID } from "node:crypto";
 import { Router } from "express";
 import { z } from "zod";
-import { createSupabaseAdminClient } from "../../lib/supabase-server.js";
 import { dbQuery } from "../../lib/db.js";
 import { requireAuth, requireSuperAdmin } from "../../middlewares/auth.js";
 import { HttpError } from "../../middlewares/error-handler.js";
@@ -105,7 +105,8 @@ adminUsersRouter.get(
 adminUsersRouter.post("/", requireAuth, requireSuperAdmin, async (request, response, next) => {
   try {
     const payload = createAdminUserSchema.parse(request.body);
-    const supabaseAdmin = createSupabaseAdminClient();
+    const email = payload.email.trim().toLowerCase();
+    const userId = randomUUID();
 
     const companyResult = await dbQuery<{ id: string; name: string; is_active: boolean }>(
       `
@@ -127,21 +128,18 @@ adminUsersRouter.post("/", requireAuth, requireSuperAdmin, async (request, respo
       throw new HttpError(400, "Company is inactive.", "COMPANY_INACTIVE");
     }
 
-    const { data: invitedUserData, error: inviteError } =
-      await supabaseAdmin.auth.admin.inviteUserByEmail(payload.email, {
-        data: {
-          full_name: payload.fullName,
-        },
-      });
+    const existingUserResult = await dbQuery<{ user_id: string }>(
+      `
+        select user_id
+        from public.local_auth_users
+        where lower(email) = $1
+        limit 1
+      `,
+      [email],
+    );
 
-    if (inviteError) {
-      throw new HttpError(400, inviteError.message, "USER_INVITE_FAILED");
-    }
-
-    const invitedUser = invitedUserData.user;
-
-    if (!invitedUser) {
-      throw new HttpError(500, "Supabase did not return the invited user.", "USER_INVITE_EMPTY");
+    if (existingUserResult.rows[0]) {
+      throw new HttpError(409, "User already exists.", "USER_ALREADY_EXISTS");
     }
 
     await dbQuery(
@@ -154,23 +152,8 @@ adminUsersRouter.post("/", requireAuth, requireSuperAdmin, async (request, respo
           is_active
         )
         values ($1, $2, $3, $4, true)
-        on conflict (user_id)
-        do update set
-          email = excluded.email,
-          full_name = excluded.full_name,
-          current_company_id = excluded.current_company_id,
-          is_active = true,
-          updated_at = now()
       `,
-      [invitedUser.id, payload.email, payload.fullName, payload.companyId],
-    );
-
-    await dbQuery(
-      `
-        delete from public.user_roles
-        where user_id = $1
-      `,
-      [invitedUser.id],
+      [userId, email, payload.fullName, payload.companyId],
     );
 
     await dbQuery(
@@ -181,15 +164,7 @@ adminUsersRouter.post("/", requireAuth, requireSuperAdmin, async (request, respo
         )
         values ($1, $2)
       `,
-      [invitedUser.id, payload.role],
-    );
-
-    await dbQuery(
-      `
-        delete from public.company_users
-        where user_id = $1
-      `,
-      [invitedUser.id],
+      [userId, payload.role],
     );
 
     await dbQuery(
@@ -200,14 +175,28 @@ adminUsersRouter.post("/", requireAuth, requireSuperAdmin, async (request, respo
         )
         values ($1, $2)
       `,
-      [invitedUser.id, payload.companyId],
+      [userId, payload.companyId],
+    );
+
+    await dbQuery(
+      `
+        insert into public.local_auth_users (
+          user_id,
+          email,
+          password_hash,
+          password_set,
+          is_active
+        )
+        values ($1, $2, null, false, true)
+      `,
+      [userId, email],
     );
 
     response.status(201).json({
       ok: true,
       data: {
-        userId: invitedUser.id,
-        email: payload.email,
+        userId,
+        email,
         fullName: payload.fullName,
         role: payload.role,
         companyId: payload.companyId,
