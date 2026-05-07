@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { dbQuery } from "../../lib/db.js";
-import { requireAuth } from "../../middlewares/auth.js";
+import { requireAuth, requireSuperAdmin } from "../../middlewares/auth.js";
 import { HttpError } from "../../middlewares/error-handler.js";
 
 export const adminRestaurantsRouter = Router();
@@ -303,6 +303,42 @@ async function fetchRestaurantById(restaurantId: string) {
 
   return result.rows[0] ?? null;
 }
+
+adminRestaurantsRouter.get("/", requireAuth, requireSuperAdmin, async (_request, response, next) => {
+  try {
+    const result = await dbQuery<CompanyRestaurantRow>(
+      `
+        select
+          id,
+          name,
+          slug,
+          category,
+          cuisine_type,
+          description,
+          rating,
+          reviews_count,
+          price_level,
+          price_label,
+          is_open,
+          address,
+          city,
+          country,
+          phone,
+          is_active,
+          company_id
+        from public.restaurants
+        order by name asc
+      `,
+    );
+
+    response.json({
+      ok: true,
+      data: result.rows,
+    });
+  } catch (error) {
+    next(error);
+  }
+});
 
 adminRestaurantsRouter.patch(
   "/reviews/:reviewId/status",
