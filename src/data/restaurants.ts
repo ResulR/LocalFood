@@ -1,13 +1,9 @@
 // =====================================================================
-// LocalFood — Données locales de démonstration
+// LocalFood — Types et constantes UI restaurants
 // =====================================================================
-// Tout est local, aucune dépendance backend.
-// Pour modifier :
-// - Restaurants : tableau `restaurants` ci-dessous
-// - Filtres : `QUICK_FILTERS`
-// - Catégories : `categories`
-// - Stats / graphiques : `chartData7d`, `chartData30d`
-// - Interactions, offres et recommandations : voir aussi les autres fichiers src/data
+// Ce fichier ne contient plus de données restaurants mockées.
+// Les restaurants, offres, avis, interactions, horaires et photos viennent
+// de l'API Express connectée à PostgreSQL.
 // =====================================================================
 
 export type RestaurantTag =
