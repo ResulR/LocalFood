@@ -34,39 +34,31 @@ type AuthContextValue = {
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
 
-async function fetchProfile(userId: string) {
-  const { data, error } = await supabase
-    .from("profiles")
-    .select(
-      `
-        id,
-        user_id,
-        email,
-        full_name,
-        is_active,
-        current_company_id
-      `,
-    )
-    .eq("user_id", userId)
-    .maybeSingle();
+const apiBaseUrl = import.meta.env.VITE_LOCALFOOD_API_URL ?? "http://localhost:4000";
 
-  if (error) {
-    throw error;
-  }
+type AuthMeResponse = {
+  profile: Profile | null;
+  role: AppRole | null;
+};
 
-  return data as Profile | null;
-}
-
-async function fetchRole(userId: string) {
-  const { data, error } = await supabase.rpc("get_user_role", {
-    _user_id: userId,
+async function fetchAuthMe(accessToken: string) {
+  const response = await fetch(`${apiBaseUrl}/api/auth/me`, {
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+    },
   });
 
-  if (error) {
-    throw error;
+  const payload = (await response.json().catch(() => null)) as {
+    ok?: boolean;
+    data?: AuthMeResponse;
+    message?: string;
+  } | null;
+
+  if (!response.ok || !payload?.ok || !payload.data) {
+    throw new Error(payload?.message ?? "Impossible de charger le profil utilisateur.");
   }
 
-  return data as AppRole | null;
+  return payload.data;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
@@ -76,20 +68,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadUserData = useCallback(async (nextUser: User | null) => {
-    if (!nextUser) {
+  const loadUserData = useCallback(async (nextSession: Session | null) => {
+    if (!nextSession?.access_token) {
       setProfile(null);
       setRole(null);
       return;
     }
 
-    const [nextProfile, nextRole] = await Promise.all([
-      fetchProfile(nextUser.id),
-      fetchRole(nextUser.id),
-    ]);
+    const authMe = await fetchAuthMe(nextSession.access_token);
 
-    setProfile(nextProfile);
-    setRole(nextRole);
+    setProfile(authMe.profile);
+    setRole(authMe.role);
   }, []);
 
   const refreshProfile = useCallback(async () => {
@@ -99,8 +88,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       return;
     }
 
-    await loadUserData(user);
-  }, [loadUserData, user]);
+    await loadUserData(session);
+  }, [loadUserData, session, user]);
 
   useEffect(() => {
     let cancelled = false;
@@ -131,7 +120,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setUser(currentSession?.user ?? null);
 
       try {
-        await loadUserData(currentSession?.user ?? null);
+        await loadUserData(currentSession);
       } catch (loadError) {
         console.error("Failed to load auth user data:", loadError);
         setProfile(null);
@@ -151,7 +140,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setLoading(true);
 
       window.setTimeout(() => {
-        loadUserData(nextSession?.user ?? null)
+        loadUserData(nextSession)
           .catch((error) => {
             console.error("Failed to refresh auth user data:", error);
             setProfile(null);
