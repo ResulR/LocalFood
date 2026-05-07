@@ -2,8 +2,14 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Edit3, Loader2, Save, Search, Shield, Store, X } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
 import { useAdminI18n } from "@/lib/admin-i18n";
+import { fetchAdminCompaniesList } from "@/lib/admin-companies-api";
+import {
+  fetchAdminRestaurantsList,
+  updateAdminRestaurant,
+  updateAdminRestaurantCompany,
+  updateAdminRestaurantStatus,
+} from "@/lib/admin-restaurants-api";
 
 export const Route = createFileRoute("/super-admin/restaurants")({
   head: () => ({ meta: [{ title: "Restaurants — SuperAdmin LocalFood" }] }),
@@ -80,10 +86,6 @@ const PRICE_OPTIONS: { label: PriceLabel; level: number }[] = [
   { label: "€€€", level: 3 },
 ];
 
-function getPriceLevel(priceLabel: PriceLabel) {
-  return PRICE_OPTIONS.find((price) => price.label === priceLabel)?.level ?? 2;
-}
-
 function SuperAdminRestaurantsPage() {
   const { tAdmin } = useAdminI18n();
   const [restaurants, setRestaurants] = useState<RestaurantRow[]>([]);
@@ -98,48 +100,13 @@ function SuperAdminRestaurantsPage() {
     setLoadingRestaurants(true);
     setErrorMessage("");
 
-    const [restaurantsResult, companiesResult] = await Promise.all([
-      supabase
-        .from("restaurants")
-        .select(
-          `
-            id,
-            name,
-            slug,
-            category,
-            cuisine_type,
-            description,
-            rating,
-            reviews_count,
-            price_level,
-            price_label,
-            is_open,
-            address,
-            city,
-            country,
-            phone,
-            is_active,
-            company_id
-          `,
-        )
-        .order("name"),
-      supabase.from("companies").select("id, name, slug, is_active").order("name"),
+    const [restaurantsData, companiesData] = await Promise.all([
+      fetchAdminRestaurantsList(),
+      fetchAdminCompaniesList(),
     ]);
 
-    if (restaurantsResult.error) {
-      setErrorMessage(restaurantsResult.error.message);
-      setLoadingRestaurants(false);
-      return;
-    }
-
-    if (companiesResult.error) {
-      setErrorMessage(companiesResult.error.message);
-      setLoadingRestaurants(false);
-      return;
-    }
-
-    setRestaurants((restaurantsResult.data ?? []) as RestaurantRow[]);
-    setCompanies((companiesResult.data ?? []) as CompanyRow[]);
+    setRestaurants(restaurantsData);
+    setCompanies(companiesData);
     setLoadingRestaurants(false);
   }, []);
 
@@ -221,34 +188,33 @@ function SuperAdminRestaurantsPage() {
 
     setSavingRestaurantId(row.id);
 
-    const { error } = await supabase
-      .from("restaurants")
-      .update({
-        company_id: companyId,
-      })
-      .eq("id", row.id)
-      .select("id")
-      .single();
+    try {
+      await updateAdminRestaurantCompany({
+        restaurantId: row.id,
+        companyId,
+      });
 
-    if (error) {
-      setSavingRestaurantId(null);
+      const companyName = companyId
+        ? companies.find((company) => company.id === companyId)?.name
+        : tAdmin("admin.superAdminRestaurants.noCompany");
+
+      toast.success(tAdmin("admin.superAdminRestaurants.updated"), {
+        description: `${row.name} → ${
+          companyName ?? tAdmin("admin.superAdminRestaurants.unknownCompany")
+        }.`,
+      });
+
+      await loadRestaurants();
+    } catch (error) {
+      console.error("Failed to update restaurant company:", error);
       toast.error(tAdmin("admin.superAdminRestaurants.updateCompanyError"), {
-        description: error.message,
+        description:
+          error instanceof Error ? error.message : "Le backend a refusé la modification.",
       });
       await loadRestaurants();
-      return;
+    } finally {
+      setSavingRestaurantId(null);
     }
-
-    const companyName = companyId
-      ? companies.find((company) => company.id === companyId)?.name
-      : tAdmin("admin.superAdminRestaurants.noCompany");
-
-    toast.success(tAdmin("admin.superAdminRestaurants.updated"), {
-      description: `${row.name} → ${companyName ?? tAdmin("admin.superAdminRestaurants.unknownCompany")}.`,
-    });
-
-    setSavingRestaurantId(null);
-    await loadRestaurants();
   };
 
   const changeRestaurantStatus = async (row: RestaurantListRow, nextIsActive: boolean) => {
@@ -258,36 +224,32 @@ function SuperAdminRestaurantsPage() {
 
     setSavingRestaurantId(row.id);
 
-    const { error } = await supabase
-      .from("restaurants")
-      .update({
-        is_active: nextIsActive,
-      })
-      .eq("id", row.id)
-      .select("id")
-      .single();
+    try {
+      await updateAdminRestaurantStatus({
+        restaurantId: row.id,
+        isActive: nextIsActive,
+      });
 
-    if (error) {
-      setSavingRestaurantId(null);
+      toast.success(tAdmin("admin.superAdminRestaurants.statusUpdated"), {
+        description: `${row.name} ${tAdmin("admin.superAdminRestaurants.isNow")} ${
+          nextIsActive
+            ? tAdmin("admin.superAdminRestaurants.activeLower")
+            : tAdmin("admin.superAdminRestaurants.inactiveLower")
+        }.`,
+      });
+
+      await loadRestaurants();
+    } catch (error) {
+      console.error("Failed to update restaurant status:", error);
       toast.error(tAdmin("admin.superAdminRestaurants.updateStatusError"), {
-        description: error.message,
+        description:
+          error instanceof Error ? error.message : "Le backend a refusé la modification.",
       });
       await loadRestaurants();
-      return;
+    } finally {
+      setSavingRestaurantId(null);
     }
-
-    toast.success(tAdmin("admin.superAdminRestaurants.statusUpdated"), {
-      description: `${row.name} ${tAdmin("admin.superAdminRestaurants.isNow")} ${
-        nextIsActive
-          ? tAdmin("admin.superAdminRestaurants.activeLower")
-          : tAdmin("admin.superAdminRestaurants.inactiveLower")
-      }.`,
-    });
-
-    setSavingRestaurantId(null);
-    await loadRestaurants();
   };
-
   const startEditingRestaurant = (row: RestaurantListRow) => {
     setEditingRestaurant({
       id: row.id,
@@ -329,41 +291,37 @@ function SuperAdminRestaurantsPage() {
 
     setSavingRestaurantId(editingRestaurant.id);
 
-    const { error } = await supabase
-      .from("restaurants")
-      .update({
+    try {
+      await updateAdminRestaurant({
+        restaurantId: editingRestaurant.id,
         name,
         category,
-        cuisine_type: cuisineType,
+        cuisineType,
         description,
-        price_label: editingRestaurant.priceLabel,
-        price_level: getPriceLevel(editingRestaurant.priceLabel),
-        is_open: editingRestaurant.isOpen,
+        priceLabel: editingRestaurant.priceLabel,
+        isOpen: editingRestaurant.isOpen,
         address,
         city,
         country,
-        phone: phone || null,
-      })
-      .eq("id", editingRestaurant.id)
-      .select("id")
-      .single();
+        phone,
+      });
 
-    if (error) {
-      setSavingRestaurantId(null);
+      toast.success(tAdmin("admin.superAdminRestaurants.updated"), {
+        description: `${name} ${tAdmin("admin.superAdminRestaurants.updatedDescription")}`,
+      });
+
+      setEditingRestaurant(null);
+      await loadRestaurants();
+    } catch (error) {
+      console.error("Failed to update restaurant:", error);
       toast.error(tAdmin("admin.superAdminRestaurants.updateError"), {
-        description: error.message,
+        description:
+          error instanceof Error ? error.message : "Le backend a refusé la modification.",
       });
       await loadRestaurants();
-      return;
+    } finally {
+      setSavingRestaurantId(null);
     }
-
-    toast.success(tAdmin("admin.superAdminRestaurants.updated"), {
-      description: `${name} ${tAdmin("admin.superAdminRestaurants.updatedDescription")}`,
-    });
-
-    setEditingRestaurant(null);
-    setSavingRestaurantId(null);
-    await loadRestaurants();
   };
 
   return (

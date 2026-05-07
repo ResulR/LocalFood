@@ -47,6 +47,13 @@ export type AdminCompanyRow = {
   created_at: string;
 };
 
+export type AdminCompanyListItem = {
+  id: string;
+  name: string;
+  slug: string;
+  is_active: boolean;
+};
+
 export type AdminCompanyRestaurantRow = {
   id: string;
   company_id: string | null;
@@ -65,6 +72,12 @@ export type AdminCompaniesOverview = {
 
 export async function fetchAdminCompaniesOverview(): Promise<AdminCompaniesOverview> {
   return fetchJsonData<AdminCompaniesOverview>(`${apiBaseUrl}/api/admin/companies/overview`, {
+    headers: await getAuthHeaders(),
+  });
+}
+
+export async function fetchAdminCompaniesList(): Promise<AdminCompanyListItem[]> {
+  return fetchJsonData<AdminCompanyListItem[]>(`${apiBaseUrl}/api/admin/companies/list`, {
     headers: await getAuthHeaders(),
   });
 }

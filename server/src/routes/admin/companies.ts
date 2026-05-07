@@ -25,6 +25,13 @@ type CompanyUserRow = {
   company_id: string;
 };
 
+type CompanyListRow = {
+  id: string;
+  name: string;
+  slug: string;
+  is_active: boolean;
+};
+
 const createCompanySchema = z.object({
   name: z.string().trim().min(1).max(160),
   slug: z.string().trim().min(1).max(180),
@@ -41,6 +48,34 @@ const updateCompanySchema = z.object({
 const companyParamsSchema = z.object({
   companyId: z.string().uuid(),
 });
+
+adminCompaniesRouter.get(
+  "/list",
+  requireAuth,
+  requireSuperAdmin,
+  async (_request, response, next) => {
+    try {
+      const result = await dbQuery<CompanyListRow>(
+        `
+          select
+            id,
+            name,
+            slug,
+            is_active
+          from public.companies
+          order by name asc
+        `,
+      );
+
+      response.json({
+        ok: true,
+        data: result.rows,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 adminCompaniesRouter.get(
   "/overview",
