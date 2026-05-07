@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { z } from "zod";
 import { dbQuery } from "../lib/db.js";
-import { hashPassword } from "../lib/local-auth.js";
+import { createLocalAuthToken, hashPassword, verifyPassword } from "../lib/local-auth.js";
 import { requireAuth } from "../middlewares/auth.js";
 
 type ProfileRow = {
@@ -16,6 +16,19 @@ type ProfileRow = {
 type UserRoleRow = {
   role: "superadmin" | "admin" | "user";
 };
+
+type LocalAuthUserRow = {
+  user_id: string;
+  email: string;
+  password_hash: string | null;
+  password_set: boolean;
+  is_active: boolean;
+};
+
+const localLoginSchema = z.object({
+  email: z.string().trim().email().max(320),
+  password: z.string().min(1).max(200),
+});
 
 const setLocalPasswordSchema = z.object({
   password: z.string().min(8).max(200),
@@ -163,6 +176,133 @@ authRouter.post("/local/set-password", requireAuth, async (request, response, ne
       ok: true,
       data: {
         passwordSet: true,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+authRouter.post("/local/login", async (request, response, next) => {
+  try {
+    const parsed = localLoginSchema.safeParse(request.body);
+
+    if (!parsed.success) {
+      response.status(400).json({
+        ok: false,
+        message: "Identifiants invalides.",
+      });
+      return;
+    }
+
+    const email = parsed.data.email.toLowerCase();
+
+    const authUserResult = await dbQuery<LocalAuthUserRow>(
+      `
+        select
+          user_id,
+          email,
+          password_hash,
+          password_set,
+          is_active
+        from public.local_auth_users
+        where lower(email) = $1
+        limit 1
+      `,
+      [email],
+    );
+
+    const authUser = authUserResult.rows[0];
+
+    if (!authUser?.password_hash || !authUser.password_set) {
+      response.status(401).json({
+        ok: false,
+        message: "Identifiants invalides.",
+      });
+      return;
+    }
+
+    if (!authUser.is_active) {
+      response.status(403).json({
+        ok: false,
+        message: "Compte utilisateur désactivé.",
+      });
+      return;
+    }
+
+    const passwordMatches = await verifyPassword(parsed.data.password, authUser.password_hash);
+
+    if (!passwordMatches) {
+      response.status(401).json({
+        ok: false,
+        message: "Identifiants invalides.",
+      });
+      return;
+    }
+
+    const [profileResult, roleResult] = await Promise.all([
+      dbQuery<ProfileRow>(
+        `
+          select
+            id,
+            user_id,
+            email,
+            full_name,
+            is_active,
+            current_company_id
+          from public.profiles
+          where user_id = $1
+          limit 1
+        `,
+        [authUser.user_id],
+      ),
+      dbQuery<UserRoleRow>(
+        `
+          select role
+          from public.user_roles
+          where user_id = $1
+          order by
+            case role
+              when 'superadmin' then 1
+              when 'admin' then 2
+              when 'user' then 3
+            end
+          limit 1
+        `,
+        [authUser.user_id],
+      ),
+    ]);
+
+    const profile = profileResult.rows[0];
+
+    if (!profile?.is_active) {
+      response.status(403).json({
+        ok: false,
+        message: "Compte utilisateur désactivé.",
+      });
+      return;
+    }
+
+    const token = createLocalAuthToken({
+      userId: authUser.user_id,
+      email: authUser.email,
+    });
+
+    await dbQuery(
+      `
+        update public.local_auth_users
+        set last_login_at = now()
+        where user_id = $1
+      `,
+      [authUser.user_id],
+    );
+
+    response.json({
+      ok: true,
+      data: {
+        token,
+        profile,
+        role: roleResult.rows[0]?.role ?? null,
       },
     });
   } catch (error) {
