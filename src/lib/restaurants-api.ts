@@ -1,4 +1,4 @@
-import { supabase } from "@/lib/supabase";
+import { getLocalAuthHeaders } from "@/lib/local-auth-token";
 
 const apiBaseUrl = import.meta.env.VITE_LOCALFOOD_API_URL ?? "http://localhost:4000";
 
@@ -76,22 +76,7 @@ async function fetchJsonData<T>(url: string, options?: RequestInit): Promise<T> 
 }
 
 async function getAuthHeaders() {
-  const {
-    data: { session },
-    error,
-  } = await supabase.auth.getSession();
-
-  if (error) {
-    throw new Error(error.message);
-  }
-
-  if (!session?.access_token) {
-    throw new Error("Session Supabase introuvable.");
-  }
-
-  return {
-    Authorization: `Bearer ${session.access_token}`,
-  };
+  return getLocalAuthHeaders();
 }
 
 export type SupabaseRestaurantTag = {

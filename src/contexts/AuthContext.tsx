@@ -7,8 +7,11 @@ import {
   useState,
   type ReactNode,
 } from "react";
-import type { Session, User } from "@supabase/supabase-js";
-import { supabase } from "@/lib/supabase";
+import {
+  clearLocalAuthToken,
+  getLocalAuthToken,
+  setLocalAuthToken,
+} from "@/lib/local-auth-token";
 
 export type AppRole = "superadmin" | "admin" | "user";
 
@@ -21,9 +24,18 @@ export type Profile = {
   current_company_id: string | null;
 };
 
+type AuthUser = {
+  id: string;
+  email: string | null;
+};
+
+type AuthSession = {
+  access_token: string;
+};
+
 type AuthContextValue = {
-  user: User | null;
-  session: Session | null;
+  user: AuthUser | null;
+  session: AuthSession | null;
   profile: Profile | null;
   role: AppRole | null;
   loading: boolean;
@@ -32,14 +44,31 @@ type AuthContextValue = {
   refreshProfile: () => Promise<void>;
 };
 
-const AuthContext = createContext<AuthContextValue | undefined>(undefined);
-
-const apiBaseUrl = import.meta.env.VITE_LOCALFOOD_API_URL ?? "http://localhost:4000";
-
 type AuthMeResponse = {
   profile: Profile | null;
   role: AppRole | null;
 };
+
+type LocalLoginResponse = {
+  token: string;
+  profile: Profile | null;
+  role: AppRole | null;
+};
+
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+const apiBaseUrl = import.meta.env.VITE_LOCALFOOD_API_URL ?? "http://localhost:4000";
+
+function buildUserFromProfile(profile: Profile | null): AuthUser | null {
+  if (!profile) {
+    return null;
+  }
+
+  return {
+    id: profile.user_id,
+    email: profile.email,
+  };
+}
 
 async function fetchAuthMe(accessToken: string) {
   const response = await fetch(`${apiBaseUrl}/api/auth/me`, {
@@ -52,44 +81,90 @@ async function fetchAuthMe(accessToken: string) {
     ok?: boolean;
     data?: AuthMeResponse;
     message?: string;
+    error?: string;
   } | null;
 
   if (!response.ok || !payload?.ok || !payload.data) {
-    throw new Error(payload?.message ?? "Impossible de charger le profil utilisateur.");
+    throw new Error(
+      payload?.message ?? payload?.error ?? "Impossible de charger le profil utilisateur.",
+    );
+  }
+
+  return payload.data;
+}
+
+async function loginWithLocalAuth(email: string, password: string) {
+  const response = await fetch(`${apiBaseUrl}/api/auth/local/login`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ email, password }),
+  });
+
+  const payload = (await response.json().catch(() => null)) as {
+    ok?: boolean;
+    data?: LocalLoginResponse;
+    message?: string;
+    error?: string;
+  } | null;
+
+  if (!response.ok || !payload?.ok || !payload.data?.token) {
+    throw new Error(payload?.message ?? payload?.error ?? "Identifiants invalides.");
   }
 
   return payload.data;
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const [session, setSession] = useState<Session | null>(null);
-  const [user, setUser] = useState<User | null>(null);
+  const [session, setSession] = useState<AuthSession | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
   const [profile, setProfile] = useState<Profile | null>(null);
   const [role, setRole] = useState<AppRole | null>(null);
   const [loading, setLoading] = useState(true);
 
-  const loadUserData = useCallback(async (nextSession: Session | null) => {
-    if (!nextSession?.access_token) {
-      setProfile(null);
-      setRole(null);
-      return;
-    }
+  const applyAuthData = useCallback(
+    ({
+      token,
+      nextProfile,
+      nextRole,
+    }: {
+      token: string;
+      nextProfile: Profile | null;
+      nextRole: AppRole | null;
+    }) => {
+      setSession({ access_token: token });
+      setProfile(nextProfile);
+      setRole(nextRole);
+      setUser(buildUserFromProfile(nextProfile));
+    },
+    [],
+  );
 
-    const authMe = await fetchAuthMe(nextSession.access_token);
-
-    setProfile(authMe.profile);
-    setRole(authMe.role);
+  const clearAuthData = useCallback(() => {
+    clearLocalAuthToken();
+    setSession(null);
+    setUser(null);
+    setProfile(null);
+    setRole(null);
   }, []);
 
   const refreshProfile = useCallback(async () => {
-    if (!user) {
-      setProfile(null);
-      setRole(null);
+    const token = getLocalAuthToken();
+
+    if (!token) {
+      clearAuthData();
       return;
     }
 
-    await loadUserData(session);
-  }, [loadUserData, session, user]);
+    const authMe = await fetchAuthMe(token);
+
+    applyAuthData({
+      token,
+      nextProfile: authMe.profile,
+      nextRole: authMe.role,
+    });
+  }, [applyAuthData, clearAuthData]);
 
   useEffect(() => {
     let cancelled = false;
@@ -97,89 +172,72 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const initAuth = async () => {
       setLoading(true);
 
-      const {
-        data: { session: currentSession },
-        error,
-      } = await supabase.auth.getSession();
+      const token = getLocalAuthToken();
 
-      if (cancelled) {
+      if (!token) {
+        if (!cancelled) {
+          clearAuthData();
+          setLoading(false);
+        }
         return;
       }
-
-      if (error) {
-        console.error("Failed to get auth session:", error);
-        setSession(null);
-        setUser(null);
-        setProfile(null);
-        setRole(null);
-        setLoading(false);
-        return;
-      }
-
-      setSession(currentSession);
-      setUser(currentSession?.user ?? null);
 
       try {
-        await loadUserData(currentSession);
-      } catch (loadError) {
-        console.error("Failed to load auth user data:", loadError);
-        setProfile(null);
-        setRole(null);
-      }
+        const authMe = await fetchAuthMe(token);
 
-      if (!cancelled) {
-        setLoading(false);
+        if (!cancelled) {
+          applyAuthData({
+            token,
+            nextProfile: authMe.profile,
+            nextRole: authMe.role,
+          });
+        }
+      } catch (error) {
+        console.error("Failed to load LocalFood auth user data:", error);
+
+        if (!cancelled) {
+          clearAuthData();
+        }
+      } finally {
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     };
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, nextSession) => {
-      setSession(nextSession);
-      setUser(nextSession?.user ?? null);
-      setLoading(true);
-
-      window.setTimeout(() => {
-        loadUserData(nextSession)
-          .catch((error) => {
-            console.error("Failed to refresh auth user data:", error);
-            setProfile(null);
-            setRole(null);
-          })
-          .finally(() => {
-            setLoading(false);
-          });
-      }, 0);
-    });
 
     initAuth();
 
     return () => {
       cancelled = true;
-      subscription.unsubscribe();
     };
-  }, [loadUserData]);
+  }, [applyAuthData, clearAuthData]);
 
-  const signIn = useCallback(async (email: string, password: string) => {
-    const { error } = await supabase.auth.signInWithPassword({
-      email,
-      password,
-    });
+  const signIn = useCallback(
+    async (email: string, password: string) => {
+      try {
+        const loginData = await loginWithLocalAuth(email, password);
 
-    if (error) {
-      return { error: error.message };
-    }
+        setLocalAuthToken(loginData.token);
 
-    return {};
-  }, []);
+        applyAuthData({
+          token: loginData.token,
+          nextProfile: loginData.profile,
+          nextRole: loginData.role,
+        });
+
+        return {};
+      } catch (error) {
+        return {
+          error: error instanceof Error ? error.message : "Connexion impossible.",
+        };
+      }
+    },
+    [applyAuthData],
+  );
 
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
-    setSession(null);
-    setUser(null);
-    setProfile(null);
-    setRole(null);
-  }, []);
+    clearAuthData();
+  }, [clearAuthData]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
