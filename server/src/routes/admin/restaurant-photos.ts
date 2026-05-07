@@ -1,10 +1,26 @@
 import { Router } from "express";
 import { z } from "zod";
 import { createSupabaseAdminClient } from "../../lib/supabase-server.js";
+import { dbQuery } from "../../lib/db.js";
 import { requireAuth } from "../../middlewares/auth.js";
 import { HttpError } from "../../middlewares/error-handler.js";
 
 export const adminRestaurantPhotosRouter = Router();
+
+type PhotoRow = {
+  id: string;
+  restaurant_id: string;
+  url: string;
+};
+
+type RestaurantCompanyRow = {
+  id: string;
+  company_id: string | null;
+};
+
+type MembershipRow = {
+  id: string;
+};
 
 const paramsSchema = z.object({
   photoId: z.string().uuid(),
@@ -42,31 +58,33 @@ adminRestaurantPhotosRouter.delete("/:photoId", requireAuth, async (request, res
       throw new HttpError(401, "Authentication required.", "AUTH_REQUIRED");
     }
 
-    const supabaseAdmin = createSupabaseAdminClient();
+    const photoResult = await dbQuery<PhotoRow>(
+      `
+        select id, restaurant_id, url
+        from public.restaurant_photos
+        where id = $1
+        limit 1
+      `,
+      [photoId],
+    );
 
-    const { data: photo, error: photoError } = await supabaseAdmin
-      .from("restaurant_photos")
-      .select("id, restaurant_id, url")
-      .eq("id", photoId)
-      .maybeSingle();
-
-    if (photoError) {
-      throw new HttpError(500, photoError.message, "PHOTO_LOOKUP_FAILED");
-    }
+    const photo = photoResult.rows[0];
 
     if (!photo) {
       throw new HttpError(404, "Photo not found.", "PHOTO_NOT_FOUND");
     }
 
-    const { data: restaurant, error: restaurantError } = await supabaseAdmin
-      .from("restaurants")
-      .select("id, company_id")
-      .eq("id", photo.restaurant_id)
-      .maybeSingle();
+    const restaurantResult = await dbQuery<RestaurantCompanyRow>(
+      `
+        select id, company_id
+        from public.restaurants
+        where id = $1
+        limit 1
+      `,
+      [photo.restaurant_id],
+    );
 
-    if (restaurantError) {
-      throw new HttpError(500, restaurantError.message, "RESTAURANT_LOOKUP_FAILED");
-    }
+    const restaurant = restaurantResult.rows[0];
 
     if (!restaurant?.company_id) {
       throw new HttpError(
@@ -76,22 +94,24 @@ adminRestaurantPhotosRouter.delete("/:photoId", requireAuth, async (request, res
       );
     }
 
+    const supabaseAdmin = createSupabaseAdminClient();
+
     const isSuperAdmin = request.auth.role === "superadmin";
     let isCompanyMember = false;
 
     if (!isSuperAdmin && (request.auth.role === "admin" || request.auth.role === "user")) {
-      const { data: membership, error: membershipError } = await supabaseAdmin
-        .from("company_users")
-        .select("id")
-        .eq("user_id", request.auth.userId)
-        .eq("company_id", restaurant.company_id)
-        .maybeSingle();
+      const membershipResult = await dbQuery<MembershipRow>(
+        `
+          select id
+          from public.company_users
+          where user_id = $1
+            and company_id = $2
+          limit 1
+        `,
+        [request.auth.userId, restaurant.company_id],
+      );
 
-      if (membershipError) {
-        throw new HttpError(500, membershipError.message, "COMPANY_MEMBERSHIP_LOOKUP_FAILED");
-      }
-
-      isCompanyMember = Boolean(membership);
+      isCompanyMember = Boolean(membershipResult.rows[0]);
     }
 
     if (!isSuperAdmin && !isCompanyMember) {
@@ -110,13 +130,17 @@ adminRestaurantPhotosRouter.delete("/:photoId", requireAuth, async (request, res
       }
     }
 
-    const { error: deleteError } = await supabaseAdmin
-      .from("restaurant_photos")
-      .delete()
-      .eq("id", photoId);
+    const deleteResult = await dbQuery<{ id: string }>(
+      `
+        delete from public.restaurant_photos
+        where id = $1
+        returning id
+      `,
+      [photoId],
+    );
 
-    if (deleteError) {
-      throw new HttpError(500, deleteError.message, "PHOTO_DB_DELETE_FAILED");
+    if (!deleteResult.rows[0]) {
+      throw new HttpError(404, "Photo not found.", "PHOTO_NOT_FOUND");
     }
 
     response.json({
