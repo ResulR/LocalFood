@@ -107,15 +107,17 @@ adminUsersRouter.post("/", requireAuth, requireSuperAdmin, async (request, respo
     const payload = createAdminUserSchema.parse(request.body);
     const supabaseAdmin = createSupabaseAdminClient();
 
-    const { data: company, error: companyError } = await supabaseAdmin
-      .from("companies")
-      .select("id, name, is_active")
-      .eq("id", payload.companyId)
-      .maybeSingle();
+    const companyResult = await dbQuery<{ id: string; name: string; is_active: boolean }>(
+      `
+        select id, name, is_active
+        from public.companies
+        where id = $1
+        limit 1
+      `,
+      [payload.companyId],
+    );
 
-    if (companyError) {
-      throw new HttpError(500, companyError.message, "COMPANY_LOOKUP_FAILED");
-    }
+    const company = companyResult.rows[0];
 
     if (!company) {
       throw new HttpError(404, "Company not found.", "COMPANY_NOT_FOUND");
@@ -142,58 +144,64 @@ adminUsersRouter.post("/", requireAuth, requireSuperAdmin, async (request, respo
       throw new HttpError(500, "Supabase did not return the invited user.", "USER_INVITE_EMPTY");
     }
 
-    const { error: profileError } = await supabaseAdmin.from("profiles").upsert(
-      {
-        user_id: invitedUser.id,
-        email: payload.email,
-        full_name: payload.fullName,
-        current_company_id: payload.companyId,
-        is_active: true,
-      },
-      {
-        onConflict: "user_id",
-      },
+    await dbQuery(
+      `
+        insert into public.profiles (
+          user_id,
+          email,
+          full_name,
+          current_company_id,
+          is_active
+        )
+        values ($1, $2, $3, $4, true)
+        on conflict (user_id)
+        do update set
+          email = excluded.email,
+          full_name = excluded.full_name,
+          current_company_id = excluded.current_company_id,
+          is_active = true,
+          updated_at = now()
+      `,
+      [invitedUser.id, payload.email, payload.fullName, payload.companyId],
     );
 
-    if (profileError) {
-      throw new HttpError(500, profileError.message, "PROFILE_UPSERT_FAILED");
-    }
+    await dbQuery(
+      `
+        delete from public.user_roles
+        where user_id = $1
+      `,
+      [invitedUser.id],
+    );
 
-    const { error: deleteRoleError } = await supabaseAdmin
-      .from("user_roles")
-      .delete()
-      .eq("user_id", invitedUser.id);
+    await dbQuery(
+      `
+        insert into public.user_roles (
+          user_id,
+          role
+        )
+        values ($1, $2)
+      `,
+      [invitedUser.id, payload.role],
+    );
 
-    if (deleteRoleError) {
-      throw new HttpError(500, deleteRoleError.message, "USER_ROLE_RESET_FAILED");
-    }
+    await dbQuery(
+      `
+        delete from public.company_users
+        where user_id = $1
+      `,
+      [invitedUser.id],
+    );
 
-    const { error: roleError } = await supabaseAdmin.from("user_roles").insert({
-      user_id: invitedUser.id,
-      role: payload.role,
-    });
-
-    if (roleError) {
-      throw new HttpError(500, roleError.message, "USER_ROLE_INSERT_FAILED");
-    }
-
-    const { error: deleteMembershipsError } = await supabaseAdmin
-      .from("company_users")
-      .delete()
-      .eq("user_id", invitedUser.id);
-
-    if (deleteMembershipsError) {
-      throw new HttpError(500, deleteMembershipsError.message, "COMPANY_MEMBERSHIP_RESET_FAILED");
-    }
-
-    const { error: membershipError } = await supabaseAdmin.from("company_users").insert({
-      user_id: invitedUser.id,
-      company_id: payload.companyId,
-    });
-
-    if (membershipError) {
-      throw new HttpError(500, membershipError.message, "COMPANY_MEMBERSHIP_INSERT_FAILED");
-    }
+    await dbQuery(
+      `
+        insert into public.company_users (
+          user_id,
+          company_id
+        )
+        values ($1, $2)
+      `,
+      [invitedUser.id, payload.companyId],
+    );
 
     response.status(201).json({
       ok: true,
@@ -228,34 +236,36 @@ adminUsersRouter.patch(
 
       const { userId } = paramsSchema.parse(request.params);
       const payload = updateAdminUserStatusSchema.parse(request.body);
-      const supabaseAdmin = createSupabaseAdminClient();
+      const roleResult = await dbQuery<{ role: "superadmin" | "admin" | "user" }>(
+        `
+          select role
+          from public.user_roles
+          where user_id = $1
+          limit 1
+        `,
+        [userId],
+      );
 
-      const { data: roleData, error: roleError } = await supabaseAdmin
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      if (roleError) {
-        throw new HttpError(500, roleError.message, "USER_ROLE_LOOKUP_FAILED");
-      }
+      const roleData = roleResult.rows[0];
 
       if (!roleData) {
         throw new HttpError(404, "User role not found.", "USER_ROLE_NOT_FOUND");
       }
 
       if (roleData.role === "superadmin" && payload.isActive === false) {
-        const { count, error: countError } = await supabaseAdmin
-          .from("profiles")
-          .select("user_id, user_roles!inner(role)", { count: "exact", head: true })
-          .eq("is_active", true)
-          .eq("user_roles.role", "superadmin");
+        const countResult = await dbQuery<{ count: string }>(
+          `
+            select count(*)::text as count
+            from public.profiles p
+            join public.user_roles ur on ur.user_id = p.user_id
+            where p.is_active = true
+              and ur.role = 'superadmin'
+          `,
+        );
 
-        if (countError) {
-          throw new HttpError(500, countError.message, "SUPERADMIN_COUNT_FAILED");
-        }
+        const count = Number(countResult.rows[0]?.count ?? 0);
 
-        if ((count ?? 0) <= 1) {
+        if (count <= 1) {
           throw new HttpError(
             400,
             "Cannot deactivate the last active SuperAdmin.",
@@ -264,19 +274,24 @@ adminUsersRouter.patch(
         }
       }
 
-      const { data: updatedProfile, error: updateError } = await supabaseAdmin
-        .from("profiles")
-        .update({
-          is_active: payload.isActive,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", userId)
-        .select("user_id, email, full_name, is_active")
-        .maybeSingle();
+      const profileResult = await dbQuery<{
+        user_id: string;
+        email: string | null;
+        full_name: string | null;
+        is_active: boolean;
+      }>(
+        `
+          update public.profiles
+          set
+            is_active = $2,
+            updated_at = now()
+          where user_id = $1
+          returning user_id, email, full_name, is_active
+        `,
+        [userId, payload.isActive],
+      );
 
-      if (updateError) {
-        throw new HttpError(500, updateError.message, "PROFILE_STATUS_UPDATE_FAILED");
-      }
+      const updatedProfile = profileResult.rows[0];
 
       if (!updatedProfile) {
         throw new HttpError(404, "Profile not found.", "PROFILE_NOT_FOUND");
@@ -314,34 +329,36 @@ adminUsersRouter.patch(
 
       const { userId } = paramsSchema.parse(request.params);
       const payload = updateAdminUserRoleSchema.parse(request.body);
-      const supabaseAdmin = createSupabaseAdminClient();
+      const currentRoleResult = await dbQuery<{ role: "superadmin" | "admin" | "user" }>(
+        `
+          select role
+          from public.user_roles
+          where user_id = $1
+          limit 1
+        `,
+        [userId],
+      );
 
-      const { data: currentRoleData, error: currentRoleError } = await supabaseAdmin
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", userId)
-        .maybeSingle();
-
-      if (currentRoleError) {
-        throw new HttpError(500, currentRoleError.message, "USER_ROLE_LOOKUP_FAILED");
-      }
+      const currentRoleData = currentRoleResult.rows[0];
 
       if (!currentRoleData) {
         throw new HttpError(404, "User role not found.", "USER_ROLE_NOT_FOUND");
       }
 
       if (currentRoleData.role === "superadmin" && payload.role !== "superadmin") {
-        const { count, error: countError } = await supabaseAdmin
-          .from("profiles")
-          .select("user_id, user_roles!inner(role)", { count: "exact", head: true })
-          .eq("is_active", true)
-          .eq("user_roles.role", "superadmin");
+        const countResult = await dbQuery<{ count: string }>(
+          `
+            select count(*)::text as count
+            from public.profiles p
+            join public.user_roles ur on ur.user_id = p.user_id
+            where p.is_active = true
+              and ur.role = 'superadmin'
+          `,
+        );
 
-        if (countError) {
-          throw new HttpError(500, countError.message, "SUPERADMIN_COUNT_FAILED");
-        }
+        const count = Number(countResult.rows[0]?.count ?? 0);
 
-        if ((count ?? 0) <= 1) {
+        if (count <= 1) {
           throw new HttpError(
             400,
             "Cannot remove the last active SuperAdmin role.",
@@ -350,27 +367,30 @@ adminUsersRouter.patch(
         }
       }
 
-      const { error: deleteRoleError } = await supabaseAdmin
-        .from("user_roles")
-        .delete()
-        .eq("user_id", userId);
+      await dbQuery(
+        `
+          delete from public.user_roles
+          where user_id = $1
+        `,
+        [userId],
+      );
 
-      if (deleteRoleError) {
-        throw new HttpError(500, deleteRoleError.message, "USER_ROLE_RESET_FAILED");
-      }
+      const insertedRoleResult = await dbQuery<{
+        user_id: string;
+        role: "superadmin" | "admin" | "user";
+      }>(
+        `
+          insert into public.user_roles (
+            user_id,
+            role
+          )
+          values ($1, $2)
+          returning user_id, role
+        `,
+        [userId, payload.role],
+      );
 
-      const { data: insertedRole, error: insertRoleError } = await supabaseAdmin
-        .from("user_roles")
-        .insert({
-          user_id: userId,
-          role: payload.role,
-        })
-        .select("user_id, role")
-        .maybeSingle();
-
-      if (insertRoleError) {
-        throw new HttpError(500, insertRoleError.message, "USER_ROLE_INSERT_FAILED");
-      }
+      const insertedRole = insertedRoleResult.rows[0];
 
       if (!insertedRole) {
         throw new HttpError(500, "Role insert returned no data.", "USER_ROLE_INSERT_EMPTY");
@@ -406,18 +426,18 @@ adminUsersRouter.patch(
 
       const { userId } = paramsSchema.parse(request.params);
       const payload = updateAdminUserCompanySchema.parse(request.body);
-      const supabaseAdmin = createSupabaseAdminClient();
-
       if (payload.companyId) {
-        const { data: company, error: companyError } = await supabaseAdmin
-          .from("companies")
-          .select("id, name, is_active")
-          .eq("id", payload.companyId)
-          .maybeSingle();
+        const companyResult = await dbQuery<{ id: string; name: string; is_active: boolean }>(
+          `
+            select id, name, is_active
+            from public.companies
+            where id = $1
+            limit 1
+          `,
+          [payload.companyId],
+        );
 
-        if (companyError) {
-          throw new HttpError(500, companyError.message, "COMPANY_LOOKUP_FAILED");
-        }
+        const company = companyResult.rows[0];
 
         if (!company) {
           throw new HttpError(404, "Company not found.", "COMPANY_NOT_FOUND");
@@ -428,42 +448,48 @@ adminUsersRouter.patch(
         }
       }
 
-      const { data: updatedProfile, error: profileError } = await supabaseAdmin
-        .from("profiles")
-        .update({
-          current_company_id: payload.companyId,
-          updated_at: new Date().toISOString(),
-        })
-        .eq("user_id", userId)
-        .select("user_id, email, full_name, current_company_id")
-        .maybeSingle();
+      const profileResult = await dbQuery<{
+        user_id: string;
+        email: string | null;
+        full_name: string | null;
+        current_company_id: string | null;
+      }>(
+        `
+          update public.profiles
+          set
+            current_company_id = $2,
+            updated_at = now()
+          where user_id = $1
+          returning user_id, email, full_name, current_company_id
+        `,
+        [userId, payload.companyId],
+      );
 
-      if (profileError) {
-        throw new HttpError(500, profileError.message, "PROFILE_COMPANY_UPDATE_FAILED");
-      }
+      const updatedProfile = profileResult.rows[0];
 
       if (!updatedProfile) {
         throw new HttpError(404, "Profile not found.", "PROFILE_NOT_FOUND");
       }
 
-      const { error: deleteMembershipsError } = await supabaseAdmin
-        .from("company_users")
-        .delete()
-        .eq("user_id", userId);
-
-      if (deleteMembershipsError) {
-        throw new HttpError(500, deleteMembershipsError.message, "COMPANY_MEMBERSHIP_RESET_FAILED");
-      }
+      await dbQuery(
+        `
+          delete from public.company_users
+          where user_id = $1
+        `,
+        [userId],
+      );
 
       if (payload.companyId) {
-        const { error: membershipError } = await supabaseAdmin.from("company_users").insert({
-          user_id: userId,
-          company_id: payload.companyId,
-        });
-
-        if (membershipError) {
-          throw new HttpError(500, membershipError.message, "COMPANY_MEMBERSHIP_INSERT_FAILED");
-        }
+        await dbQuery(
+          `
+            insert into public.company_users (
+              user_id,
+              company_id
+            )
+            values ($1, $2)
+          `,
+          [userId, payload.companyId],
+        );
       }
 
       response.json({
