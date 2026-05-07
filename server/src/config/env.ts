@@ -11,6 +11,9 @@ const envSchema = z.object({
 
   DATABASE_URL: z.string().optional(),
 
+  LOCAL_AUTH_JWT_SECRET: z.string().min(32).optional(),
+  LOCAL_AUTH_JWT_EXPIRES_IN: z.string().default("7d"),
+
   OPENAI_API_KEY: z.string().optional(),
   OPENAI_MODEL: z.string().default("gpt-5.4-mini"),
 
