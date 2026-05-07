@@ -65,6 +65,22 @@ export async function searchRestaurantsWithAI(message: string): Promise<AIRestau
   return payload.data;
 }
 
+async function fetchJsonData<T>(url: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(url, options);
+
+  const payload = (await response.json().catch(() => null)) as {
+    ok?: boolean;
+    data?: T;
+    message?: string;
+  } | null;
+
+  if (!response.ok || !payload?.ok) {
+    throw new Error(payload?.message ?? "Requête LocalFood impossible.");
+  }
+
+  return payload.data as T;
+}
+
 export type SupabaseRestaurantTag = {
   label: string;
   slug: string;
@@ -198,164 +214,25 @@ function normalizeRestaurant(row: SupabaseRestaurantRow): SupabaseRestaurantList
 }
 
 export async function fetchSupabaseRestaurants() {
-  const { data, error } = await supabase
-    .from("restaurants")
-    .select(
-      `
-        id,
-        name,
-        slug,
-        category,
-        cuisine_type,
-        description,
-        main_image_url,
-        rating,
-        reviews_count,
-        distance_km,
-        latitude,
-        longitude,
-        price_level,
-        price_label,
-        is_open,
-        hours_summary,
-        address,
-        city,
-        country,
-        phone,
-        menu_url,
-        google_maps_url,
-        waze_url,
-        localfood_match_score,
-        is_new,
-        is_active,
-        restaurant_tags (
-          tags (
-            label,
-            slug
-          )
-        ),
-        restaurant_badges (
-          badges (
-            label,
-            slug
-          )
-        ),
-        restaurant_photos (
-          id,
-          url,
-          category,
-          is_client_photo,
-          author_name,
-          sort_order
-        ),
-        restaurant_opening_hours (
-          id,
-          day_of_week,
-          day_label,
-          hours_text,
-          is_closed
-        ),
-        restaurant_offers (
-          id,
-          code,
-          title,
-          description,
-          conditions,
-          is_active
-        )
-      `,
-    )
-    .eq("is_active", true)
-    .order("reviews_count", { ascending: false });
+  const data = await fetchJsonData<SupabaseRestaurantRow[]>(`${apiBaseUrl}/api/public/restaurants`);
 
-  if (error) {
-    throw error;
-  }
-
-  return (data as unknown as SupabaseRestaurantRow[]).map(normalizeRestaurant);
+  return data.map(normalizeRestaurant);
 }
 
 export async function fetchSupabaseRestaurantBySlug(slug: string) {
-  const { data, error } = await supabase
-    .from("restaurants")
-    .select(
-      `
-        id,
-        name,
-        slug,
-        category,
-        cuisine_type,
-        description,
-        main_image_url,
-        rating,
-        reviews_count,
-        distance_km,
-        latitude,
-        longitude,
-        price_level,
-        price_label,
-        is_open,
-        hours_summary,
-        address,
-        city,
-        country,
-        phone,
-        menu_url,
-        google_maps_url,
-        waze_url,
-        localfood_match_score,
-        is_new,
-        is_active,
-        restaurant_tags (
-          tags (
-            label,
-            slug
-          )
-        ),
-        restaurant_badges (
-          badges (
-            label,
-            slug
-          )
-        ),
-        restaurant_photos (
-          id,
-          url,
-          category,
-          is_client_photo,
-          author_name,
-          sort_order
-        ),
-        restaurant_opening_hours (
-          id,
-          day_of_week,
-          day_label,
-          hours_text,
-          is_closed
-        ),
-        restaurant_offers (
-          id,
-          code,
-          title,
-          description,
-          conditions,
-          is_active
-        )
-      `,
-    )
-    .eq("slug", slug)
-    .eq("is_active", true)
-    .maybeSingle();
+  try {
+    const data = await fetchJsonData<SupabaseRestaurantRow>(
+      `${apiBaseUrl}/api/public/restaurants/${encodeURIComponent(slug)}`,
+    );
 
-  if (error) {
+    return normalizeRestaurant(data);
+  } catch (error) {
+    if (error instanceof Error && error.message === "Restaurant introuvable.") {
+      return null;
+    }
+
     throw error;
   }
-
-  if (!data) {
-    return null;
-  }
-
-  return normalizeRestaurant(data as unknown as SupabaseRestaurantRow);
 }
 
 export async function fetchSupabaseRestaurantById(restaurantId: string) {
@@ -478,44 +355,9 @@ export async function updateOwnedRestaurantReviewStatus({
 }
 
 export async function fetchSupabaseRestaurantReviewsBySlug(slug: string) {
-  const { data: restaurant, error: restaurantError } = await supabase
-    .from("restaurants")
-    .select("id")
-    .eq("slug", slug)
-    .eq("is_active", true)
-    .maybeSingle();
-
-  if (restaurantError) {
-    throw restaurantError;
-  }
-
-  if (!restaurant) {
-    return [];
-  }
-
-  const { data, error } = await supabase
-    .from("restaurant_reviews")
-    .select(
-      `
-        id,
-        restaurant_id,
-        author_name,
-        rating,
-        comment,
-        photo_url,
-        status,
-        created_at,
-        updated_at
-      `,
-    )
-    .eq("restaurant_id", restaurant.id)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    throw error;
-  }
-
-  return (data ?? []) as SupabaseRestaurantReview[];
+  return fetchJsonData<SupabaseRestaurantReview[]>(
+    `${apiBaseUrl}/api/public/restaurants/${encodeURIComponent(slug)}/reviews`,
+  );
 }
 
 export async function fetchSupabaseRestaurantReviewsByRestaurantId(restaurantId: string) {
@@ -619,31 +461,19 @@ export async function trackRestaurantInteractionBySlug({
   source: SupabaseRestaurantInteractionSource;
   interactionType: SupabaseRestaurantInteractionType;
 }) {
-  const { data: restaurant, error: restaurantError } = await supabase
-    .from("restaurants")
-    .select("id")
-    .eq("slug", slug)
-    .eq("is_active", true)
-    .maybeSingle();
+  const url = `${apiBaseUrl}/api/public/restaurants/${encodeURIComponent(slug)}/interactions`;
 
-  if (restaurantError) {
-    throw restaurantError;
-  }
-
-  if (!restaurant) {
-    return;
-  }
-
-  const { error } = await supabase.from("restaurant_interactions").insert({
-    restaurant_id: restaurant.id,
-    action,
-    source,
-    interaction_type: interactionType,
+  await fetchJsonData<null>(url, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      action,
+      source,
+      interactionType,
+    }),
   });
-
-  if (error) {
-    throw error;
-  }
 }
 
 export async function updateOwnedRestaurantTags({
