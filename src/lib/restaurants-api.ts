@@ -2,12 +2,6 @@ import { supabase } from "@/lib/supabase";
 
 const apiBaseUrl = import.meta.env.VITE_LOCALFOOD_API_URL ?? "http://localhost:4000";
 
-type SupabaseRpcClient = {
-  rpc: typeof supabase.rpc;
-};
-
-const supabaseRpc = supabase as SupabaseRpcClient;
-
 export type AIRestaurantSearchResult = {
   answer: string;
   detectedTags: {
@@ -79,6 +73,25 @@ async function fetchJsonData<T>(url: string, options?: RequestInit): Promise<T> 
   }
 
   return payload.data as T;
+}
+
+async function getAuthHeaders() {
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+
+  if (error) {
+    throw new Error(error.message);
+  }
+
+  if (!session?.access_token) {
+    throw new Error("Session Supabase introuvable.");
+  }
+
+  return {
+    Authorization: `Bearer ${session.access_token}`,
+  };
 }
 
 export type SupabaseRestaurantTag = {
@@ -236,85 +249,22 @@ export async function fetchSupabaseRestaurantBySlug(slug: string) {
 }
 
 export async function fetchSupabaseRestaurantById(restaurantId: string) {
-  const { data, error } = await supabase
-    .from("restaurants")
-    .select(
-      `
-        id,
-        name,
-        slug,
-        category,
-        cuisine_type,
-        description,
-        main_image_url,
-        rating,
-        reviews_count,
-        distance_km,
-        latitude,
-        longitude,
-        price_level,
-        price_label,
-        is_open,
-        hours_summary,
-        address,
-        city,
-        country,
-        phone,
-        menu_url,
-        google_maps_url,
-        waze_url,
-        localfood_match_score,
-        is_new,
-        is_active,
-        restaurant_tags (
-          tags (
-            label,
-            slug
-          )
-        ),
-        restaurant_badges (
-          badges (
-            label,
-            slug
-          )
-        ),
-        restaurant_photos (
-          id,
-          url,
-          category,
-          is_client_photo,
-          author_name,
-          sort_order
-        ),
-        restaurant_opening_hours (
-          id,
-          day_of_week,
-          day_label,
-          hours_text,
-          is_closed
-        ),
-        restaurant_offers (
-          id,
-          code,
-          title,
-          description,
-          conditions,
-          is_active
-        )
-      `,
-    )
-    .eq("id", restaurantId)
-    .maybeSingle();
+  try {
+    const data = await fetchJsonData<SupabaseRestaurantRow>(
+      `${apiBaseUrl}/api/admin/restaurants/${encodeURIComponent(restaurantId)}`,
+      {
+        headers: await getAuthHeaders(),
+      },
+    );
 
-  if (error) {
+    return normalizeRestaurant(data);
+  } catch (error) {
+    if (error instanceof Error && error.message === "Restaurant introuvable.") {
+      return null;
+    }
+
     throw error;
   }
-
-  if (!data) {
-    return null;
-  }
-
-  return normalizeRestaurant(data as unknown as SupabaseRestaurantRow);
 }
 
 export type SupabaseRestaurantReview = {
@@ -338,20 +288,20 @@ export async function updateOwnedRestaurantReviewStatus({
   reviewId: string;
   status: SupabaseRestaurantReviewStatus;
 }) {
-  const { data, error } = await supabase.rpc("update_owned_restaurant_review_status", {
-    _review_id: reviewId,
-    _status: status,
+  return fetchJsonData<
+    {
+      id: string;
+      status: SupabaseRestaurantReviewStatus;
+      updated_at: string;
+    }[]
+  >(`${apiBaseUrl}/api/admin/restaurants/reviews/${encodeURIComponent(reviewId)}/status`, {
+    method: "PATCH",
+    headers: {
+      ...(await getAuthHeaders()),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ status }),
   });
-
-  if (error) {
-    throw error;
-  }
-
-  return data as {
-    id: string;
-    status: SupabaseRestaurantReviewStatus;
-    updated_at: string;
-  }[];
 }
 
 export async function fetchSupabaseRestaurantReviewsBySlug(slug: string) {
@@ -361,29 +311,12 @@ export async function fetchSupabaseRestaurantReviewsBySlug(slug: string) {
 }
 
 export async function fetchSupabaseRestaurantReviewsByRestaurantId(restaurantId: string) {
-  const { data, error } = await supabase
-    .from("restaurant_reviews")
-    .select(
-      `
-        id,
-        restaurant_id,
-        author_name,
-        rating,
-        comment,
-        photo_url,
-        status,
-        created_at,
-        updated_at
-      `,
-    )
-    .eq("restaurant_id", restaurantId)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    throw error;
-  }
-
-  return (data ?? []) as SupabaseRestaurantReview[];
+  return fetchJsonData<SupabaseRestaurantReview[]>(
+    `${apiBaseUrl}/api/admin/restaurants/${encodeURIComponent(restaurantId)}/reviews`,
+    {
+      headers: await getAuthHeaders(),
+    },
+  );
 }
 
 export type SupabaseRestaurantInteractionType =
@@ -407,41 +340,12 @@ export type SupabaseRestaurantInteraction = {
 };
 
 export async function fetchSupabaseRestaurantInteractionsBySlug(slug: string) {
-  const { data: restaurant, error: restaurantError } = await supabase
-    .from("restaurants")
-    .select("id")
-    .eq("slug", slug)
-    .eq("is_active", true)
-    .maybeSingle();
-
-  if (restaurantError) {
-    throw restaurantError;
-  }
-
-  if (!restaurant) {
-    return [];
-  }
-
-  const { data, error } = await supabase
-    .from("restaurant_interactions")
-    .select(
-      `
-        id,
-        restaurant_id,
-        action,
-        source,
-        interaction_type,
-        created_at
-      `,
-    )
-    .eq("restaurant_id", restaurant.id)
-    .order("created_at", { ascending: false });
-
-  if (error) {
-    throw error;
-  }
-
-  return (data ?? []) as SupabaseRestaurantInteraction[];
+  return fetchJsonData<SupabaseRestaurantInteraction[]>(
+    `${apiBaseUrl}/api/admin/restaurants/by-slug/${encodeURIComponent(slug)}/interactions`,
+    {
+      headers: await getAuthHeaders(),
+    },
+  );
 }
 
 export type SupabaseRestaurantInteractionSource =
@@ -483,19 +387,19 @@ export async function updateOwnedRestaurantTags({
   restaurantId: string;
   tagSlugs: string[];
 }) {
-  const { data, error } = await supabase.rpc("update_owned_restaurant_tags", {
-    _restaurant_id: restaurantId,
-    _tag_slugs: tagSlugs,
-  });
-
-  if (error) {
-    throw error;
-  }
-
-  return data as {
+  const data = await fetchJsonData<{
     restaurant_id: string;
     tag_count: number;
-  }[];
+  }>(`${apiBaseUrl}/api/admin/restaurants/${encodeURIComponent(restaurantId)}/tags`, {
+    method: "PUT",
+    headers: {
+      ...(await getAuthHeaders()),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ tagSlugs }),
+  });
+
+  return [data];
 }
 
 export type UpdateOwnedRestaurantPayload = {
@@ -518,30 +422,33 @@ export type UpdateOwnedRestaurantPayload = {
 };
 
 export async function updateOwnedRestaurant(payload: UpdateOwnedRestaurantPayload) {
-  const { data, error } = await supabase.rpc("update_owned_restaurant", {
-    _restaurant_id: payload.restaurantId,
-    _name: payload.name,
-    _category: payload.category,
-    _cuisine_type: payload.cuisineType,
-    _description: payload.description,
-    _price_label: payload.priceLabel,
-    _is_open: payload.isOpen,
-    _address: payload.address,
-    _city: payload.city,
-    _country: payload.country,
-    _phone: payload.phone,
-    _is_active: payload.isActive,
-    _hours_summary: payload.hoursSummary,
-    _menu_url: payload.menuUrl,
-    _google_maps_url: payload.googleMapsUrl,
-    _waze_url: payload.wazeUrl,
-  });
-
-  if (error) {
-    throw error;
-  }
-
-  return data;
+  return fetchJsonData<{ id: string }>(
+    `${apiBaseUrl}/api/admin/restaurants/${encodeURIComponent(payload.restaurantId)}`,
+    {
+      method: "PATCH",
+      headers: {
+        ...(await getAuthHeaders()),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        name: payload.name,
+        category: payload.category,
+        cuisineType: payload.cuisineType,
+        description: payload.description,
+        priceLabel: payload.priceLabel,
+        isOpen: payload.isOpen,
+        address: payload.address,
+        city: payload.city,
+        country: payload.country,
+        phone: payload.phone,
+        isActive: payload.isActive,
+        hoursSummary: payload.hoursSummary,
+        menuUrl: payload.menuUrl,
+        googleMapsUrl: payload.googleMapsUrl,
+        wazeUrl: payload.wazeUrl,
+      }),
+    },
+  );
 }
 
 export async function uploadRestaurantPhotoFile({
@@ -582,17 +489,20 @@ export async function addOwnedRestaurantPhoto({
   url: string;
   category: string;
 }) {
-  const { data, error } = await supabase.rpc("add_owned_restaurant_photo", {
-    _restaurant_id: restaurantId,
-    _url: url,
-    _category: category,
-  });
-
-  if (error) {
-    throw error;
-  }
-
-  return data as SupabaseRestaurantPhoto[];
+  return fetchJsonData<SupabaseRestaurantPhoto[]>(
+    `${apiBaseUrl}/api/admin/restaurants/${encodeURIComponent(restaurantId)}/photos`,
+    {
+      method: "POST",
+      headers: {
+        ...(await getAuthHeaders()),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        url,
+        category,
+      }),
+    },
+  );
 }
 
 export async function deleteOwnedRestaurantPhoto(photoId: string) {
@@ -638,17 +548,12 @@ export type SupabaseCompanyRestaurant = {
 };
 
 export async function fetchSupabaseRestaurantsByCompanyId(companyId: string) {
-  const { data, error } = await supabase
-    .from("restaurants")
-    .select("id, name, slug, company_id, is_active")
-    .eq("company_id", companyId)
-    .order("name");
-
-  if (error) {
-    throw error;
-  }
-
-  return (data ?? []) as SupabaseCompanyRestaurant[];
+  return fetchJsonData<SupabaseCompanyRestaurant[]>(
+    `${apiBaseUrl}/api/admin/restaurants/company/${encodeURIComponent(companyId)}`,
+    {
+      headers: await getAuthHeaders(),
+    },
+  );
 }
 
 export type OwnedRestaurantOffer = {
@@ -664,15 +569,12 @@ export type OwnedRestaurantOffer = {
 };
 
 export async function fetchOwnedRestaurantOffers(restaurantId: string) {
-  const { data, error } = await supabaseRpc.rpc("fetch_owned_restaurant_offers", {
-    _restaurant_id: restaurantId,
-  });
-
-  if (error) {
-    throw error;
-  }
-
-  return (data ?? []) as OwnedRestaurantOffer[];
+  return fetchJsonData<OwnedRestaurantOffer[]>(
+    `${apiBaseUrl}/api/admin/restaurants/${encodeURIComponent(restaurantId)}/offers`,
+    {
+      headers: await getAuthHeaders(),
+    },
+  );
 }
 
 export async function upsertOwnedRestaurantOffer({
@@ -692,21 +594,24 @@ export async function upsertOwnedRestaurantOffer({
   conditions: string;
   isActive: boolean;
 }) {
-  const { data, error } = await supabaseRpc.rpc("upsert_owned_restaurant_offer", {
-    _offer_id: offerId,
-    _restaurant_id: restaurantId,
-    _code: code,
-    _title: title,
-    _description: description,
-    _conditions: conditions,
-    _is_active: isActive,
-  });
-
-  if (error) {
-    throw error;
-  }
-
-  return (data ?? []) as OwnedRestaurantOffer[];
+  return fetchJsonData<OwnedRestaurantOffer[]>(
+    `${apiBaseUrl}/api/admin/restaurants/${encodeURIComponent(restaurantId)}/offers`,
+    {
+      method: "POST",
+      headers: {
+        ...(await getAuthHeaders()),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        offerId,
+        code,
+        title,
+        description,
+        conditions,
+        isActive,
+      }),
+    },
+  );
 }
 
 export async function updateOwnedRestaurantOfferStatus({
@@ -716,21 +621,21 @@ export async function updateOwnedRestaurantOfferStatus({
   offerId: string;
   isActive: boolean;
 }) {
-  const { data, error } = await supabaseRpc.rpc("update_owned_restaurant_offer_status", {
-    _offer_id: offerId,
-    _is_active: isActive,
+  return fetchJsonData<
+    {
+      id: string;
+      restaurant_id: string;
+      is_active: boolean;
+      updated_at: string;
+    }[]
+  >(`${apiBaseUrl}/api/admin/restaurants/offers/${encodeURIComponent(offerId)}/status`, {
+    method: "PATCH",
+    headers: {
+      ...(await getAuthHeaders()),
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({ isActive }),
   });
-
-  if (error) {
-    throw error;
-  }
-
-  return data as {
-    id: string;
-    restaurant_id: string;
-    is_active: boolean;
-    updated_at: string;
-  }[];
 }
 
 export type OwnedRestaurantOpeningHour = {
@@ -751,15 +656,12 @@ export type OwnedRestaurantOpeningHourInput = {
 };
 
 export async function fetchOwnedRestaurantOpeningHours(restaurantId: string) {
-  const { data, error } = await supabaseRpc.rpc("fetch_owned_restaurant_opening_hours", {
-    _restaurant_id: restaurantId,
-  });
-
-  if (error) {
-    throw error;
-  }
-
-  return (data ?? []) as OwnedRestaurantOpeningHour[];
+  return fetchJsonData<OwnedRestaurantOpeningHour[]>(
+    `${apiBaseUrl}/api/admin/restaurants/${encodeURIComponent(restaurantId)}/opening-hours`,
+    {
+      headers: await getAuthHeaders(),
+    },
+  );
 }
 
 export async function upsertOwnedRestaurantOpeningHours({
@@ -769,14 +671,15 @@ export async function upsertOwnedRestaurantOpeningHours({
   restaurantId: string;
   hours: OwnedRestaurantOpeningHourInput[];
 }) {
-  const { data, error } = await supabaseRpc.rpc("upsert_owned_restaurant_opening_hours", {
-    _restaurant_id: restaurantId,
-    _hours: hours,
-  });
-
-  if (error) {
-    throw error;
-  }
-
-  return (data ?? []) as OwnedRestaurantOpeningHour[];
+  return fetchJsonData<OwnedRestaurantOpeningHour[]>(
+    `${apiBaseUrl}/api/admin/restaurants/${encodeURIComponent(restaurantId)}/opening-hours`,
+    {
+      method: "PUT",
+      headers: {
+        ...(await getAuthHeaders()),
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({ hours }),
+    },
+  );
 }

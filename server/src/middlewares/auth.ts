@@ -1,5 +1,6 @@
 import type { NextFunction, Request, Response } from "express";
 import { createSupabaseUserClient } from "../lib/supabase-server.js";
+import { dbQuery } from "../lib/db.js";
 import { HttpError } from "./error-handler.js";
 
 declare global {
@@ -14,6 +15,10 @@ declare global {
     }
   }
 }
+
+type UserRoleRow = {
+  role: "superadmin" | "admin" | "user";
+};
 
 function getBearerToken(request: Request) {
   const authorization = request.header("authorization");
@@ -51,19 +56,27 @@ export async function requireAuth(request: Request, _response: Response, next: N
       throw new HttpError(401, "Invalid bearer token.", "AUTH_TOKEN_INVALID");
     }
 
-    const { data: roleData, error: roleError } = await supabase.rpc("get_user_role", {
-      _user_id: userData.user.id,
-    });
-
-    if (roleError) {
-      throw new HttpError(403, "Unable to verify user role.", "AUTH_ROLE_CHECK_FAILED");
-    }
+    const roleResult = await dbQuery<UserRoleRow>(
+      `
+        select role
+        from public.user_roles
+        where user_id = $1
+        order by
+          case role
+            when 'superadmin' then 1
+            when 'admin' then 2
+            when 'user' then 3
+          end
+        limit 1
+      `,
+      [userData.user.id],
+    );
 
     request.auth = {
       accessToken,
       userId: userData.user.id,
       email: userData.user.email ?? null,
-      role: roleData,
+      role: roleResult.rows[0]?.role ?? null,
     };
 
     next();

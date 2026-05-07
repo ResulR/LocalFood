@@ -8,6 +8,7 @@ import { publicAiRouter } from "./routes/public/ai.js";
 import { publicRestaurantsRouter } from "./routes/public/restaurants.js";
 import { healthRouter } from "./routes/health.js";
 import { errorHandler, notFoundHandler } from "./middlewares/error-handler.js";
+import { adminRestaurantsRouter } from "./routes/admin/restaurants.js";
 
 export function createApp() {
   const app = express();
@@ -25,6 +26,7 @@ export function createApp() {
   app.use("/api/public/ai", publicAiRouter);
   app.use("/api/public/restaurants", publicRestaurantsRouter);
   app.use("/api/admin/users", adminUsersRouter);
+  app.use("/api/admin/restaurants", adminRestaurantsRouter);
   app.use("/api/admin/restaurant-photos", adminRestaurantPhotosRouter);
 
   app.use(notFoundHandler);
