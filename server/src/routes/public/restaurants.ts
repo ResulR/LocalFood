@@ -92,7 +92,17 @@ type RestaurantReviewRow = {
 const interactionSchema = z.object({
   action: z.string().trim().min(1).max(160),
   source: z.enum(["public_card", "public_detail", "ai_assistant", "dashboard_seed"]),
-  interactionType: z.enum(["Maps", "Waze", "Appel", "Menu", "Intent", "AI", "Avis", "Offre", "Vue"]),
+  interactionType: z.enum([
+    "Maps",
+    "Waze",
+    "Appel",
+    "Menu",
+    "Intent",
+    "AI",
+    "Avis",
+    "Offre",
+    "Vue",
+  ]),
 });
 
 async function fetchActiveRestaurants() {

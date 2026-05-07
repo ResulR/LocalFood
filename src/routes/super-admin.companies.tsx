@@ -2,7 +2,11 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Building2, Edit3, Loader2, Plus, Save, Search, Shield, X } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
+import {
+  createAdminCompany,
+  fetchAdminCompaniesOverview,
+  updateAdminCompany,
+} from "@/lib/admin-companies-api";
 import { useAdminI18n } from "@/lib/admin-i18n";
 
 export const Route = createFileRoute("/super-admin/companies")({
@@ -93,36 +97,11 @@ function SuperAdminCompaniesPage() {
     setLoadingCompanies(true);
     setErrorMessage("");
 
-    const [companiesResult, restaurantsResult, companyUsersResult] = await Promise.all([
-      supabase
-        .from("companies")
-        .select("id, name, slug, description, is_active, created_at")
-        .order("created_at", { ascending: false }),
-      supabase.from("restaurants").select("id, company_id"),
-      supabase.from("company_users").select("id, company_id"),
-    ]);
+    const overview = await fetchAdminCompaniesOverview();
 
-    if (companiesResult.error) {
-      setErrorMessage(companiesResult.error.message);
-      setLoadingCompanies(false);
-      return;
-    }
-
-    if (restaurantsResult.error) {
-      setErrorMessage(restaurantsResult.error.message);
-      setLoadingCompanies(false);
-      return;
-    }
-
-    if (companyUsersResult.error) {
-      setErrorMessage(companyUsersResult.error.message);
-      setLoadingCompanies(false);
-      return;
-    }
-
-    setCompanies((companiesResult.data ?? []) as CompanyRow[]);
-    setRestaurants((restaurantsResult.data ?? []) as RestaurantRow[]);
-    setCompanyUsers((companyUsersResult.data ?? []) as CompanyUserRow[]);
+    setCompanies(overview.companies as CompanyRow[]);
+    setRestaurants(overview.restaurants as RestaurantRow[]);
+    setCompanyUsers(overview.companyUsers as CompanyUserRow[]);
     setLoadingCompanies(false);
   }, []);
 
@@ -186,16 +165,18 @@ function SuperAdminCompaniesPage() {
       companies.map((company) => company.slug),
     );
 
-    const { error } = await supabase.from("companies").insert({
-      name,
-      slug,
-      description: description || null,
-      is_active: true,
-    });
-
-    if (error) {
+    try {
+      await createAdminCompany({
+        name,
+        slug,
+        description: description || null,
+      });
+    } catch (error) {
       setCreatingCompany(false);
-      toast.error(tAdmin("admin.superAdminCompanies.createError"), { description: error.message });
+      toast.error(tAdmin("admin.superAdminCompanies.createError"), {
+        description:
+          error instanceof Error ? error.message : tAdmin("admin.superAdminCompanies.createError"),
+      });
       return;
     }
 
@@ -240,18 +221,19 @@ function SuperAdminCompaniesPage() {
 
     setSavingCompanyId(editingCompany.id);
 
-    const { error } = await supabase
-      .from("companies")
-      .update({
+    try {
+      await updateAdminCompany({
+        companyId: editingCompany.id,
         name,
         description: description || null,
-        is_active: editingCompany.isActive,
-      })
-      .eq("id", editingCompany.id);
-
-    if (error) {
+        isActive: editingCompany.isActive,
+      });
+    } catch (error) {
       setSavingCompanyId(null);
-      toast.error(tAdmin("admin.superAdminCompanies.updateError"), { description: error.message });
+      toast.error(tAdmin("admin.superAdminCompanies.updateError"), {
+        description:
+          error instanceof Error ? error.message : tAdmin("admin.superAdminCompanies.updateError"),
+      });
       return;
     }
 

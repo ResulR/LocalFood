@@ -233,16 +233,14 @@ type AiRecommendation = {
   wazeUrl: string | null;
   tags: RelatedLabel[];
   badges: RelatedLabel[];
-  offer:
-    | {
-        id: string;
-        code: string;
-        title: string;
-        description: string;
-        conditions: string | null;
-        is_active: boolean;
-      }
-    | null;
+  offer: {
+    id: string;
+    code: string;
+    title: string;
+    description: string;
+    conditions: string | null;
+    is_active: boolean;
+  } | null;
   matchScore: number;
   matchReasons: string[];
 };

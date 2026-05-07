@@ -155,7 +155,11 @@ async function fetchRestaurantCompanyId(restaurantId: string) {
   return result.rows[0]?.company_id ?? null;
 }
 
-async function assertCanAccessRestaurant(userId: string, role: string | null, restaurantId: string) {
+async function assertCanAccessRestaurant(
+  userId: string,
+  role: string | null,
+  restaurantId: string,
+) {
   const companyId = await fetchRestaurantCompanyId(restaurantId);
 
   if (!companyId) {
@@ -300,43 +304,50 @@ async function fetchRestaurantById(restaurantId: string) {
   return result.rows[0] ?? null;
 }
 
-adminRestaurantsRouter.patch("/reviews/:reviewId/status", requireAuth, async (request, response, next) => {
-  try {
-    const { reviewId } = reviewParamsSchema.parse(request.params);
-    const payload = updateReviewStatusSchema.parse(request.body);
+adminRestaurantsRouter.patch(
+  "/reviews/:reviewId/status",
+  requireAuth,
+  async (request, response, next) => {
+    try {
+      const { reviewId } = reviewParamsSchema.parse(request.params);
+      const payload = updateReviewStatusSchema.parse(request.body);
 
-    if (!request.auth) {
-      throw new HttpError(401, "Authentication required.", "AUTH_REQUIRED");
-    }
+      if (!request.auth) {
+        throw new HttpError(401, "Authentication required.", "AUTH_REQUIRED");
+      }
 
-    if (request.auth.role !== "superadmin") {
-      throw new HttpError(403, "Only SuperAdmins can moderate reviews.", "REVIEW_MODERATION_FORBIDDEN");
-    }
+      if (request.auth.role !== "superadmin") {
+        throw new HttpError(
+          403,
+          "Only SuperAdmins can moderate reviews.",
+          "REVIEW_MODERATION_FORBIDDEN",
+        );
+      }
 
-    const reviewRestaurantResult = await dbQuery<{ restaurant_id: string }>(
-      `
+      const reviewRestaurantResult = await dbQuery<{ restaurant_id: string }>(
+        `
         select restaurant_id
         from public.restaurant_reviews
         where id = $1
         limit 1
       `,
-      [reviewId],
-    );
+        [reviewId],
+      );
 
-    const restaurantId = reviewRestaurantResult.rows[0]?.restaurant_id;
+      const restaurantId = reviewRestaurantResult.rows[0]?.restaurant_id;
 
-    if (!restaurantId) {
-      throw new HttpError(404, "Review not found.", "REVIEW_NOT_FOUND");
-    }
+      if (!restaurantId) {
+        throw new HttpError(404, "Review not found.", "REVIEW_NOT_FOUND");
+      }
 
-    await assertCanAccessRestaurant(request.auth.userId, request.auth.role, restaurantId);
+      await assertCanAccessRestaurant(request.auth.userId, request.auth.role, restaurantId);
 
-    const result = await dbQuery<{
-      id: string;
-      status: "published" | "pending" | "hidden";
-      updated_at: string;
-    }>(
-      `
+      const result = await dbQuery<{
+        id: string;
+        status: "published" | "pending" | "hidden";
+        updated_at: string;
+      }>(
+        `
         update public.restaurant_reviews
         set
           status = $2,
@@ -344,22 +355,23 @@ adminRestaurantsRouter.patch("/reviews/:reviewId/status", requireAuth, async (re
         where id = $1
         returning id, status, updated_at
       `,
-      [reviewId, payload.status],
-    );
+        [reviewId, payload.status],
+      );
 
-    response.json({
-      ok: true,
-      data: result.rows,
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      next(new HttpError(400, "Invalid request.", "VALIDATION_ERROR"));
-      return;
+      response.json({
+        ok: true,
+        data: result.rows,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        next(new HttpError(400, "Invalid request.", "VALIDATION_ERROR"));
+        return;
+      }
+
+      next(error);
     }
-
-    next(error);
-  }
-});
+  },
+);
 
 adminRestaurantsRouter.get("/company/:companyId", requireAuth, async (request, response, next) => {
   try {
@@ -425,18 +437,21 @@ adminRestaurantsRouter.get("/:restaurantId", requireAuth, async (request, respon
   }
 });
 
-adminRestaurantsRouter.get("/:restaurantId/reviews", requireAuth, async (request, response, next) => {
-  try {
-    const { restaurantId } = restaurantParamsSchema.parse(request.params);
+adminRestaurantsRouter.get(
+  "/:restaurantId/reviews",
+  requireAuth,
+  async (request, response, next) => {
+    try {
+      const { restaurantId } = restaurantParamsSchema.parse(request.params);
 
-    if (!request.auth) {
-      throw new HttpError(401, "Authentication required.", "AUTH_REQUIRED");
-    }
+      if (!request.auth) {
+        throw new HttpError(401, "Authentication required.", "AUTH_REQUIRED");
+      }
 
-    await assertCanAccessRestaurant(request.auth.userId, request.auth.role, restaurantId);
+      await assertCanAccessRestaurant(request.auth.userId, request.auth.role, restaurantId);
 
-    const result = await dbQuery(
-      `
+      const result = await dbQuery(
+        `
         select
           id,
           restaurant_id,
@@ -451,53 +466,57 @@ adminRestaurantsRouter.get("/:restaurantId/reviews", requireAuth, async (request
         where restaurant_id = $1
         order by created_at desc
       `,
-      [restaurantId],
-    );
+        [restaurantId],
+      );
 
-    response.json({
-      ok: true,
-      data: result.rows,
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      next(new HttpError(400, "Invalid request.", "VALIDATION_ERROR"));
-      return;
+      response.json({
+        ok: true,
+        data: result.rows,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        next(new HttpError(400, "Invalid request.", "VALIDATION_ERROR"));
+        return;
+      }
+
+      next(error);
     }
+  },
+);
 
-    next(error);
-  }
-});
+adminRestaurantsRouter.get(
+  "/by-slug/:slug/interactions",
+  requireAuth,
+  async (request, response, next) => {
+    try {
+      if (!request.auth) {
+        throw new HttpError(401, "Authentication required.", "AUTH_REQUIRED");
+      }
 
-adminRestaurantsRouter.get("/by-slug/:slug/interactions", requireAuth, async (request, response, next) => {
-  try {
-    if (!request.auth) {
-      throw new HttpError(401, "Authentication required.", "AUTH_REQUIRED");
-    }
-
-    const restaurantResult = await dbQuery<{ id: string; company_id: string | null }>(
-      `
+      const restaurantResult = await dbQuery<{ id: string; company_id: string | null }>(
+        `
         select id, company_id
         from public.restaurants
         where slug = $1
         limit 1
       `,
-      [request.params.slug],
-    );
+        [request.params.slug],
+      );
 
-    const restaurant = restaurantResult.rows[0];
+      const restaurant = restaurantResult.rows[0];
 
-    if (!restaurant?.company_id) {
-      response.json({
-        ok: true,
-        data: [],
-      });
-      return;
-    }
+      if (!restaurant?.company_id) {
+        response.json({
+          ok: true,
+          data: [],
+        });
+        return;
+      }
 
-    await assertCanAccessCompany(request.auth.userId, request.auth.role, restaurant.company_id);
+      await assertCanAccessCompany(request.auth.userId, request.auth.role, restaurant.company_id);
 
-    const result = await dbQuery(
-      `
+      const result = await dbQuery(
+        `
         select
           id,
           restaurant_id,
@@ -509,17 +528,18 @@ adminRestaurantsRouter.get("/by-slug/:slug/interactions", requireAuth, async (re
         where restaurant_id = $1
         order by created_at desc
       `,
-      [restaurant.id],
-    );
+        [restaurant.id],
+      );
 
-    response.json({
-      ok: true,
-      data: result.rows,
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+      response.json({
+        ok: true,
+        data: result.rows,
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 adminRestaurantsRouter.patch("/:restaurantId", requireAuth, async (request, response, next) => {
   try {
@@ -688,18 +708,21 @@ const openingHoursSchema = z.object({
   ),
 });
 
-adminRestaurantsRouter.get("/:restaurantId/offers", requireAuth, async (request, response, next) => {
-  try {
-    const { restaurantId } = restaurantParamsSchema.parse(request.params);
+adminRestaurantsRouter.get(
+  "/:restaurantId/offers",
+  requireAuth,
+  async (request, response, next) => {
+    try {
+      const { restaurantId } = restaurantParamsSchema.parse(request.params);
 
-    if (!request.auth) {
-      throw new HttpError(401, "Authentication required.", "AUTH_REQUIRED");
-    }
+      if (!request.auth) {
+        throw new HttpError(401, "Authentication required.", "AUTH_REQUIRED");
+      }
 
-    await assertCanAccessRestaurant(request.auth.userId, request.auth.role, restaurantId);
+      await assertCanAccessRestaurant(request.auth.userId, request.auth.role, restaurantId);
 
-    const result = await dbQuery(
-      `
+      const result = await dbQuery(
+        `
         select
           id,
           restaurant_id,
@@ -714,55 +737,63 @@ adminRestaurantsRouter.get("/:restaurantId/offers", requireAuth, async (request,
         where restaurant_id = $1
         order by created_at desc
       `,
-      [restaurantId],
-    );
+        [restaurantId],
+      );
 
-    response.json({
-      ok: true,
-      data: result.rows,
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      next(new HttpError(400, "Invalid request.", "VALIDATION_ERROR"));
-      return;
+      response.json({
+        ok: true,
+        data: result.rows,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        next(new HttpError(400, "Invalid request.", "VALIDATION_ERROR"));
+        return;
+      }
+
+      next(error);
     }
+  },
+);
 
-    next(error);
-  }
-});
+adminRestaurantsRouter.post(
+  "/:restaurantId/offers",
+  requireAuth,
+  async (request, response, next) => {
+    try {
+      const { restaurantId } = restaurantParamsSchema.parse(request.params);
+      const payload = upsertOfferSchema.parse(request.body);
 
-adminRestaurantsRouter.post("/:restaurantId/offers", requireAuth, async (request, response, next) => {
-  try {
-    const { restaurantId } = restaurantParamsSchema.parse(request.params);
-    const payload = upsertOfferSchema.parse(request.body);
+      if (!request.auth) {
+        throw new HttpError(401, "Authentication required.", "AUTH_REQUIRED");
+      }
 
-    if (!request.auth) {
-      throw new HttpError(401, "Authentication required.", "AUTH_REQUIRED");
-    }
+      await assertCanAccessRestaurant(request.auth.userId, request.auth.role, restaurantId);
 
-    await assertCanAccessRestaurant(request.auth.userId, request.auth.role, restaurantId);
-
-    if (payload.offerId) {
-      const existingOffer = await dbQuery<{ restaurant_id: string }>(
-        `
+      if (payload.offerId) {
+        const existingOffer = await dbQuery<{ restaurant_id: string }>(
+          `
           select restaurant_id
           from public.restaurant_offers
           where id = $1
           limit 1
         `,
-        [payload.offerId],
-      );
+          [payload.offerId],
+        );
 
-      if (!existingOffer.rows[0]) {
-        throw new HttpError(404, "Offer not found.", "OFFER_NOT_FOUND");
-      }
+        if (!existingOffer.rows[0]) {
+          throw new HttpError(404, "Offer not found.", "OFFER_NOT_FOUND");
+        }
 
-      if (existingOffer.rows[0].restaurant_id !== restaurantId) {
-        throw new HttpError(400, "Offer does not belong to this restaurant.", "OFFER_RESTAURANT_MISMATCH");
-      }
+        if (existingOffer.rows[0].restaurant_id !== restaurantId) {
+          throw new HttpError(
+            400,
+            "Offer does not belong to this restaurant.",
+            "OFFER_RESTAURANT_MISMATCH",
+          );
+        }
 
-      const result = await dbQuery(
-        `
+        const result = await dbQuery(
+          `
           update public.restaurant_offers
           set
             code = upper($2),
@@ -783,25 +814,25 @@ adminRestaurantsRouter.post("/:restaurantId/offers", requireAuth, async (request
             created_at,
             updated_at
         `,
-        [
-          payload.offerId,
-          payload.code,
-          payload.title,
-          payload.description,
-          payload.conditions,
-          payload.isActive,
-        ],
-      );
+          [
+            payload.offerId,
+            payload.code,
+            payload.title,
+            payload.description,
+            payload.conditions,
+            payload.isActive,
+          ],
+        );
 
-      response.json({
-        ok: true,
-        data: result.rows,
-      });
-      return;
-    }
+        response.json({
+          ok: true,
+          data: result.rows,
+        });
+        return;
+      }
 
-    const result = await dbQuery(
-      `
+      const result = await dbQuery(
+        `
         insert into public.restaurant_offers (
           restaurant_id,
           code,
@@ -822,59 +853,63 @@ adminRestaurantsRouter.post("/:restaurantId/offers", requireAuth, async (request
           created_at,
           updated_at
       `,
-      [
-        restaurantId,
-        payload.code,
-        payload.title,
-        payload.description,
-        payload.conditions,
-        payload.isActive,
-      ],
-    );
+        [
+          restaurantId,
+          payload.code,
+          payload.title,
+          payload.description,
+          payload.conditions,
+          payload.isActive,
+        ],
+      );
 
-    response.status(201).json({
-      ok: true,
-      data: result.rows,
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      next(new HttpError(400, "Invalid request body.", "VALIDATION_ERROR"));
-      return;
+      response.status(201).json({
+        ok: true,
+        data: result.rows,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        next(new HttpError(400, "Invalid request body.", "VALIDATION_ERROR"));
+        return;
+      }
+
+      next(error);
     }
+  },
+);
 
-    next(error);
-  }
-});
+adminRestaurantsRouter.patch(
+  "/offers/:offerId/status",
+  requireAuth,
+  async (request, response, next) => {
+    try {
+      const { offerId } = offerParamsSchema.parse(request.params);
+      const payload = updateOfferStatusSchema.parse(request.body);
 
-adminRestaurantsRouter.patch("/offers/:offerId/status", requireAuth, async (request, response, next) => {
-  try {
-    const { offerId } = offerParamsSchema.parse(request.params);
-    const payload = updateOfferStatusSchema.parse(request.body);
+      if (!request.auth) {
+        throw new HttpError(401, "Authentication required.", "AUTH_REQUIRED");
+      }
 
-    if (!request.auth) {
-      throw new HttpError(401, "Authentication required.", "AUTH_REQUIRED");
-    }
-
-    const offerRestaurant = await dbQuery<{ restaurant_id: string }>(
-      `
+      const offerRestaurant = await dbQuery<{ restaurant_id: string }>(
+        `
         select restaurant_id
         from public.restaurant_offers
         where id = $1
         limit 1
       `,
-      [offerId],
-    );
+        [offerId],
+      );
 
-    const restaurantId = offerRestaurant.rows[0]?.restaurant_id;
+      const restaurantId = offerRestaurant.rows[0]?.restaurant_id;
 
-    if (!restaurantId) {
-      throw new HttpError(404, "Offer not found.", "OFFER_NOT_FOUND");
-    }
+      if (!restaurantId) {
+        throw new HttpError(404, "Offer not found.", "OFFER_NOT_FOUND");
+      }
 
-    await assertCanAccessRestaurant(request.auth.userId, request.auth.role, restaurantId);
+      await assertCanAccessRestaurant(request.auth.userId, request.auth.role, restaurantId);
 
-    const result = await dbQuery(
-      `
+      const result = await dbQuery(
+        `
         update public.restaurant_offers
         set
           is_active = $2,
@@ -882,35 +917,39 @@ adminRestaurantsRouter.patch("/offers/:offerId/status", requireAuth, async (requ
         where id = $1
         returning id, restaurant_id, is_active, updated_at
       `,
-      [offerId, payload.isActive],
-    );
+        [offerId, payload.isActive],
+      );
 
-    response.json({
-      ok: true,
-      data: result.rows,
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      next(new HttpError(400, "Invalid request.", "VALIDATION_ERROR"));
-      return;
+      response.json({
+        ok: true,
+        data: result.rows,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        next(new HttpError(400, "Invalid request.", "VALIDATION_ERROR"));
+        return;
+      }
+
+      next(error);
     }
+  },
+);
 
-    next(error);
-  }
-});
+adminRestaurantsRouter.get(
+  "/:restaurantId/opening-hours",
+  requireAuth,
+  async (request, response, next) => {
+    try {
+      const { restaurantId } = restaurantParamsSchema.parse(request.params);
 
-adminRestaurantsRouter.get("/:restaurantId/opening-hours", requireAuth, async (request, response, next) => {
-  try {
-    const { restaurantId } = restaurantParamsSchema.parse(request.params);
+      if (!request.auth) {
+        throw new HttpError(401, "Authentication required.", "AUTH_REQUIRED");
+      }
 
-    if (!request.auth) {
-      throw new HttpError(401, "Authentication required.", "AUTH_REQUIRED");
-    }
+      await assertCanAccessRestaurant(request.auth.userId, request.auth.role, restaurantId);
 
-    await assertCanAccessRestaurant(request.auth.userId, request.auth.role, restaurantId);
-
-    const result = await dbQuery(
-      `
+      const result = await dbQuery(
+        `
         select
           id,
           restaurant_id,
@@ -923,37 +962,41 @@ adminRestaurantsRouter.get("/:restaurantId/opening-hours", requireAuth, async (r
         where restaurant_id = $1
         order by day_of_week asc
       `,
-      [restaurantId],
-    );
+        [restaurantId],
+      );
 
-    response.json({
-      ok: true,
-      data: result.rows,
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      next(new HttpError(400, "Invalid request.", "VALIDATION_ERROR"));
-      return;
+      response.json({
+        ok: true,
+        data: result.rows,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        next(new HttpError(400, "Invalid request.", "VALIDATION_ERROR"));
+        return;
+      }
+
+      next(error);
     }
+  },
+);
 
-    next(error);
-  }
-});
+adminRestaurantsRouter.put(
+  "/:restaurantId/opening-hours",
+  requireAuth,
+  async (request, response, next) => {
+    try {
+      const { restaurantId } = restaurantParamsSchema.parse(request.params);
+      const payload = openingHoursSchema.parse(request.body);
 
-adminRestaurantsRouter.put("/:restaurantId/opening-hours", requireAuth, async (request, response, next) => {
-  try {
-    const { restaurantId } = restaurantParamsSchema.parse(request.params);
-    const payload = openingHoursSchema.parse(request.body);
+      if (!request.auth) {
+        throw new HttpError(401, "Authentication required.", "AUTH_REQUIRED");
+      }
 
-    if (!request.auth) {
-      throw new HttpError(401, "Authentication required.", "AUTH_REQUIRED");
-    }
+      await assertCanAccessRestaurant(request.auth.userId, request.auth.role, restaurantId);
 
-    await assertCanAccessRestaurant(request.auth.userId, request.auth.role, restaurantId);
-
-    for (const hour of payload.hours) {
-      await dbQuery(
-        `
+      for (const hour of payload.hours) {
+        await dbQuery(
+          `
           insert into public.restaurant_opening_hours (
             restaurant_id,
             day_of_week,
@@ -968,18 +1011,18 @@ adminRestaurantsRouter.put("/:restaurantId/opening-hours", requireAuth, async (r
             hours_text = excluded.hours_text,
             is_closed = excluded.is_closed
         `,
-        [
-          restaurantId,
-          hour.day_of_week,
-          hour.day_label,
-          hour.is_closed ? "Fermé" : hour.hours_text,
-          hour.is_closed,
-        ],
-      );
-    }
+          [
+            restaurantId,
+            hour.day_of_week,
+            hour.day_label,
+            hour.is_closed ? "Fermé" : hour.hours_text,
+            hour.is_closed,
+          ],
+        );
+      }
 
-    const result = await dbQuery(
-      `
+      const result = await dbQuery(
+        `
         select
           id,
           restaurant_id,
@@ -992,52 +1035,56 @@ adminRestaurantsRouter.put("/:restaurantId/opening-hours", requireAuth, async (r
         where restaurant_id = $1
         order by day_of_week asc
       `,
-      [restaurantId],
-    );
+        [restaurantId],
+      );
 
-    response.json({
-      ok: true,
-      data: result.rows,
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      next(new HttpError(400, "Invalid request body.", "VALIDATION_ERROR"));
-      return;
+      response.json({
+        ok: true,
+        data: result.rows,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        next(new HttpError(400, "Invalid request body.", "VALIDATION_ERROR"));
+        return;
+      }
+
+      next(error);
     }
-
-    next(error);
-  }
-});
+  },
+);
 
 const addPhotoSchema = z.object({
   url: z.string().trim().min(1).max(1000),
   category: z.enum(["Plats", "Menu", "Salle", "Terrasse", "Façade", "Ambiance", "Parking"]),
 });
 
-adminRestaurantsRouter.post("/:restaurantId/photos", requireAuth, async (request, response, next) => {
-  try {
-    const { restaurantId } = restaurantParamsSchema.parse(request.params);
-    const payload = addPhotoSchema.parse(request.body);
+adminRestaurantsRouter.post(
+  "/:restaurantId/photos",
+  requireAuth,
+  async (request, response, next) => {
+    try {
+      const { restaurantId } = restaurantParamsSchema.parse(request.params);
+      const payload = addPhotoSchema.parse(request.body);
 
-    if (!request.auth) {
-      throw new HttpError(401, "Authentication required.", "AUTH_REQUIRED");
-    }
+      if (!request.auth) {
+        throw new HttpError(401, "Authentication required.", "AUTH_REQUIRED");
+      }
 
-    await assertCanAccessRestaurant(request.auth.userId, request.auth.role, restaurantId);
+      await assertCanAccessRestaurant(request.auth.userId, request.auth.role, restaurantId);
 
-    const sortOrderResult = await dbQuery<{ next_sort_order: number }>(
-      `
+      const sortOrderResult = await dbQuery<{ next_sort_order: number }>(
+        `
         select coalesce(max(sort_order), -1) + 1 as next_sort_order
         from public.restaurant_photos
         where restaurant_id = $1
       `,
-      [restaurantId],
-    );
+        [restaurantId],
+      );
 
-    const nextSortOrder = sortOrderResult.rows[0]?.next_sort_order ?? 0;
+      const nextSortOrder = sortOrderResult.rows[0]?.next_sort_order ?? 0;
 
-    const result = await dbQuery(
-      `
+      const result = await dbQuery(
+        `
         insert into public.restaurant_photos (
           restaurant_id,
           url,
@@ -1057,19 +1104,20 @@ adminRestaurantsRouter.post("/:restaurantId/photos", requireAuth, async (request
           sort_order,
           created_at
       `,
-      [restaurantId, payload.url, payload.category, nextSortOrder],
-    );
+        [restaurantId, payload.url, payload.category, nextSortOrder],
+      );
 
-    response.status(201).json({
-      ok: true,
-      data: result.rows,
-    });
-  } catch (error) {
-    if (error instanceof z.ZodError) {
-      next(new HttpError(400, "Invalid request body.", "VALIDATION_ERROR"));
-      return;
+      response.status(201).json({
+        ok: true,
+        data: result.rows,
+      });
+    } catch (error) {
+      if (error instanceof z.ZodError) {
+        next(new HttpError(400, "Invalid request body.", "VALIDATION_ERROR"));
+        return;
+      }
+
+      next(error);
     }
-
-    next(error);
-  }
-});
+  },
+);

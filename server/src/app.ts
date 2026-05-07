@@ -3,6 +3,7 @@ import express from "express";
 import helmet from "helmet";
 import { env } from "./config/env.js";
 import { adminUsersRouter } from "./routes/admin/users.js";
+import { adminCompaniesRouter } from "./routes/admin/companies.js";
 import { adminRestaurantPhotosRouter } from "./routes/admin/restaurant-photos.js";
 import { publicAiRouter } from "./routes/public/ai.js";
 import { publicRestaurantsRouter } from "./routes/public/restaurants.js";
@@ -26,6 +27,7 @@ export function createApp() {
   app.use("/api/public/ai", publicAiRouter);
   app.use("/api/public/restaurants", publicRestaurantsRouter);
   app.use("/api/admin/users", adminUsersRouter);
+  app.use("/api/admin/companies", adminCompaniesRouter);
   app.use("/api/admin/restaurants", adminRestaurantsRouter);
   app.use("/api/admin/restaurant-photos", adminRestaurantPhotosRouter);
 

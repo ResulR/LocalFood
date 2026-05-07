@@ -47,11 +47,15 @@ const updateAdminUserCompanySchema = z.object({
   companyId: z.string().uuid().nullable(),
 });
 
-adminUsersRouter.get("/overview", requireAuth, requireSuperAdmin, async (_request, response, next) => {
-  try {
-    const [profilesResult, rolesResult, companiesResult] = await Promise.all([
-      dbQuery<ProfileOverviewRow>(
-        `
+adminUsersRouter.get(
+  "/overview",
+  requireAuth,
+  requireSuperAdmin,
+  async (_request, response, next) => {
+    try {
+      const [profilesResult, rolesResult, companiesResult] = await Promise.all([
+        dbQuery<ProfileOverviewRow>(
+          `
           select
             id,
             user_id,
@@ -62,17 +66,17 @@ adminUsersRouter.get("/overview", requireAuth, requireSuperAdmin, async (_reques
           from public.profiles
           order by created_at desc
         `,
-      ),
-      dbQuery<UserRoleOverviewRow>(
-        `
+        ),
+        dbQuery<UserRoleOverviewRow>(
+          `
           select
             user_id,
             role
           from public.user_roles
         `,
-      ),
-      dbQuery<CompanyOverviewRow>(
-        `
+        ),
+        dbQuery<CompanyOverviewRow>(
+          `
           select
             id,
             name,
@@ -81,21 +85,22 @@ adminUsersRouter.get("/overview", requireAuth, requireSuperAdmin, async (_reques
           from public.companies
           order by name asc
         `,
-      ),
-    ]);
+        ),
+      ]);
 
-    response.json({
-      ok: true,
-      data: {
-        profiles: profilesResult.rows,
-        roles: rolesResult.rows,
-        companies: companiesResult.rows,
-      },
-    });
-  } catch (error) {
-    next(error);
-  }
-});
+      response.json({
+        ok: true,
+        data: {
+          profiles: profilesResult.rows,
+          roles: rolesResult.rows,
+          companies: companiesResult.rows,
+        },
+      });
+    } catch (error) {
+      next(error);
+    }
+  },
+);
 
 adminUsersRouter.post("/", requireAuth, requireSuperAdmin, async (request, response, next) => {
   try {
