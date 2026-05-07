@@ -458,26 +458,32 @@ export async function uploadRestaurantPhotoFile({
   restaurantId: string;
   file: File;
 }) {
-  const safeFileName = file.name
-    .toLowerCase()
-    .replace(/[^a-z0-9.-]/g, "-")
-    .replace(/-+/g, "-");
+  const formData = new FormData();
 
-  const filePath = `${restaurantId}/${Date.now()}-${safeFileName}`;
+  formData.append("restaurantId", restaurantId);
+  formData.append("file", file);
 
-  const { error } = await supabase.storage.from("restaurant-photos").upload(filePath, file, {
-    cacheControl: "3600",
-    upsert: false,
-    contentType: file.type,
+  const response = await fetch(`${apiBaseUrl}/api/admin/restaurant-photos/upload`, {
+    method: "POST",
+    headers: await getAuthHeaders(),
+    body: formData,
   });
 
-  if (error) {
-    throw error;
+  const json = (await response.json().catch(() => null)) as {
+    ok?: boolean;
+    data?: {
+      publicUrl: string;
+      storagePath: string;
+    };
+    error?: string;
+    message?: string;
+  } | null;
+
+  if (!response.ok || !json?.ok || !json.data) {
+    throw new Error(json?.error ?? json?.message ?? "Impossible d’envoyer la photo.");
   }
 
-  const { data } = supabase.storage.from("restaurant-photos").getPublicUrl(filePath);
-
-  return data.publicUrl;
+  return json.data.publicUrl;
 }
 
 export async function addOwnedRestaurantPhoto({
@@ -506,24 +512,9 @@ export async function addOwnedRestaurantPhoto({
 }
 
 export async function deleteOwnedRestaurantPhoto(photoId: string) {
-  const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
-
-  if (sessionError) {
-    throw new Error(sessionError.message);
-  }
-
-  if (!session?.access_token) {
-    throw new Error("Session Supabase introuvable.");
-  }
-
   const response = await fetch(`${apiBaseUrl}/api/admin/restaurant-photos/${photoId}`, {
     method: "DELETE",
-    headers: {
-      Authorization: `Bearer ${session.access_token}`,
-    },
+    headers: await getAuthHeaders(),
   });
 
   const json = await response.json().catch(() => null);

@@ -1,6 +1,7 @@
 import cors from "cors";
 import express from "express";
 import helmet from "helmet";
+import { fileURLToPath } from "node:url";
 import { env } from "./config/env.js";
 import { adminUsersRouter } from "./routes/admin/users.js";
 import { adminCompaniesRouter } from "./routes/admin/companies.js";
@@ -11,10 +12,13 @@ import { healthRouter } from "./routes/health.js";
 import { errorHandler, notFoundHandler } from "./middlewares/error-handler.js";
 import { adminRestaurantsRouter } from "./routes/admin/restaurants.js";
 
+const uploadsRoot = fileURLToPath(new URL("../uploads", import.meta.url));
+
 export function createApp() {
   const app = express();
 
   app.use(helmet());
+  app.use("/uploads", express.static(uploadsRoot));
   app.use(
     cors({
       origin: env.FRONTEND_ORIGIN,
