@@ -1,10 +1,32 @@
 import { Router } from "express";
 import { z } from "zod";
 import { createSupabaseAdminClient } from "../../lib/supabase-server.js";
+import { dbQuery } from "../../lib/db.js";
 import { requireAuth, requireSuperAdmin } from "../../middlewares/auth.js";
 import { HttpError } from "../../middlewares/error-handler.js";
 
 export const adminUsersRouter = Router();
+
+type ProfileOverviewRow = {
+  id: string;
+  user_id: string;
+  email: string | null;
+  full_name: string | null;
+  is_active: boolean;
+  current_company_id: string | null;
+};
+
+type UserRoleOverviewRow = {
+  user_id: string;
+  role: "superadmin" | "admin" | "user";
+};
+
+type CompanyOverviewRow = {
+  id: string;
+  name: string;
+  slug: string;
+  is_active: boolean;
+};
 
 const createAdminUserSchema = z.object({
   email: z.string().email(),
@@ -23,6 +45,56 @@ const updateAdminUserRoleSchema = z.object({
 
 const updateAdminUserCompanySchema = z.object({
   companyId: z.string().uuid().nullable(),
+});
+
+adminUsersRouter.get("/overview", requireAuth, requireSuperAdmin, async (_request, response, next) => {
+  try {
+    const [profilesResult, rolesResult, companiesResult] = await Promise.all([
+      dbQuery<ProfileOverviewRow>(
+        `
+          select
+            id,
+            user_id,
+            email,
+            full_name,
+            is_active,
+            current_company_id
+          from public.profiles
+          order by created_at desc
+        `,
+      ),
+      dbQuery<UserRoleOverviewRow>(
+        `
+          select
+            user_id,
+            role
+          from public.user_roles
+        `,
+      ),
+      dbQuery<CompanyOverviewRow>(
+        `
+          select
+            id,
+            name,
+            slug,
+            is_active
+          from public.companies
+          order by name asc
+        `,
+      ),
+    ]);
+
+    response.json({
+      ok: true,
+      data: {
+        profiles: profilesResult.rows,
+        roles: rolesResult.rows,
+        companies: companiesResult.rows,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
 });
 
 adminUsersRouter.post("/", requireAuth, requireSuperAdmin, async (request, response, next) => {

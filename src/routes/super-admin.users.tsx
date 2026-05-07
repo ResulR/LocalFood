@@ -2,10 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { Loader2, Search, Shield, UserPlus, Users } from "lucide-react";
 import { toast } from "sonner";
-import { supabase } from "@/lib/supabase";
 import type { AppRole } from "@/contexts/AuthContext";
 import {
   createAdminUser,
+  fetchAdminUsersOverview,
   updateAdminUserCompany,
   updateAdminUserRole,
   updateAdminUserStatus,
@@ -71,36 +71,11 @@ function SuperAdminUsersPage() {
     setLoadingUsers(true);
     setErrorMessage("");
 
-    const [profilesResult, rolesResult, companiesResult] = await Promise.all([
-      supabase
-        .from("profiles")
-        .select("id, user_id, email, full_name, is_active, current_company_id")
-        .order("created_at", { ascending: false }),
-      supabase.from("user_roles").select("user_id, role"),
-      supabase.from("companies").select("id, name, slug, is_active").order("name"),
-    ]);
+    const overview = await fetchAdminUsersOverview();
 
-    if (profilesResult.error) {
-      setErrorMessage(profilesResult.error.message);
-      setLoadingUsers(false);
-      return;
-    }
-
-    if (rolesResult.error) {
-      setErrorMessage(rolesResult.error.message);
-      setLoadingUsers(false);
-      return;
-    }
-
-    if (companiesResult.error) {
-      setErrorMessage(companiesResult.error.message);
-      setLoadingUsers(false);
-      return;
-    }
-
-    setProfiles((profilesResult.data ?? []) as ProfileRow[]);
-    setRoles((rolesResult.data ?? []) as UserRoleRow[]);
-    setCompanies((companiesResult.data ?? []) as CompanyRow[]);
+    setProfiles(overview.profiles as ProfileRow[]);
+    setRoles(overview.roles as UserRoleRow[]);
+    setCompanies(overview.companies as CompanyRow[]);
     setLoadingUsers(false);
   }, []);
 

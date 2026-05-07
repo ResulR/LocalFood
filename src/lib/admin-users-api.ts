@@ -2,6 +2,75 @@ import { supabase } from "@/lib/supabase";
 
 const apiBaseUrl = import.meta.env.VITE_LOCALFOOD_API_URL ?? "http://localhost:4000";
 
+async function getAuthHeaders() {
+  const {
+    data: { session },
+    error: sessionError,
+  } = await supabase.auth.getSession();
+
+  if (sessionError) {
+    throw new Error(sessionError.message);
+  }
+
+  if (!session?.access_token) {
+    throw new Error("Session Supabase introuvable.");
+  }
+
+  return {
+    Authorization: `Bearer ${session.access_token}`,
+  };
+}
+
+async function fetchJsonData<T>(url: string, options?: RequestInit): Promise<T> {
+  const response = await fetch(url, options);
+
+  const json = (await response.json().catch(() => null)) as {
+    ok?: boolean;
+    data?: T;
+    error?: string;
+    message?: string;
+  } | null;
+
+  if (!response.ok || !json?.ok) {
+    throw new Error(json?.error ?? json?.message ?? "Requête LocalFood impossible.");
+  }
+
+  return json.data as T;
+}
+
+export type AdminUsersOverviewProfile = {
+  id: string;
+  user_id: string;
+  email: string | null;
+  full_name: string | null;
+  is_active: boolean;
+  current_company_id: string | null;
+};
+
+export type AdminUsersOverviewRole = {
+  user_id: string;
+  role: "superadmin" | "admin" | "user";
+};
+
+export type AdminUsersOverviewCompany = {
+  id: string;
+  name: string;
+  slug: string;
+  is_active: boolean;
+};
+
+export type AdminUsersOverview = {
+  profiles: AdminUsersOverviewProfile[];
+  roles: AdminUsersOverviewRole[];
+  companies: AdminUsersOverviewCompany[];
+};
+
+export async function fetchAdminUsersOverview(): Promise<AdminUsersOverview> {
+  return fetchJsonData<AdminUsersOverview>(`${apiBaseUrl}/api/admin/users/overview`, {
+    headers: await getAuthHeaders(),
+  });
+}
+
 type CreateAdminUserPayload = {
   email: string;
   fullName: string;
@@ -21,24 +90,11 @@ type CreateAdminUserResponse = {
 export async function createAdminUser(
   payload: CreateAdminUserPayload,
 ): Promise<CreateAdminUserResponse> {
-  const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
-
-  if (sessionError) {
-    throw new Error(sessionError.message);
-  }
-
-  if (!session?.access_token) {
-    throw new Error("Session Supabase introuvable.");
-  }
-
   const response = await fetch(`${apiBaseUrl}/api/admin/users`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${session.access_token}`,
+      ...(await getAuthHeaders()),
     },
     body: JSON.stringify(payload),
   });
@@ -66,24 +122,11 @@ export async function updateAdminUserStatus({
   userId: string;
   isActive: boolean;
 }): Promise<UpdateAdminUserStatusResponse> {
-  const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
-
-  if (sessionError) {
-    throw new Error(sessionError.message);
-  }
-
-  if (!session?.access_token) {
-    throw new Error("Session Supabase introuvable.");
-  }
-
   const response = await fetch(`${apiBaseUrl}/api/admin/users/${userId}/status`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${session.access_token}`,
+      ...(await getAuthHeaders()),
     },
     body: JSON.stringify({ isActive }),
   });
@@ -109,24 +152,11 @@ export async function updateAdminUserRole({
   userId: string;
   role: "superadmin" | "admin" | "user";
 }): Promise<UpdateAdminUserRoleResponse> {
-  const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
-
-  if (sessionError) {
-    throw new Error(sessionError.message);
-  }
-
-  if (!session?.access_token) {
-    throw new Error("Session Supabase introuvable.");
-  }
-
   const response = await fetch(`${apiBaseUrl}/api/admin/users/${userId}/role`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${session.access_token}`,
+      ...(await getAuthHeaders()),
     },
     body: JSON.stringify({ role }),
   });
@@ -154,24 +184,11 @@ export async function updateAdminUserCompany({
   userId: string;
   companyId: string | null;
 }): Promise<UpdateAdminUserCompanyResponse> {
-  const {
-    data: { session },
-    error: sessionError,
-  } = await supabase.auth.getSession();
-
-  if (sessionError) {
-    throw new Error(sessionError.message);
-  }
-
-  if (!session?.access_token) {
-    throw new Error("Session Supabase introuvable.");
-  }
-
   const response = await fetch(`${apiBaseUrl}/api/admin/users/${userId}/company`, {
     method: "PATCH",
     headers: {
       "Content-Type": "application/json",
-      Authorization: `Bearer ${session.access_token}`,
+      ...(await getAuthHeaders()),
     },
     body: JSON.stringify({ companyId }),
   });
