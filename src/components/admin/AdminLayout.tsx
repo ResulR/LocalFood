@@ -16,6 +16,7 @@ import {
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRestaurantDashboard } from "@/contexts/RestaurantDashboardContext";
+import { ChangePasswordDialog } from "@/components/admin/ChangePasswordDialog";
 import { useAdminI18n } from "@/lib/admin-i18n";
 
 type NavItem = {
@@ -162,6 +163,8 @@ export function AdminLayout() {
               <div className="text-muted-foreground">{tAdmin("admin.layout.proArea")}</div>
             </div>
           </div>
+
+          <ChangePasswordDialog />
 
           <button
             onClick={handleSignOut}

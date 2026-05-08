@@ -35,6 +35,11 @@ const setLocalPasswordSchema = z.object({
   password: z.string().min(8).max(200),
 });
 
+const changeLocalPasswordSchema = z.object({
+  currentPassword: z.string().min(1).max(200),
+  newPassword: z.string().min(8).max(200),
+});
+
 const localLoginRateLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 5,
@@ -189,6 +194,108 @@ authRouter.post("/local/set-password", requireAuth, async (request, response, ne
       ok: true,
       data: {
         passwordSet: true,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+authRouter.post("/local/change-password", requireAuth, async (request, response, next) => {
+  try {
+    const userId = request.auth?.userId;
+
+    if (!userId) {
+      response.status(401).json({
+        ok: false,
+        message: "Utilisateur non authentifié.",
+      });
+      return;
+    }
+
+    const parsed = changeLocalPasswordSchema.safeParse(request.body);
+
+    if (!parsed.success) {
+      response.status(400).json({
+        ok: false,
+        message:
+          "Mot de passe invalide. Le nouveau mot de passe doit contenir au moins 8 caractères.",
+      });
+      return;
+    }
+
+    const authUserResult = await dbQuery<LocalAuthUserRow>(
+      `
+        select
+          user_id,
+          email,
+          password_hash,
+          password_set,
+          is_active
+        from public.local_auth_users
+        where user_id = $1
+        limit 1
+      `,
+      [userId],
+    );
+
+    const authUser = authUserResult.rows[0];
+
+    if (!authUser) {
+      response.status(404).json({
+        ok: false,
+        message: "Compte local introuvable.",
+      });
+      return;
+    }
+
+    if (!authUser.is_active) {
+      response.status(403).json({
+        ok: false,
+        message: "Compte utilisateur désactivé.",
+      });
+      return;
+    }
+
+    if (!authUser.password_hash || !authUser.password_set) {
+      response.status(400).json({
+        ok: false,
+        message: "Aucun mot de passe local n'est défini pour ce compte.",
+      });
+      return;
+    }
+
+    const currentPasswordMatches = await verifyPassword(
+      parsed.data.currentPassword,
+      authUser.password_hash,
+    );
+
+    if (!currentPasswordMatches) {
+      response.status(401).json({
+        ok: false,
+        message: "Mot de passe actuel incorrect.",
+      });
+      return;
+    }
+
+    const newPasswordHash = await hashPassword(parsed.data.newPassword);
+
+    await dbQuery(
+      `
+        update public.local_auth_users
+        set
+          password_hash = $2,
+          password_set = true,
+          updated_at = now()
+        where user_id = $1
+      `,
+      [userId, newPasswordHash],
+    );
+
+    response.json({
+      ok: true,
+      data: {
+        passwordChanged: true,
       },
     });
   } catch (error) {
