@@ -60,6 +60,7 @@ type CreateAdminUserPayload = {
   fullName: string;
   role: "admin" | "user";
   companyId: string;
+  temporaryPassword: string;
 };
 
 type CreateAdminUserResponse = {

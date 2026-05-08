@@ -2,6 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Router } from "express";
 import { z } from "zod";
 import { dbQuery } from "../../lib/db.js";
+import { hashPassword } from "../../lib/local-auth.js";
 import { requireAuth, requireSuperAdmin } from "../../middlewares/auth.js";
 import { HttpError } from "../../middlewares/error-handler.js";
 
@@ -33,6 +34,7 @@ const createAdminUserSchema = z.object({
   fullName: z.string().trim().min(1).max(120),
   role: z.enum(["admin", "user"]),
   companyId: z.string().uuid(),
+  temporaryPassword: z.string().min(8).max(200),
 });
 
 const updateAdminUserStatusSchema = z.object({
@@ -142,6 +144,8 @@ adminUsersRouter.post("/", requireAuth, requireSuperAdmin, async (request, respo
       throw new HttpError(409, "User already exists.", "USER_ALREADY_EXISTS");
     }
 
+    const passwordHash = await hashPassword(payload.temporaryPassword);
+
     await dbQuery(
       `
         insert into public.profiles (
@@ -187,9 +191,9 @@ adminUsersRouter.post("/", requireAuth, requireSuperAdmin, async (request, respo
           password_set,
           is_active
         )
-        values ($1, $2, null, false, true)
+        values ($1, $2, $3, true, true)
       `,
-      [userId, email],
+      [userId, email, passwordHash],
     );
 
     response.status(201).json({

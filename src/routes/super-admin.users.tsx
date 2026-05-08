@@ -65,6 +65,7 @@ function SuperAdminUsersPage() {
   const [newUserFullName, setNewUserFullName] = useState("");
   const [newUserRole, setNewUserRole] = useState<(typeof CLIENT_ROLES)[number]>("user");
   const [newUserCompanyId, setNewUserCompanyId] = useState("");
+  const [newUserTemporaryPassword, setNewUserTemporaryPassword] = useState("");
   const [creatingUser, setCreatingUser] = useState(false);
 
   const loadUsers = useCallback(async () => {
@@ -230,9 +231,10 @@ function SuperAdminUsersPage() {
         fullName: newUserFullName,
         role: newUserRole,
         companyId: newUserCompanyId,
+        temporaryPassword: newUserTemporaryPassword,
       });
 
-      toast.success(tAdmin("admin.superAdminUsers.userInvited"), {
+      toast.success(tAdmin("admin.superAdminUsers.userCreated"), {
         description: `${createdUser.email} → ${createdUser.companyName}.`,
       });
 
@@ -240,6 +242,7 @@ function SuperAdminUsersPage() {
       setNewUserFullName("");
       setNewUserRole("user");
       setNewUserCompanyId("");
+      setNewUserTemporaryPassword("");
 
       await loadUsers();
     } catch (error) {
@@ -328,7 +331,7 @@ function SuperAdminUsersPage() {
           </h2>
         </div>
 
-        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-4">
+        <div className="grid gap-3 md:grid-cols-2 xl:grid-cols-5">
           <label className="block">
             <span className="text-xs font-medium text-muted-foreground">
               {tAdmin("admin.superAdminUsers.fullName")}
@@ -393,6 +396,22 @@ function SuperAdminUsersPage() {
                 ))}
             </select>
           </label>
+
+          <label className="block">
+            <span className="text-xs font-medium text-muted-foreground">
+              {tAdmin("admin.superAdminUsers.temporaryPassword")}
+            </span>
+            <input
+              type="password"
+              autoComplete="new-password"
+              value={newUserTemporaryPassword}
+              onChange={(event) => setNewUserTemporaryPassword(event.target.value)}
+              required
+              minLength={8}
+              className="mt-1.5 w-full rounded-xl border border-border bg-background px-3.5 py-2.5 text-sm outline-none focus:border-ring"
+              placeholder={tAdmin("admin.superAdminUsers.temporaryPasswordPlaceholder")}
+            />
+          </label>
         </div>
 
         <div className="mt-4 flex justify-end">
@@ -403,8 +422,8 @@ function SuperAdminUsersPage() {
           >
             {creatingUser && <Loader2 className="h-4 w-4 animate-spin" />}
             {creatingUser
-              ? tAdmin("admin.superAdminUsers.inviting")
-              : tAdmin("admin.superAdminUsers.inviteUser")}
+              ? tAdmin("admin.superAdminUsers.creating")
+              : tAdmin("admin.superAdminUsers.createUser")}
           </button>
         </div>
       </form>
