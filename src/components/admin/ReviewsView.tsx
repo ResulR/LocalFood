@@ -4,10 +4,10 @@ import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRestaurantDashboard } from "@/contexts/RestaurantDashboardContext";
 import {
-  fetchSupabaseRestaurantReviewsByRestaurantId,
+  fetchApiRestaurantReviewsByRestaurantId,
   updateOwnedRestaurantReviewStatus,
-  type SupabaseRestaurantReview,
-  type SupabaseRestaurantReviewStatus,
+  type ApiRestaurantReview,
+  type ApiRestaurantReviewStatus,
 } from "@/lib/restaurants-api";
 import { useAdminI18n } from "@/lib/admin-i18n";
 
@@ -36,13 +36,13 @@ function formatReviewDate(createdAt: string, tAdmin: TAdmin) {
   return `${diffDays} ${tAdmin("admin.reviews.daysAgo")}`;
 }
 
-function mapSupabaseStatus(status: SupabaseRestaurantReview["status"]): AdminReviewStatus {
+function mapApiStatus(status: ApiRestaurantReview["status"]): AdminReviewStatus {
   if (status === "pending") return "en attente";
   if (status === "hidden") return "masqué";
   return "publié";
 }
 
-function mapAdminStatusToSupabaseStatus(status: AdminReviewStatus): SupabaseRestaurantReviewStatus {
+function mapAdminStatusToApiStatus(status: AdminReviewStatus): ApiRestaurantReviewStatus {
   if (status === "en attente") return "pending";
   if (status === "masqué") return "hidden";
   return "published";
@@ -56,7 +56,7 @@ function formatReviewStatus(status: AdminReviewStatus, tAdmin: TAdmin) {
 
 const REVIEW_STATUS_OPTIONS: AdminReviewStatus[] = ["publié", "en attente", "masqué"];
 
-function mapSupabaseReview(review: SupabaseRestaurantReview): AdminReview {
+function mapApiReview(review: ApiRestaurantReview): AdminReview {
   return {
     id: review.id,
     author: review.author_name,
@@ -64,7 +64,7 @@ function mapSupabaseReview(review: SupabaseRestaurantReview): AdminReview {
     createdAt: review.created_at,
     comment: review.comment,
     photo: review.photo_url ?? undefined,
-    status: mapSupabaseStatus(review.status),
+    status: mapApiStatus(review.status),
   };
 }
 
@@ -96,16 +96,16 @@ export function ReviewsView() {
         return;
       }
 
-      const data = await fetchSupabaseRestaurantReviewsByRestaurantId(currentRestaurant.id);
+      const data = await fetchApiRestaurantReviewsByRestaurantId(currentRestaurant.id);
 
       if (cancelled) return;
 
-      setReviews(data.map(mapSupabaseReview));
+      setReviews(data.map(mapApiReview));
       setLoadingReviews(false);
     }
 
     loadReviews().catch((error) => {
-      console.error("Failed to load restaurant reviews from Supabase:", error);
+      console.error("Failed to load restaurant reviews from LocalFood API:", error);
 
       if (!cancelled) {
         setReviewsMessage(tAdmin("admin.reviews.loadError"));
@@ -134,7 +134,7 @@ export function ReviewsView() {
     try {
       const updatedRows = await updateOwnedRestaurantReviewStatus({
         reviewId: review.id,
-        status: mapAdminStatusToSupabaseStatus(nextStatus),
+        status: mapAdminStatusToApiStatus(nextStatus),
       });
 
       const updated = updatedRows[0];
@@ -144,7 +144,7 @@ export function ReviewsView() {
           item.id === review.id
             ? {
                 ...item,
-                status: updated ? mapSupabaseStatus(updated.status) : nextStatus,
+                status: updated ? mapApiStatus(updated.status) : nextStatus,
               }
             : item,
         ),

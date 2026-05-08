@@ -30,9 +30,9 @@ export type RestaurantAIRecommendation = {
   menuUrl: string | null;
   googleMapsUrl: string | null;
   wazeUrl: string | null;
-  tags: SupabaseRestaurantTag[];
-  badges: SupabaseRestaurantBadge[];
-  offer: SupabaseRestaurantOffer | null;
+  tags: ApiRestaurantTag[];
+  badges: ApiRestaurantBadge[];
+  offer: ApiRestaurantOffer | null;
   matchScore: number;
   matchReasons: string[];
 };
@@ -79,17 +79,17 @@ async function getAuthHeaders() {
   return getLocalAuthHeaders();
 }
 
-export type SupabaseRestaurantTag = {
+export type ApiRestaurantTag = {
   label: string;
   slug: string;
 };
 
-export type SupabaseRestaurantBadge = {
+export type ApiRestaurantBadge = {
   label: string;
   slug: string;
 };
 
-export type SupabaseRestaurantPhoto = {
+export type ApiRestaurantPhoto = {
   id: string;
   url: string;
   category: string;
@@ -98,7 +98,7 @@ export type SupabaseRestaurantPhoto = {
   sort_order: number;
 };
 
-export type SupabaseRestaurantOpeningHour = {
+export type ApiRestaurantOpeningHour = {
   id: string;
   day_of_week: number;
   day_label: string;
@@ -106,7 +106,7 @@ export type SupabaseRestaurantOpeningHour = {
   is_closed: boolean;
 };
 
-export type SupabaseRestaurantOffer = {
+export type ApiRestaurantOffer = {
   id: string;
   code: string;
   title: string;
@@ -115,7 +115,7 @@ export type SupabaseRestaurantOffer = {
   is_active: boolean;
 };
 
-export type SupabaseRestaurantListItem = {
+export type ApiRestaurantListItem = {
   id: string;
   name: string;
   slug: string;
@@ -142,32 +142,32 @@ export type SupabaseRestaurantListItem = {
   localfood_match_score: number;
   is_new: boolean;
   is_active: boolean;
-  tags: SupabaseRestaurantTag[];
-  badges: SupabaseRestaurantBadge[];
-  photos: SupabaseRestaurantPhoto[];
-  opening_hours: SupabaseRestaurantOpeningHour[];
-  offers: SupabaseRestaurantOffer[];
+  tags: ApiRestaurantTag[];
+  badges: ApiRestaurantBadge[];
+  photos: ApiRestaurantPhoto[];
+  opening_hours: ApiRestaurantOpeningHour[];
+  offers: ApiRestaurantOffer[];
 };
 
 type MaybeArray<T> = T | T[] | null;
 
-type SupabaseRestaurantRow = Omit<
-  SupabaseRestaurantListItem,
+type ApiRestaurantRow = Omit<
+  ApiRestaurantListItem,
   "tags" | "badges" | "photos" | "opening_hours" | "offers"
 > & {
   restaurant_tags:
     | {
-        tags: MaybeArray<SupabaseRestaurantTag>;
+        tags: MaybeArray<ApiRestaurantTag>;
       }[]
     | null;
   restaurant_badges:
     | {
-        badges: MaybeArray<SupabaseRestaurantBadge>;
+        badges: MaybeArray<ApiRestaurantBadge>;
       }[]
     | null;
-  restaurant_photos: SupabaseRestaurantPhoto[] | null;
-  restaurant_opening_hours: SupabaseRestaurantOpeningHour[] | null;
-  restaurant_offers: SupabaseRestaurantOffer[] | null;
+  restaurant_photos: ApiRestaurantPhoto[] | null;
+  restaurant_opening_hours: ApiRestaurantOpeningHour[] | null;
+  restaurant_offers: ApiRestaurantOffer[] | null;
 };
 
 function toArray<T>(value: MaybeArray<T>): T[] {
@@ -175,7 +175,7 @@ function toArray<T>(value: MaybeArray<T>): T[] {
   return Array.isArray(value) ? value : [value];
 }
 
-function normalizeRestaurant(row: SupabaseRestaurantRow): SupabaseRestaurantListItem {
+function normalizeRestaurant(row: ApiRestaurantRow): ApiRestaurantListItem {
   return {
     id: row.id,
     name: row.name,
@@ -211,15 +211,15 @@ function normalizeRestaurant(row: SupabaseRestaurantRow): SupabaseRestaurantList
   };
 }
 
-export async function fetchSupabaseRestaurants() {
-  const data = await fetchJsonData<SupabaseRestaurantRow[]>(`${apiBaseUrl}/api/public/restaurants`);
+export async function fetchApiRestaurants() {
+  const data = await fetchJsonData<ApiRestaurantRow[]>(`${apiBaseUrl}/api/public/restaurants`);
 
   return data.map(normalizeRestaurant);
 }
 
-export async function fetchSupabaseRestaurantBySlug(slug: string) {
+export async function fetchApiRestaurantBySlug(slug: string) {
   try {
-    const data = await fetchJsonData<SupabaseRestaurantRow>(
+    const data = await fetchJsonData<ApiRestaurantRow>(
       `${apiBaseUrl}/api/public/restaurants/${encodeURIComponent(slug)}`,
     );
 
@@ -233,9 +233,9 @@ export async function fetchSupabaseRestaurantBySlug(slug: string) {
   }
 }
 
-export async function fetchSupabaseRestaurantById(restaurantId: string) {
+export async function fetchApiRestaurantById(restaurantId: string) {
   try {
-    const data = await fetchJsonData<SupabaseRestaurantRow>(
+    const data = await fetchJsonData<ApiRestaurantRow>(
       `${apiBaseUrl}/api/admin/restaurants/${encodeURIComponent(restaurantId)}`,
       {
         headers: await getAuthHeaders(),
@@ -252,7 +252,7 @@ export async function fetchSupabaseRestaurantById(restaurantId: string) {
   }
 }
 
-export type SupabaseRestaurantReview = {
+export type ApiRestaurantReview = {
   id: string;
   restaurant_id: string;
   author_name: string;
@@ -264,19 +264,19 @@ export type SupabaseRestaurantReview = {
   updated_at: string;
 };
 
-export type SupabaseRestaurantReviewStatus = SupabaseRestaurantReview["status"];
+export type ApiRestaurantReviewStatus = ApiRestaurantReview["status"];
 
 export async function updateOwnedRestaurantReviewStatus({
   reviewId,
   status,
 }: {
   reviewId: string;
-  status: SupabaseRestaurantReviewStatus;
+  status: ApiRestaurantReviewStatus;
 }) {
   return fetchJsonData<
     {
       id: string;
-      status: SupabaseRestaurantReviewStatus;
+      status: ApiRestaurantReviewStatus;
       updated_at: string;
     }[]
   >(`${apiBaseUrl}/api/admin/restaurants/reviews/${encodeURIComponent(reviewId)}/status`, {
@@ -289,14 +289,14 @@ export async function updateOwnedRestaurantReviewStatus({
   });
 }
 
-export async function fetchSupabaseRestaurantReviewsBySlug(slug: string) {
-  return fetchJsonData<SupabaseRestaurantReview[]>(
+export async function fetchApiRestaurantReviewsBySlug(slug: string) {
+  return fetchJsonData<ApiRestaurantReview[]>(
     `${apiBaseUrl}/api/public/restaurants/${encodeURIComponent(slug)}/reviews`,
   );
 }
 
-export async function fetchSupabaseRestaurantReviewsByRestaurantId(restaurantId: string) {
-  return fetchJsonData<SupabaseRestaurantReview[]>(
+export async function fetchApiRestaurantReviewsByRestaurantId(restaurantId: string) {
+  return fetchJsonData<ApiRestaurantReview[]>(
     `${apiBaseUrl}/api/admin/restaurants/${encodeURIComponent(restaurantId)}/reviews`,
     {
       headers: await getAuthHeaders(),
@@ -304,7 +304,7 @@ export async function fetchSupabaseRestaurantReviewsByRestaurantId(restaurantId:
   );
 }
 
-export type SupabaseRestaurantInteractionType =
+export type ApiRestaurantInteractionType =
   | "Maps"
   | "Waze"
   | "Appel"
@@ -315,17 +315,17 @@ export type SupabaseRestaurantInteractionType =
   | "Offre"
   | "Vue";
 
-export type SupabaseRestaurantInteraction = {
+export type ApiRestaurantInteraction = {
   id: string;
   restaurant_id: string;
   action: string;
   source: string;
-  interaction_type: SupabaseRestaurantInteractionType;
+  interaction_type: ApiRestaurantInteractionType;
   created_at: string;
 };
 
-export async function fetchSupabaseRestaurantInteractionsBySlug(slug: string) {
-  return fetchJsonData<SupabaseRestaurantInteraction[]>(
+export async function fetchApiRestaurantInteractionsBySlug(slug: string) {
+  return fetchJsonData<ApiRestaurantInteraction[]>(
     `${apiBaseUrl}/api/admin/restaurants/by-slug/${encodeURIComponent(slug)}/interactions`,
     {
       headers: await getAuthHeaders(),
@@ -333,7 +333,7 @@ export async function fetchSupabaseRestaurantInteractionsBySlug(slug: string) {
   );
 }
 
-export type SupabaseRestaurantInteractionSource =
+export type ApiRestaurantInteractionSource =
   | "public_card"
   | "public_detail"
   | "ai_assistant"
@@ -347,8 +347,8 @@ export async function trackRestaurantInteractionBySlug({
 }: {
   slug: string;
   action: string;
-  source: SupabaseRestaurantInteractionSource;
-  interactionType: SupabaseRestaurantInteractionType;
+  source: ApiRestaurantInteractionSource;
+  interactionType: ApiRestaurantInteractionType;
 }) {
   const url = `${apiBaseUrl}/api/public/restaurants/${encodeURIComponent(slug)}/interactions`;
 
@@ -480,7 +480,7 @@ export async function addOwnedRestaurantPhoto({
   url: string;
   category: string;
 }) {
-  return fetchJsonData<SupabaseRestaurantPhoto[]>(
+  return fetchJsonData<ApiRestaurantPhoto[]>(
     `${apiBaseUrl}/api/admin/restaurants/${encodeURIComponent(restaurantId)}/photos`,
     {
       method: "POST",
@@ -515,7 +515,7 @@ export async function deleteOwnedRestaurantPhoto(photoId: string) {
   };
 }
 
-export type SupabaseCompanyRestaurant = {
+export type ApiCompanyRestaurant = {
   id: string;
   name: string;
   slug: string;
@@ -523,8 +523,8 @@ export type SupabaseCompanyRestaurant = {
   is_active: boolean;
 };
 
-export async function fetchSupabaseRestaurantsByCompanyId(companyId: string) {
-  return fetchJsonData<SupabaseCompanyRestaurant[]>(
+export async function fetchApiRestaurantsByCompanyId(companyId: string) {
+  return fetchJsonData<ApiCompanyRestaurant[]>(
     `${apiBaseUrl}/api/admin/restaurants/company/${encodeURIComponent(companyId)}`,
     {
       headers: await getAuthHeaders(),

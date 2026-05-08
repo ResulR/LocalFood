@@ -67,7 +67,7 @@ export function OffersView() {
     }
 
     loadOffers().catch((error) => {
-      console.error("Failed to load restaurant offers from Supabase:", error);
+      console.error("Failed to load restaurant offers from LocalFood API:", error);
 
       if (!cancelled) {
         setOffersMessage(tAdmin("admin.offers.loadError"));

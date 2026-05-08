@@ -4,11 +4,11 @@ import { toast } from "sonner";
 import { QUICK_FILTERS } from "@/data/restaurants";
 import { useRestaurantDashboard } from "@/contexts/RestaurantDashboardContext";
 import {
-  fetchSupabaseRestaurantById,
+  fetchApiRestaurantById,
   updateOwnedRestaurant,
   updateOwnedRestaurantTags,
-  type SupabaseRestaurantListItem,
-  type SupabaseRestaurantTag,
+  type ApiRestaurantListItem,
+  type ApiRestaurantTag,
 } from "@/lib/restaurants-api";
 import { useAdminI18n } from "@/lib/admin-i18n";
 
@@ -31,9 +31,9 @@ type ProfileForm = {
   wazeUrl: string;
 };
 
-type ProfileTag = SupabaseRestaurantTag;
+type ProfileTag = ApiRestaurantTag;
 
-function buildProfileForm(restaurant: SupabaseRestaurantListItem): ProfileForm {
+function buildProfileForm(restaurant: ApiRestaurantListItem): ProfileForm {
   return {
     restaurantId: restaurant.id,
     name: restaurant.name,
@@ -83,7 +83,7 @@ export function ProfileEditor() {
         return;
       }
 
-      const data = await fetchSupabaseRestaurantById(selectedRestaurant.id);
+      const data = await fetchApiRestaurantById(selectedRestaurant.id);
 
       if (cancelled) return;
 
@@ -99,7 +99,7 @@ export function ProfileEditor() {
     }
 
     loadProfileRestaurant().catch((error) => {
-      console.error("Failed to load profile restaurant from Supabase:", error);
+      console.error("Failed to load profile restaurant from LocalFood API:", error);
 
       if (!cancelled) {
         setProfileMessage(tAdmin("admin.profile.loadProfileError"));

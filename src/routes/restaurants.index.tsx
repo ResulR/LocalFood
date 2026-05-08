@@ -13,8 +13,8 @@ import {
   type LocationDismissReason,
   type UserLocation,
 } from "@/lib/location";
-import { fetchSupabaseRestaurants } from "@/lib/restaurants-api";
-import { mapSupabaseRestaurantsToRestaurants } from "@/lib/restaurant-mappers";
+import { fetchApiRestaurants } from "@/lib/restaurants-api";
+import { mapApiRestaurantsToRestaurants } from "@/lib/restaurant-mappers";
 import { useI18n } from "@/lib/i18n";
 
 type RestaurantsSearch = {
@@ -50,7 +50,7 @@ function RestaurantsPage() {
   const [search, setSearch] = useState("");
   const [sort, setSort] = useState<Sort>("near");
   const [mobileFilters, setMobileFilters] = useState(false);
-  const [supabaseRestaurants, setSupabaseRestaurants] = useState<Restaurant[]>([]);
+  const [apiRestaurants, setApiRestaurants] = useState<Restaurant[]>([]);
   const [loadingRestaurants, setLoadingRestaurants] = useState(true);
   const [restaurantsMessage, setRestaurantsMessage] = useState("");
   const [userLocation, setUserLocation] = useState<UserLocation | null>(null);
@@ -105,22 +105,22 @@ function RestaurantsPage() {
     setLoadingRestaurants(true);
     setRestaurantsMessage("");
 
-    fetchSupabaseRestaurants()
+    fetchApiRestaurants()
       .then((data) => {
         if (cancelled) return;
 
-        const mapped = mapSupabaseRestaurantsToRestaurants(data);
-        setSupabaseRestaurants(mapped);
+        const mapped = mapApiRestaurantsToRestaurants(data);
+        setApiRestaurants(mapped);
 
         if (mapped.length === 0) {
           setRestaurantsMessage(t("restaurants.noActiveRestaurants"));
         }
       })
       .catch((error) => {
-        console.error("Failed to load restaurants from Supabase:", error);
+        console.error("Failed to load restaurants from LocalFood API:", error);
 
         if (!cancelled) {
-          setSupabaseRestaurants([]);
+          setApiRestaurants([]);
           setRestaurantsMessage(t("restaurants.loadError"));
         }
       })
@@ -135,7 +135,7 @@ function RestaurantsPage() {
     };
   }, []);
 
-  const sourceRestaurants = supabaseRestaurants;
+  const sourceRestaurants = apiRestaurants;
 
   const restaurantsWithDistance = useMemo(() => {
     if (!userLocation) {

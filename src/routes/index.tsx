@@ -4,8 +4,8 @@ import { Search, ArrowRight, Sparkles, Star, Compass, Tag, Clock, Plus } from "l
 import { SiteShell } from "@/components/site/SiteShell";
 import { RestaurantCard } from "@/components/site/RestaurantCard";
 import { categories, QUICK_FILTERS, type Restaurant } from "@/data/restaurants";
-import { fetchSupabaseRestaurants } from "@/lib/restaurants-api";
-import { mapSupabaseRestaurantsToRestaurants } from "@/lib/restaurant-mappers";
+import { fetchApiRestaurants } from "@/lib/restaurants-api";
+import { mapApiRestaurantsToRestaurants } from "@/lib/restaurant-mappers";
 import { useI18n } from "@/lib/i18n";
 import heroFood from "@/assets/hero-food.jpg";
 
@@ -37,7 +37,7 @@ const CATEGORY_TAGS: Record<string, string | undefined> = {
 };
 
 function HomePage() {
-  const [supabaseRestaurants, setSupabaseRestaurants] = useState<Restaurant[]>([]);
+  const [apiRestaurants, setApiRestaurants] = useState<Restaurant[]>([]);
   const [restaurantsMessage, setRestaurantsMessage] = useState("");
   const { t } = useI18n();
 
@@ -46,22 +46,22 @@ function HomePage() {
 
     setRestaurantsMessage("");
 
-    fetchSupabaseRestaurants()
+    fetchApiRestaurants()
       .then((data) => {
         if (cancelled) return;
 
-        const mapped = mapSupabaseRestaurantsToRestaurants(data);
-        setSupabaseRestaurants(mapped);
+        const mapped = mapApiRestaurantsToRestaurants(data);
+        setApiRestaurants(mapped);
 
         if (mapped.length === 0) {
           setRestaurantsMessage(t("home.noActiveRestaurants"));
         }
       })
       .catch((error) => {
-        console.error("Failed to load home restaurants from Supabase:", error);
+        console.error("Failed to load home restaurants from LocalFood API:", error);
 
         if (!cancelled) {
-          setSupabaseRestaurants([]);
+          setApiRestaurants([]);
           setRestaurantsMessage(t("home.loadError"));
         }
       });
@@ -71,7 +71,7 @@ function HomePage() {
     };
   }, []);
 
-  const sourceRestaurants = supabaseRestaurants;
+  const sourceRestaurants = apiRestaurants;
 
   const popular = useMemo(
     () => [...sourceRestaurants].sort((a, b) => b.reviewsCount - a.reviewsCount).slice(0, 4),

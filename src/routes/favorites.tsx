@@ -5,8 +5,8 @@ import { SiteShell } from "@/components/site/SiteShell";
 import { RestaurantCard } from "@/components/site/RestaurantCard";
 import { useFavorites } from "@/lib/favorites";
 import type { Restaurant } from "@/data/restaurants";
-import { fetchSupabaseRestaurants } from "@/lib/restaurants-api";
-import { mapSupabaseRestaurantsToRestaurants } from "@/lib/restaurant-mappers";
+import { fetchApiRestaurants } from "@/lib/restaurants-api";
+import { mapApiRestaurantsToRestaurants } from "@/lib/restaurant-mappers";
 import { useI18n } from "@/lib/i18n";
 
 export const Route = createFileRoute("/favorites")({
@@ -22,7 +22,7 @@ export const Route = createFileRoute("/favorites")({
 function FavoritesPage() {
   const { ids } = useFavorites();
   const { t } = useI18n();
-  const [supabaseRestaurants, setSupabaseRestaurants] = useState<Restaurant[]>([]);
+  const [apiRestaurants, setApiRestaurants] = useState<Restaurant[]>([]);
   const [loadingRestaurants, setLoadingRestaurants] = useState(true);
   const [restaurantsMessage, setRestaurantsMessage] = useState("");
 
@@ -32,22 +32,22 @@ function FavoritesPage() {
     setLoadingRestaurants(true);
     setRestaurantsMessage("");
 
-    fetchSupabaseRestaurants()
+    fetchApiRestaurants()
       .then((data) => {
         if (cancelled) return;
 
-        const mapped = mapSupabaseRestaurantsToRestaurants(data);
-        setSupabaseRestaurants(mapped);
+        const mapped = mapApiRestaurantsToRestaurants(data);
+        setApiRestaurants(mapped);
 
         if (mapped.length === 0) {
           setRestaurantsMessage(t("favorites.noActiveRestaurants"));
         }
       })
       .catch((error) => {
-        console.error("Failed to load favorite restaurants from Supabase:", error);
+        console.error("Failed to load favorite restaurants from LocalFood API:", error);
 
         if (!cancelled) {
-          setSupabaseRestaurants([]);
+          setApiRestaurants([]);
           setRestaurantsMessage(t("favorites.loadError"));
         }
       })
@@ -62,7 +62,7 @@ function FavoritesPage() {
     };
   }, []);
 
-  const sourceRestaurants = supabaseRestaurants;
+  const sourceRestaurants = apiRestaurants;
 
   const favs = useMemo(
     () => sourceRestaurants.filter((restaurant) => ids.includes(restaurant.id)),

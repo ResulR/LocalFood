@@ -9,16 +9,16 @@ import {
 } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import {
-  fetchSupabaseRestaurantsByCompanyId,
-  type SupabaseCompanyRestaurant,
+  fetchApiRestaurantsByCompanyId,
+  type ApiCompanyRestaurant,
 } from "@/lib/restaurants-api";
 import { useAdminI18n } from "@/lib/admin-i18n";
 
 const STORAGE_KEY = "localfood-dashboard-restaurant-id";
 
 type RestaurantDashboardContextValue = {
-  restaurants: SupabaseCompanyRestaurant[];
-  selectedRestaurant: SupabaseCompanyRestaurant | null;
+  restaurants: ApiCompanyRestaurant[];
+  selectedRestaurant: ApiCompanyRestaurant | null;
   selectedRestaurantId: string | null;
   loadingRestaurants: boolean;
   restaurantMessage: string;
@@ -33,7 +33,7 @@ const RestaurantDashboardContext = createContext<RestaurantDashboardContextValue
 export function RestaurantDashboardProvider({ children }: { children: ReactNode }) {
   const { profile } = useAuth();
   const { tAdmin } = useAdminI18n();
-  const [restaurants, setRestaurants] = useState<SupabaseCompanyRestaurant[]>([]);
+  const [restaurants, setRestaurants] = useState<ApiCompanyRestaurant[]>([]);
   const [selectedRestaurantId, setSelectedRestaurantIdState] = useState<string | null>(null);
   const [loadingRestaurants, setLoadingRestaurants] = useState(true);
   const [restaurantMessage, setRestaurantMessage] = useState("");
@@ -50,7 +50,7 @@ export function RestaurantDashboardProvider({ children }: { children: ReactNode 
       return;
     }
 
-    const data = await fetchSupabaseRestaurantsByCompanyId(profile.current_company_id);
+    const data = await fetchApiRestaurantsByCompanyId(profile.current_company_id);
 
     setRestaurants(data);
 

@@ -23,36 +23,36 @@ import { RestaurantCard } from "@/components/site/RestaurantCard";
 import { PHOTO_CATEGORIES, type PhotoCategory } from "@/data/restaurants";
 import { useFavorites } from "@/lib/favorites";
 import {
-  fetchSupabaseRestaurantBySlug,
-  fetchSupabaseRestaurants,
+  fetchApiRestaurantBySlug,
+  fetchApiRestaurants,
   trackRestaurantInteractionBySlug,
-  type SupabaseRestaurantInteractionType,
+  type ApiRestaurantInteractionType,
 } from "@/lib/restaurants-api";
 import {
-  mapSupabaseRestaurantToRestaurant,
-  mapSupabaseRestaurantsToRestaurants,
+  mapApiRestaurantToRestaurant,
+  mapApiRestaurantsToRestaurants,
 } from "@/lib/restaurant-mappers";
 
 export const Route = createFileRoute("/restaurants/$id")({
   loader: async ({ params }) => {
     try {
-      const supabaseRestaurant = await fetchSupabaseRestaurantBySlug(params.id);
+      const apiRestaurant = await fetchApiRestaurantBySlug(params.id);
 
-      if (!supabaseRestaurant) {
+      if (!apiRestaurant) {
         throw notFound();
       }
 
-      const restaurants = await fetchSupabaseRestaurants();
-      const mappedRestaurants = mapSupabaseRestaurantsToRestaurants(restaurants);
+      const restaurants = await fetchApiRestaurants();
+      const mappedRestaurants = mapApiRestaurantsToRestaurants(restaurants);
 
       return {
-        restaurant: mapSupabaseRestaurantToRestaurant(supabaseRestaurant),
+        restaurant: mapApiRestaurantToRestaurant(apiRestaurant),
         similar: mappedRestaurants
-          .filter((restaurant) => restaurant.slug !== supabaseRestaurant.slug)
+          .filter((restaurant) => restaurant.slug !== apiRestaurant.slug)
           .slice(0, 3),
       };
     } catch (error) {
-      console.error("Failed to load restaurant from Supabase:", error);
+      console.error("Failed to load restaurant from LocalFood API:", error);
       throw notFound();
     }
   },
@@ -141,7 +141,7 @@ function RestaurantPage() {
 
   const trackPublicDetailInteraction = (
     action: string,
-    interactionType: SupabaseRestaurantInteractionType,
+    interactionType: ApiRestaurantInteractionType,
   ) => {
     trackRestaurantInteractionBySlug({
       slug: r.slug,

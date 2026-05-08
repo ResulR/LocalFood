@@ -24,9 +24,9 @@ import {
 } from "recharts";
 import { useRestaurantDashboard } from "@/contexts/RestaurantDashboardContext";
 import {
-  fetchSupabaseRestaurantInteractionsBySlug,
-  type SupabaseRestaurantInteraction,
-  type SupabaseRestaurantInteractionType,
+  fetchApiRestaurantInteractionsBySlug,
+  type ApiRestaurantInteraction,
+  type ApiRestaurantInteractionType,
 } from "@/lib/restaurants-api";
 import { useAdminI18n } from "@/lib/admin-i18n";
 import type { Language } from "@/lib/i18n";
@@ -57,8 +57,8 @@ function formatInteractionSource(source: string, tAdmin: TAdmin) {
   return sourceLabels[source] ?? source;
 }
 
-function formatInteractionType(type: SupabaseRestaurantInteractionType, tAdmin: TAdmin) {
-  const typeLabels: Record<SupabaseRestaurantInteractionType, string> = {
+function formatInteractionType(type: ApiRestaurantInteractionType, tAdmin: TAdmin) {
+  const typeLabels: Record<ApiRestaurantInteractionType, string> = {
     Vue: tAdmin("admin.overview.typeView"),
     Maps: tAdmin("admin.overview.typeMaps"),
     Waze: tAdmin("admin.overview.typeWaze"),
@@ -100,7 +100,7 @@ function getChartLocale(language: Language) {
 }
 
 function buildChartData(
-  interactions: SupabaseRestaurantInteraction[],
+  interactions: ApiRestaurantInteraction[],
   language: Language,
 ): ChartRow[] {
   const now = new Date();
@@ -129,8 +129,8 @@ function buildChartData(
 }
 
 function countType(
-  interactions: SupabaseRestaurantInteraction[],
-  type: SupabaseRestaurantInteractionType,
+  interactions: ApiRestaurantInteraction[],
+  type: ApiRestaurantInteractionType,
 ) {
   return interactions.filter((interaction) => interaction.interaction_type === type).length;
 }
@@ -139,7 +139,7 @@ export function DashboardOverview() {
   const { language, tAdmin } = useAdminI18n();
   const { selectedRestaurant, loadingRestaurants, restaurantMessage } = useRestaurantDashboard();
   const currentRestaurant = selectedRestaurant;
-  const [interactions, setInteractions] = useState<SupabaseRestaurantInteraction[]>([]);
+  const [interactions, setInteractions] = useState<ApiRestaurantInteraction[]>([]);
   const [loadingDashboard, setLoadingDashboard] = useState(true);
   const [dashboardMessage, setDashboardMessage] = useState("");
 
@@ -161,7 +161,7 @@ export function DashboardOverview() {
         return;
       }
 
-      const data = await fetchSupabaseRestaurantInteractionsBySlug(currentRestaurant.slug);
+      const data = await fetchApiRestaurantInteractionsBySlug(currentRestaurant.slug);
 
       if (cancelled) return;
 

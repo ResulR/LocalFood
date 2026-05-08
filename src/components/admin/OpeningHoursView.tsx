@@ -92,7 +92,7 @@ export function OpeningHoursView() {
     }
 
     loadOpeningHours().catch((error) => {
-      console.error("Failed to load restaurant opening hours from Supabase:", error);
+      console.error("Failed to load restaurant opening hours from LocalFood API:", error);
 
       if (!cancelled) {
         setHoursMessage(tAdmin("admin.openingHours.loadError"));

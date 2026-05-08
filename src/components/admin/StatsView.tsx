@@ -12,9 +12,9 @@ import {
 import { Sparkles } from "lucide-react";
 import { useRestaurantDashboard } from "@/contexts/RestaurantDashboardContext";
 import {
-  fetchSupabaseRestaurantInteractionsBySlug,
-  type SupabaseRestaurantInteraction,
-  type SupabaseRestaurantInteractionType,
+  fetchApiRestaurantInteractionsBySlug,
+  type ApiRestaurantInteraction,
+  type ApiRestaurantInteractionType,
 } from "@/lib/restaurants-api";
 import { useAdminI18n, type AdminTranslationKey } from "@/lib/admin-i18n";
 import type { Language } from "@/lib/i18n";
@@ -34,7 +34,7 @@ type ActionBreakdownRow = {
   p: number;
 };
 
-const ACTION_LABEL_KEYS: Record<SupabaseRestaurantInteractionType, AdminTranslationKey> = {
+const ACTION_LABEL_KEYS: Record<ApiRestaurantInteractionType, AdminTranslationKey> = {
   Vue: "admin.stats.actionViews",
   Maps: "admin.stats.actionMaps",
   Waze: "admin.stats.actionWaze",
@@ -46,7 +46,7 @@ const ACTION_LABEL_KEYS: Record<SupabaseRestaurantInteractionType, AdminTranslat
   Offre: "admin.stats.actionOffers",
 };
 
-const INTERACTION_TYPES: SupabaseRestaurantInteractionType[] = [
+const INTERACTION_TYPES: ApiRestaurantInteractionType[] = [
   "Maps",
   "Waze",
   "Appel",
@@ -78,7 +78,7 @@ function isInsideRange(createdAt: string, range: Range) {
 }
 
 function buildChartData(
-  interactions: SupabaseRestaurantInteraction[],
+  interactions: ApiRestaurantInteraction[],
   range: Range,
   language: Language,
 ): ChartRow[] {
@@ -119,7 +119,7 @@ function buildChartData(
 }
 
 function buildActionBreakdown(
-  interactions: SupabaseRestaurantInteraction[],
+  interactions: ApiRestaurantInteraction[],
   tAdmin: TAdmin,
 ): ActionBreakdownRow[] {
   const actionInteractions = interactions.filter(
@@ -143,7 +143,7 @@ function buildActionBreakdown(
     .sort((a, b) => b.v - a.v);
 }
 
-function buildPeakHours(interactions: SupabaseRestaurantInteraction[]): ActionBreakdownRow[] {
+function buildPeakHours(interactions: ApiRestaurantInteraction[]): ActionBreakdownRow[] {
   const hourCounts = new Map<number, number>();
 
   interactions.forEach((interaction) => {
@@ -166,7 +166,7 @@ export function StatsView() {
   const { selectedRestaurant, loadingRestaurants, restaurantMessage } = useRestaurantDashboard();
   const currentRestaurant = selectedRestaurant;
   const [range, setRange] = useState<Range>("7d");
-  const [interactions, setInteractions] = useState<SupabaseRestaurantInteraction[]>([]);
+  const [interactions, setInteractions] = useState<ApiRestaurantInteraction[]>([]);
   const [loadingStats, setLoadingStats] = useState(true);
   const [statsMessage, setStatsMessage] = useState("");
 
@@ -188,7 +188,7 @@ export function StatsView() {
         return;
       }
 
-      const data = await fetchSupabaseRestaurantInteractionsBySlug(currentRestaurant.slug);
+      const data = await fetchApiRestaurantInteractionsBySlug(currentRestaurant.slug);
 
       if (cancelled) return;
 

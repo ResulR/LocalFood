@@ -6,10 +6,10 @@ import { useRestaurantDashboard } from "@/contexts/RestaurantDashboardContext";
 import {
   addOwnedRestaurantPhoto,
   deleteOwnedRestaurantPhoto,
-  fetchSupabaseRestaurantById,
+  fetchApiRestaurantById,
   uploadRestaurantPhotoFile,
 } from "@/lib/restaurants-api";
-import { mapSupabaseRestaurantToRestaurant } from "@/lib/restaurant-mappers";
+import { mapApiRestaurantToRestaurant } from "@/lib/restaurant-mappers";
 import { useAdminI18n } from "@/lib/admin-i18n";
 
 const ALL_PHOTOS_FILTER = "Toutes";
@@ -49,7 +49,7 @@ export function PhotosView() {
 
       setCurrentRestaurantId(selectedRestaurant.id);
 
-      const data = await fetchSupabaseRestaurantById(selectedRestaurant.id);
+      const data = await fetchApiRestaurantById(selectedRestaurant.id);
 
       if (cancelled) return;
 
@@ -60,13 +60,13 @@ export function PhotosView() {
         return;
       }
 
-      const mapped = mapSupabaseRestaurantToRestaurant(data);
+      const mapped = mapApiRestaurantToRestaurant(data);
       setPhotos(mapped.photos);
       setLoadingPhotos(false);
     }
 
     loadRestaurantPhotos().catch((error) => {
-      console.error("Failed to load restaurant photos from Supabase:", error);
+      console.error("Failed to load restaurant photos from LocalFood API:", error);
 
       if (!cancelled) {
         setPhotos([]);
@@ -148,7 +148,7 @@ export function PhotosView() {
   const deletePhoto = async (photo: RestaurantPhoto) => {
     if (!photo.id) {
       toast.error(tAdmin("admin.photos.deleteImpossible"), {
-        description: tAdmin("admin.photos.noSupabaseId"),
+        description: tAdmin("admin.photos.noApiId"),
       });
       return;
     }

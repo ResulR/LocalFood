@@ -7,7 +7,7 @@ import type {
   RestaurantPhoto,
   RestaurantTag,
 } from "@/data/restaurants";
-import type { SupabaseRestaurantListItem } from "@/lib/restaurants-api";
+import type { ApiRestaurantListItem } from "@/lib/restaurants-api";
 
 const VALID_TAGS: RestaurantTag[] = [
   "Halal",
@@ -51,7 +51,7 @@ function toPhotoCategory(category: string): PhotoCategory {
     : "Plats";
 }
 
-function buildOpeningHours(restaurant: SupabaseRestaurantListItem): Record<string, string> {
+function buildOpeningHours(restaurant: ApiRestaurantListItem): Record<string, string> {
   if (restaurant.opening_hours.length === 0) {
     return {
       Lundi: restaurant.hours_summary ?? "Non renseigné",
@@ -84,7 +84,7 @@ function buildDetailedRating(rating: number): DetailedRating {
   };
 }
 
-function buildPhotos(restaurant: SupabaseRestaurantListItem): RestaurantPhoto[] {
+function buildPhotos(restaurant: ApiRestaurantListItem): RestaurantPhoto[] {
   return restaurant.photos
     .slice()
     .sort((a, b) => a.sort_order - b.sort_order)
@@ -97,7 +97,7 @@ function buildPhotos(restaurant: SupabaseRestaurantListItem): RestaurantPhoto[] 
     }));
 }
 
-function buildOffer(restaurant: SupabaseRestaurantListItem): Offer | undefined {
+function buildOffer(restaurant: ApiRestaurantListItem): Offer | undefined {
   const offer = restaurant.offers[0];
 
   if (!offer) {
@@ -112,8 +112,8 @@ function buildOffer(restaurant: SupabaseRestaurantListItem): Offer | undefined {
   };
 }
 
-export function mapSupabaseRestaurantToRestaurant(
-  restaurant: SupabaseRestaurantListItem,
+export function mapApiRestaurantToRestaurant(
+  restaurant: ApiRestaurantListItem,
 ): Restaurant {
   const tags = restaurant.tags
     .map((tag) => toRestaurantTag(tag.label))
@@ -190,8 +190,8 @@ export function mapSupabaseRestaurantToRestaurant(
   };
 }
 
-export function mapSupabaseRestaurantsToRestaurants(
-  restaurants: SupabaseRestaurantListItem[],
+export function mapApiRestaurantsToRestaurants(
+  restaurants: ApiRestaurantListItem[],
 ): Restaurant[] {
-  return restaurants.map(mapSupabaseRestaurantToRestaurant);
+  return restaurants.map(mapApiRestaurantToRestaurant);
 }
