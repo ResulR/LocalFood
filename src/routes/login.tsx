@@ -22,7 +22,7 @@ function LoginPage() {
   const navigate = useNavigate();
   const { tAdmin } = useAdminI18n();
   const { user, role, loading, signIn } = useAuth();
-  const [email, setEmail] = useState("resulramadani35@gmail.com");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [submitting, setSubmitting] = useState(false);
 

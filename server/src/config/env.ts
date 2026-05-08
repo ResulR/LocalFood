@@ -15,7 +15,7 @@ const envSchema = z.object({
   LOCAL_AUTH_JWT_EXPIRES_IN: z.string().default("7d"),
 
   OPENAI_API_KEY: z.string().optional(),
-  OPENAI_MODEL: z.string().default("gpt-5.4-mini"),
+  OPENAI_MODEL: z.string().default("gpt-4o-mini"),
 
   AI_DAILY_REQUEST_LIMIT: z.coerce.number().int().positive().default(20),
 });

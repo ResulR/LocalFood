@@ -1,4 +1,5 @@
 import { Router } from "express";
+import rateLimit from "express-rate-limit";
 import { z } from "zod";
 import { dbQuery } from "../lib/db.js";
 import { createLocalAuthToken, hashPassword, verifyPassword } from "../lib/local-auth.js";
@@ -32,6 +33,18 @@ const localLoginSchema = z.object({
 
 const setLocalPasswordSchema = z.object({
   password: z.string().min(8).max(200),
+});
+
+const localLoginRateLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: {
+    ok: false,
+    code: "LOGIN_RATE_LIMIT_EXCEEDED",
+    message: "Trop de tentatives de connexion. Réessayez plus tard.",
+  },
 });
 
 export const authRouter = Router();
@@ -183,7 +196,7 @@ authRouter.post("/local/set-password", requireAuth, async (request, response, ne
   }
 });
 
-authRouter.post("/local/login", async (request, response, next) => {
+authRouter.post("/local/login", localLoginRateLimiter, async (request, response, next) => {
   try {
     const parsed = localLoginSchema.safeParse(request.body);
 

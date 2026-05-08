@@ -18,6 +18,8 @@ const uploadsRoot = fileURLToPath(new URL("../uploads", import.meta.url));
 export function createApp() {
   const app = express();
 
+  app.set("trust proxy", 1);
+
   app.use(helmet());
   app.use("/uploads", express.static(uploadsRoot));
   app.use(
