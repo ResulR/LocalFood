@@ -283,6 +283,11 @@ export function SiteFooter() {
                 {t("footer.terms")}
               </Link>
             </li>
+            <li>
+              <Link to="/legal/cgv" className="hover:text-foreground">
+                {t("footer.salesTerms")}
+              </Link>
+            </li>
           </ul>
         </div>
       </div>

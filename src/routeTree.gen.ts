@@ -38,6 +38,7 @@ import { Route as RestaurantDashboardAvisRouteImport } from './routes/restaurant
 import { Route as RestaurantDashboardAbonnementRouteImport } from './routes/restaurant-dashboard.abonnement'
 import { Route as LegalMentionsLegalesRouteImport } from './routes/legal.mentions-legales'
 import { Route as LegalConfidentialiteRouteImport } from './routes/legal.confidentialite'
+import { Route as LegalCgvRouteImport } from './routes/legal.cgv'
 import { Route as LegalCguRouteImport } from './routes/legal.cgu'
 
 const SuperAdminRoute = SuperAdminRouteImport.update({
@@ -198,6 +199,11 @@ const LegalConfidentialiteRoute = LegalConfidentialiteRouteImport.update({
   path: '/legal/confidentialite',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LegalCgvRoute = LegalCgvRouteImport.update({
+  id: '/legal/cgv',
+  path: '/legal/cgv',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LegalCguRoute = LegalCguRouteImport.update({
   id: '/legal/cgu',
   path: '/legal/cgu',
@@ -214,6 +220,7 @@ export interface FileRoutesByFullPath {
   '/restaurants': typeof RestaurantsRouteWithChildren
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/legal/cgu': typeof LegalCguRoute
+  '/legal/cgv': typeof LegalCgvRoute
   '/legal/confidentialite': typeof LegalConfidentialiteRoute
   '/legal/mentions-legales': typeof LegalMentionsLegalesRoute
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
@@ -244,6 +251,7 @@ export interface FileRoutesByTo {
   '/login': typeof LoginRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/legal/cgu': typeof LegalCguRoute
+  '/legal/cgv': typeof LegalCgvRoute
   '/legal/confidentialite': typeof LegalConfidentialiteRoute
   '/legal/mentions-legales': typeof LegalMentionsLegalesRoute
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
@@ -277,6 +285,7 @@ export interface FileRoutesById {
   '/restaurants': typeof RestaurantsRouteWithChildren
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/legal/cgu': typeof LegalCguRoute
+  '/legal/cgv': typeof LegalCgvRoute
   '/legal/confidentialite': typeof LegalConfidentialiteRoute
   '/legal/mentions-legales': typeof LegalMentionsLegalesRoute
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
@@ -311,6 +320,7 @@ export interface FileRouteTypes {
     | '/restaurants'
     | '/super-admin'
     | '/legal/cgu'
+    | '/legal/cgv'
     | '/legal/confidentialite'
     | '/legal/mentions-legales'
     | '/restaurant-dashboard/abonnement'
@@ -341,6 +351,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/super-admin'
     | '/legal/cgu'
+    | '/legal/cgv'
     | '/legal/confidentialite'
     | '/legal/mentions-legales'
     | '/restaurant-dashboard/abonnement'
@@ -373,6 +384,7 @@ export interface FileRouteTypes {
     | '/restaurants'
     | '/super-admin'
     | '/legal/cgu'
+    | '/legal/cgv'
     | '/legal/confidentialite'
     | '/legal/mentions-legales'
     | '/restaurant-dashboard/abonnement'
@@ -406,6 +418,7 @@ export interface RootRouteChildren {
   RestaurantsRoute: typeof RestaurantsRouteWithChildren
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
   LegalCguRoute: typeof LegalCguRoute
+  LegalCgvRoute: typeof LegalCgvRoute
   LegalConfidentialiteRoute: typeof LegalConfidentialiteRoute
   LegalMentionsLegalesRoute: typeof LegalMentionsLegalesRoute
 }
@@ -615,6 +628,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegalConfidentialiteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/legal/cgv': {
+      id: '/legal/cgv'
+      path: '/legal/cgv'
+      fullPath: '/legal/cgv'
+      preLoaderRoute: typeof LegalCgvRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/legal/cgu': {
       id: '/legal/cgu'
       path: '/legal/cgu'
@@ -702,6 +722,7 @@ const rootRouteChildren: RootRouteChildren = {
   RestaurantsRoute: RestaurantsRouteWithChildren,
   SuperAdminRoute: SuperAdminRouteWithChildren,
   LegalCguRoute: LegalCguRoute,
+  LegalCgvRoute: LegalCgvRoute,
   LegalConfidentialiteRoute: LegalConfidentialiteRoute,
   LegalMentionsLegalesRoute: LegalMentionsLegalesRoute,
 }
