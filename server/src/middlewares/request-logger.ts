@@ -1,5 +1,6 @@
 import { randomUUID } from "node:crypto";
 import type { RequestHandler } from "express";
+import { logger } from "../lib/logger.js";
 
 export const requestLogger: RequestHandler = (request, response, next) => {
   const requestId = randomUUID();
@@ -10,14 +11,15 @@ export const requestLogger: RequestHandler = (request, response, next) => {
   response.on("finish", () => {
     const durationMs = Date.now() - startedAt;
 
-    console.log(
-      JSON.stringify({
+    logger.info(
+      {
         requestId,
         method: request.method,
         url: request.originalUrl,
         statusCode: response.statusCode,
         durationMs,
-      }),
+      },
+      "HTTP request completed",
     );
   });
 

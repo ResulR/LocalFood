@@ -3,6 +3,7 @@ import { Router } from "express";
 import { z } from "zod";
 import { env } from "../../config/env.js";
 import { dbQuery } from "../../lib/db.js";
+import { logger } from "../../lib/logger.js";
 
 export const publicAiRouter = Router();
 
@@ -296,7 +297,7 @@ async function generateAiAnswer({
 
     return response.output_text?.trim() || fallbackAnswer;
   } catch (error) {
-    console.error("OpenAI LocalFood answer generation failed:", error);
+    logger.error({ error }, "OpenAI LocalFood answer generation failed");
     return fallbackAnswer;
   }
 }
@@ -560,7 +561,7 @@ publicAiRouter.post("/restaurant-search", async (req, res) => {
   try {
     activeTags = await fetchActiveTagsFromPostgres();
   } catch (error) {
-    console.error("LocalFood AI tags PostgreSQL query failed:", error);
+    logger.error({ error }, "LocalFood AI tags PostgreSQL query failed");
 
     return res.status(503).json({
       ok: false,
@@ -603,7 +604,7 @@ publicAiRouter.post("/restaurant-search", async (req, res) => {
   try {
     rows = await fetchActiveRestaurantsFromPostgres();
   } catch (error) {
-    console.error("LocalFood AI restaurants PostgreSQL query failed:", error);
+    logger.error({ error }, "LocalFood AI restaurants PostgreSQL query failed");
 
     return res.status(500).json({
       ok: false,
