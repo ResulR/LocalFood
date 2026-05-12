@@ -38,6 +38,7 @@ import { Route as RestaurantDashboardAvisRouteImport } from './routes/restaurant
 import { Route as RestaurantDashboardAbonnementRouteImport } from './routes/restaurant-dashboard.abonnement'
 import { Route as LegalMentionsLegalesRouteImport } from './routes/legal.mentions-legales'
 import { Route as LegalConfidentialiteRouteImport } from './routes/legal.confidentialite'
+import { Route as LegalCguRouteImport } from './routes/legal.cgu'
 
 const SuperAdminRoute = SuperAdminRouteImport.update({
   id: '/super-admin',
@@ -197,6 +198,11 @@ const LegalConfidentialiteRoute = LegalConfidentialiteRouteImport.update({
   path: '/legal/confidentialite',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LegalCguRoute = LegalCguRouteImport.update({
+  id: '/legal/cgu',
+  path: '/legal/cgu',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -207,6 +213,7 @@ export interface FileRoutesByFullPath {
   '/restaurant-dashboard': typeof RestaurantDashboardRouteWithChildren
   '/restaurants': typeof RestaurantsRouteWithChildren
   '/super-admin': typeof SuperAdminRouteWithChildren
+  '/legal/cgu': typeof LegalCguRoute
   '/legal/confidentialite': typeof LegalConfidentialiteRoute
   '/legal/mentions-legales': typeof LegalMentionsLegalesRoute
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
@@ -236,6 +243,7 @@ export interface FileRoutesByTo {
   '/for-restaurants': typeof ForRestaurantsRoute
   '/login': typeof LoginRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
+  '/legal/cgu': typeof LegalCguRoute
   '/legal/confidentialite': typeof LegalConfidentialiteRoute
   '/legal/mentions-legales': typeof LegalMentionsLegalesRoute
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
@@ -268,6 +276,7 @@ export interface FileRoutesById {
   '/restaurant-dashboard': typeof RestaurantDashboardRouteWithChildren
   '/restaurants': typeof RestaurantsRouteWithChildren
   '/super-admin': typeof SuperAdminRouteWithChildren
+  '/legal/cgu': typeof LegalCguRoute
   '/legal/confidentialite': typeof LegalConfidentialiteRoute
   '/legal/mentions-legales': typeof LegalMentionsLegalesRoute
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
@@ -301,6 +310,7 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard'
     | '/restaurants'
     | '/super-admin'
+    | '/legal/cgu'
     | '/legal/confidentialite'
     | '/legal/mentions-legales'
     | '/restaurant-dashboard/abonnement'
@@ -330,6 +340,7 @@ export interface FileRouteTypes {
     | '/for-restaurants'
     | '/login'
     | '/super-admin'
+    | '/legal/cgu'
     | '/legal/confidentialite'
     | '/legal/mentions-legales'
     | '/restaurant-dashboard/abonnement'
@@ -361,6 +372,7 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard'
     | '/restaurants'
     | '/super-admin'
+    | '/legal/cgu'
     | '/legal/confidentialite'
     | '/legal/mentions-legales'
     | '/restaurant-dashboard/abonnement'
@@ -393,6 +405,7 @@ export interface RootRouteChildren {
   RestaurantDashboardRoute: typeof RestaurantDashboardRouteWithChildren
   RestaurantsRoute: typeof RestaurantsRouteWithChildren
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
+  LegalCguRoute: typeof LegalCguRoute
   LegalConfidentialiteRoute: typeof LegalConfidentialiteRoute
   LegalMentionsLegalesRoute: typeof LegalMentionsLegalesRoute
 }
@@ -602,6 +615,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegalConfidentialiteRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/legal/cgu': {
+      id: '/legal/cgu'
+      path: '/legal/cgu'
+      fullPath: '/legal/cgu'
+      preLoaderRoute: typeof LegalCguRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -681,6 +701,7 @@ const rootRouteChildren: RootRouteChildren = {
   RestaurantDashboardRoute: RestaurantDashboardRouteWithChildren,
   RestaurantsRoute: RestaurantsRouteWithChildren,
   SuperAdminRoute: SuperAdminRouteWithChildren,
+  LegalCguRoute: LegalCguRoute,
   LegalConfidentialiteRoute: LegalConfidentialiteRoute,
   LegalMentionsLegalesRoute: LegalMentionsLegalesRoute,
 }

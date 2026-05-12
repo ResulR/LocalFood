@@ -278,6 +278,11 @@ export function SiteFooter() {
                 {t("footer.privacy")}
               </Link>
             </li>
+            <li>
+              <Link to="/legal/cgu" className="hover:text-foreground">
+                {t("footer.terms")}
+              </Link>
+            </li>
           </ul>
         </div>
       </div>
