@@ -44,12 +44,31 @@ export async function requireAuth(request: Request, _response: Response, next: N
       throw new HttpError(401, "Missing bearer token.", "AUTH_TOKEN_MISSING");
     }
 
-    let tokenPayload: { userId: string };
+    let tokenPayload: { userId: string; jti?: string };
 
     try {
       tokenPayload = verifyLocalAuthToken(accessToken);
     } catch {
       throw new HttpError(401, "Invalid bearer token.", "AUTH_TOKEN_INVALID");
+    }
+
+    if (!tokenPayload.jti) {
+      throw new HttpError(401, "Invalid bearer token.", "AUTH_TOKEN_INVALID");
+    }
+
+    const revokedTokenResult = await dbQuery<{ found: number }>(
+      `
+        select 1 as found
+        from public.revoked_tokens
+        where jti = $1
+          and expires_at > now()
+        limit 1
+      `,
+      [tokenPayload.jti],
+    );
+
+    if (revokedTokenResult.rows[0]) {
+      throw new HttpError(401, "Revoked bearer token.", "AUTH_TOKEN_REVOKED");
     }
 
     const [profileResult, roleResult] = await Promise.all([
