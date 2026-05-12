@@ -198,6 +198,7 @@ async function fetchActiveRestaurantsFromPostgres() {
       from public.restaurants r
       where r.is_active = true
       order by r.reviews_count desc
+      limit 200
     `,
   );
 
