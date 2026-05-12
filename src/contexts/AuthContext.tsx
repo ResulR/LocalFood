@@ -7,6 +7,7 @@ import {
   useState,
   type ReactNode,
 } from "react";
+import { logoutLocalAuth } from "@/lib/auth-api";
 import {
   clearLocalAuthToken,
   getLocalAuthToken,
@@ -239,7 +240,13 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   );
 
   const signOut = useCallback(async () => {
-    clearAuthData();
+    try {
+      await logoutLocalAuth();
+    } catch {
+      // Logout must still clear local auth state even if server revocation fails.
+    } finally {
+      clearAuthData();
+    }
   }, [clearAuthData]);
 
   const value = useMemo<AuthContextValue>(

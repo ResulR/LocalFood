@@ -32,3 +32,10 @@ export async function changeLocalPassword(payload: ChangeLocalPasswordPayload) {
 
   return json.data;
 }
+
+export async function logoutLocalAuth() {
+  await fetch(`${apiBaseUrl}/api/auth/local/logout`, {
+    method: "POST",
+    headers: getLocalAuthHeaders(),
+  });
+}
