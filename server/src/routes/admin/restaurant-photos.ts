@@ -160,8 +160,8 @@ adminRestaurantPhotosRouter.post(
         throw new HttpError(403, "Not allowed to upload this photo.", "PHOTO_UPLOAD_FORBIDDEN");
       }
 
-      const safeFileName = sanitizeFileName(request.file.originalname) || "photo";
-      const storedFileName = `${Date.now()}-${safeFileName}`;
+      const safeBaseName = sanitizeFileName(path.parse(request.file.originalname).name) || "photo";
+      const storedFileName = `${Date.now()}-${safeBaseName}.${detectedFileType.ext}`;
       const restaurantFolder = path.join(restaurantPhotosRoot, payload.restaurantId);
       const filePath = path.join(restaurantFolder, storedFileName);
       const relativePath = `${payload.restaurantId}/${storedFileName}`;
