@@ -372,33 +372,47 @@ adminUsersRouter.patch(
         }
       }
 
-      await dbQuery(
-        `
-          delete from public.user_roles
-          where user_id = $1
-        `,
-        [userId],
-      );
+      const client = await getDbPool().connect();
+      let insertedRole: { user_id: string; role: "superadmin" | "admin" | "user" } | undefined;
 
-      const insertedRoleResult = await dbQuery<{
-        user_id: string;
-        role: "superadmin" | "admin" | "user";
-      }>(
-        `
-          insert into public.user_roles (
-            user_id,
-            role
-          )
-          values ($1, $2)
-          returning user_id, role
-        `,
-        [userId, payload.role],
-      );
+      try {
+        await client.query("BEGIN");
 
-      const insertedRole = insertedRoleResult.rows[0];
+        await client.query(
+          `
+            delete from public.user_roles
+            where user_id = $1
+          `,
+          [userId],
+        );
 
-      if (!insertedRole) {
-        throw new HttpError(500, "Role insert returned no data.", "USER_ROLE_INSERT_EMPTY");
+        const insertedRoleResult = await client.query<{
+          user_id: string;
+          role: "superadmin" | "admin" | "user";
+        }>(
+          `
+            insert into public.user_roles (
+              user_id,
+              role
+            )
+            values ($1, $2)
+            returning user_id, role
+          `,
+          [userId, payload.role],
+        );
+
+        insertedRole = insertedRoleResult.rows[0];
+
+        if (!insertedRole) {
+          throw new HttpError(500, "Role insert returned no data.", "USER_ROLE_INSERT_EMPTY");
+        }
+
+        await client.query("COMMIT");
+      } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+      } finally {
+        client.release();
       }
 
       response.json({
