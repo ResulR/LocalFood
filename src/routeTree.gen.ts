@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as SuperAdminRouteImport } from './routes/super-admin'
+import { Route as SitemapDotxmlRouteImport } from './routes/sitemap[.]xml'
 import { Route as RestaurantsRouteImport } from './routes/restaurants'
 import { Route as RestaurantDashboardRouteImport } from './routes/restaurant-dashboard'
 import { Route as LoginRouteImport } from './routes/login'
@@ -45,6 +46,11 @@ import { Route as LegalCguRouteImport } from './routes/legal.cgu'
 const SuperAdminRoute = SuperAdminRouteImport.update({
   id: '/super-admin',
   path: '/super-admin',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const SitemapDotxmlRoute = SitemapDotxmlRouteImport.update({
+  id: '/sitemap.xml',
+  path: '/sitemap.xml',
   getParentRoute: () => rootRouteImport,
 } as any)
 const RestaurantsRoute = RestaurantsRouteImport.update({
@@ -224,6 +230,7 @@ export interface FileRoutesByFullPath {
   '/login': typeof LoginRoute
   '/restaurant-dashboard': typeof RestaurantDashboardRouteWithChildren
   '/restaurants': typeof RestaurantsRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/legal/cgu': typeof LegalCguRoute
   '/legal/cgv': typeof LegalCgvRoute
@@ -256,6 +263,7 @@ export interface FileRoutesByTo {
   '/favorites': typeof FavoritesRoute
   '/for-restaurants': typeof ForRestaurantsRoute
   '/login': typeof LoginRoute
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/legal/cgu': typeof LegalCguRoute
   '/legal/cgv': typeof LegalCgvRoute
@@ -291,6 +299,7 @@ export interface FileRoutesById {
   '/login': typeof LoginRoute
   '/restaurant-dashboard': typeof RestaurantDashboardRouteWithChildren
   '/restaurants': typeof RestaurantsRouteWithChildren
+  '/sitemap.xml': typeof SitemapDotxmlRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
   '/legal/cgu': typeof LegalCguRoute
   '/legal/cgv': typeof LegalCgvRoute
@@ -327,6 +336,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/restaurant-dashboard'
     | '/restaurants'
+    | '/sitemap.xml'
     | '/super-admin'
     | '/legal/cgu'
     | '/legal/cgv'
@@ -359,6 +369,7 @@ export interface FileRouteTypes {
     | '/favorites'
     | '/for-restaurants'
     | '/login'
+    | '/sitemap.xml'
     | '/super-admin'
     | '/legal/cgu'
     | '/legal/cgv'
@@ -393,6 +404,7 @@ export interface FileRouteTypes {
     | '/login'
     | '/restaurant-dashboard'
     | '/restaurants'
+    | '/sitemap.xml'
     | '/super-admin'
     | '/legal/cgu'
     | '/legal/cgv'
@@ -428,6 +440,7 @@ export interface RootRouteChildren {
   LoginRoute: typeof LoginRoute
   RestaurantDashboardRoute: typeof RestaurantDashboardRouteWithChildren
   RestaurantsRoute: typeof RestaurantsRouteWithChildren
+  SitemapDotxmlRoute: typeof SitemapDotxmlRoute
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
   LegalCguRoute: typeof LegalCguRoute
   LegalCgvRoute: typeof LegalCgvRoute
@@ -443,6 +456,13 @@ declare module '@tanstack/react-router' {
       path: '/super-admin'
       fullPath: '/super-admin'
       preLoaderRoute: typeof SuperAdminRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/sitemap.xml': {
+      id: '/sitemap.xml'
+      path: '/sitemap.xml'
+      fullPath: '/sitemap.xml'
+      preLoaderRoute: typeof SitemapDotxmlRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/restaurants': {
@@ -740,6 +760,7 @@ const rootRouteChildren: RootRouteChildren = {
   LoginRoute: LoginRoute,
   RestaurantDashboardRoute: RestaurantDashboardRouteWithChildren,
   RestaurantsRoute: RestaurantsRouteWithChildren,
+  SitemapDotxmlRoute: SitemapDotxmlRoute,
   SuperAdminRoute: SuperAdminRouteWithChildren,
   LegalCguRoute: LegalCguRoute,
   LegalCgvRoute: LegalCgvRoute,
