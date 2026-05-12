@@ -1,6 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { StatsView } from "@/components/admin/StatsView";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/restaurant-dashboard/statistiques")({
-  component: StatsView,
+  beforeLoad: () => {
+    throw redirect({
+      to: "/restaurant-dashboard/stats",
+    });
+  },
 });

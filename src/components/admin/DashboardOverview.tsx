@@ -314,7 +314,7 @@ export function DashboardOverview() {
               <p className="text-xs text-muted-foreground">{tAdmin("admin.common.days7")}</p>
             </div>
             <Link
-              to="/restaurant-dashboard/statistiques"
+              to="/restaurant-dashboard/stats"
               className="text-xs text-primary hover:underline inline-flex items-center gap-1"
             >
               {tAdmin("admin.overview.seeAll")} <ArrowUpRight className="h-3 w-3" />

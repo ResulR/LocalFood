@@ -1,6 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { ProfileEditor } from "@/components/admin/ProfileEditor";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/restaurant-dashboard/fiche")({
-  component: ProfileEditor,
+  beforeLoad: () => {
+    throw redirect({
+      to: "/restaurant-dashboard/profile",
+    });
+  },
 });

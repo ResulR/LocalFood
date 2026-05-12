@@ -1,6 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { OpeningHoursView } from "@/components/admin/OpeningHoursView";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/restaurant-dashboard/horaires")({
-  component: OpeningHoursView,
+  beforeLoad: () => {
+    throw redirect({
+      to: "/restaurant-dashboard/opening-hours",
+    });
+  },
 });

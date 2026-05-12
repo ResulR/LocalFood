@@ -1,6 +1,9 @@
-import { createFileRoute } from "@tanstack/react-router";
-import { SubscriptionView } from "@/components/admin/SubscriptionView";
+import { createFileRoute, redirect } from "@tanstack/react-router";
 
 export const Route = createFileRoute("/restaurant-dashboard/abonnement")({
-  component: SubscriptionView,
+  beforeLoad: () => {
+    throw redirect({
+      to: "/restaurant-dashboard/subscription",
+    });
+  },
 });
