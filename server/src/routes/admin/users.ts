@@ -467,48 +467,69 @@ adminUsersRouter.patch(
         }
       }
 
-      const profileResult = await dbQuery<{
-        user_id: string;
-        email: string | null;
-        full_name: string | null;
-        current_company_id: string | null;
-      }>(
-        `
-          update public.profiles
-          set
-            current_company_id = $2,
-            updated_at = now()
-          where user_id = $1
-          returning user_id, email, full_name, current_company_id
-        `,
-        [userId, payload.companyId],
-      );
+      const client = await getDbPool().connect();
+      let updatedProfile:
+        | {
+            user_id: string;
+            email: string | null;
+            full_name: string | null;
+            current_company_id: string | null;
+          }
+        | undefined;
 
-      const updatedProfile = profileResult.rows[0];
+      try {
+        await client.query("BEGIN");
 
-      if (!updatedProfile) {
-        throw new HttpError(404, "Profile not found.", "PROFILE_NOT_FOUND");
-      }
-
-      await dbQuery(
-        `
-          delete from public.company_users
-          where user_id = $1
-        `,
-        [userId],
-      );
-
-      if (payload.companyId) {
-        await dbQuery(
+        const profileResult = await client.query<{
+          user_id: string;
+          email: string | null;
+          full_name: string | null;
+          current_company_id: string | null;
+        }>(
           `
-            insert into public.company_users (
-              user_id,
-              company_id
-            )
-            values ($1, $2)
+            update public.profiles
+            set
+              current_company_id = $2,
+              updated_at = now()
+            where user_id = $1
+            returning user_id, email, full_name, current_company_id
           `,
           [userId, payload.companyId],
         );
+
+        updatedProfile = profileResult.rows[0];
+
+        if (!updatedProfile) {
+          throw new HttpError(404, "Profile not found.", "PROFILE_NOT_FOUND");
+        }
+
+        await client.query(
+          `
+            delete from public.company_users
+            where user_id = $1
+          `,
+          [userId],
+        );
+
+        if (payload.companyId) {
+          await client.query(
+            `
+              insert into public.company_users (
+                user_id,
+                company_id
+              )
+              values ($1, $2)
+            `,
+            [userId, payload.companyId],
+          );
+        }
+
+        await client.query("COMMIT");
+      } catch (error) {
+        await client.query("ROLLBACK");
+        throw error;
+      } finally {
+        client.release();
       }
 
       response.json({
