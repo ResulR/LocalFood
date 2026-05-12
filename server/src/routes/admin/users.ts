@@ -1,7 +1,7 @@
 import { randomUUID } from "node:crypto";
 import { Router } from "express";
 import { z } from "zod";
-import { dbQuery } from "../../lib/db.js";
+import { dbQuery, getDbPool } from "../../lib/db.js";
 import { hashPassword } from "../../lib/local-auth.js";
 import { requireAuth, requireSuperAdmin } from "../../middlewares/auth.js";
 import { HttpError } from "../../middlewares/error-handler.js";
@@ -145,56 +145,68 @@ adminUsersRouter.post("/", requireAuth, requireSuperAdmin, async (request, respo
     }
 
     const passwordHash = await hashPassword(payload.temporaryPassword);
+    const client = await getDbPool().connect();
 
-    await dbQuery(
-      `
-        insert into public.profiles (
-          user_id,
-          email,
-          full_name,
-          current_company_id,
-          is_active
-        )
-        values ($1, $2, $3, $4, true)
-      `,
-      [userId, email, payload.fullName, payload.companyId],
-    );
+    try {
+      await client.query("BEGIN");
 
-    await dbQuery(
-      `
-        insert into public.user_roles (
-          user_id,
-          role
-        )
-        values ($1, $2)
-      `,
-      [userId, payload.role],
-    );
+      await client.query(
+        `
+          insert into public.profiles (
+            user_id,
+            email,
+            full_name,
+            current_company_id,
+            is_active
+          )
+          values ($1, $2, $3, $4, true)
+        `,
+        [userId, email, payload.fullName, payload.companyId],
+      );
 
-    await dbQuery(
-      `
-        insert into public.company_users (
-          user_id,
-          company_id
-        )
-        values ($1, $2)
-      `,
-      [userId, payload.companyId],
-    );
+      await client.query(
+        `
+          insert into public.user_roles (
+            user_id,
+            role
+          )
+          values ($1, $2)
+        `,
+        [userId, payload.role],
+      );
 
-    await dbQuery(
-      `
-        insert into public.local_auth_users (
-          user_id,
-          email,
-          password_hash,
-          password_set,
-          is_active
-        )
-        values ($1, $2, $3, true, true)
-      `,
-      [userId, email, passwordHash],
-    );
+      await client.query(
+        `
+          insert into public.company_users (
+            user_id,
+            company_id
+          )
+          values ($1, $2)
+        `,
+        [userId, payload.companyId],
+      );
+
+      await client.query(
+        `
+          insert into public.local_auth_users (
+            user_id,
+            email,
+            password_hash,
+            password_set,
+            is_active
+          )
+          values ($1, $2, $3, true, true)
+        `,
+        [userId, email, passwordHash],
+      );
+
+      await client.query("COMMIT");
+    } catch (error) {
+      await client.query("ROLLBACK");
+      throw error;
+    } finally {
+      client.release();
+    }
 
     response.status(201).json({
       ok: true,
