@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useFavorites } from "@/lib/favorites";
 import { AVAILABLE_LANGUAGES, getLanguageLabel, useI18n } from "@/lib/i18n";
 import { FloatingAIAssistant } from "./FloatingAIAssistant";
+import { CookieBanner } from "./CookieBanner";
 
 function LanguageSwitcher({ compact = false }: { compact?: boolean }) {
   const { language, setLanguage, t } = useI18n();
@@ -311,6 +312,7 @@ export function SiteShell({ children }: { children: React.ReactNode }) {
       <main className="flex-1">{children}</main>
       <SiteFooter />
       <FloatingAIAssistant />
+      <CookieBanner />
     </div>
   );
 }
