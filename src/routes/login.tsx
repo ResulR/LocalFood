@@ -46,6 +46,12 @@ function LoginPage() {
     }
 
     toast.success(tAdmin("admin.login.success"));
+
+    if (result.mustChangePassword) {
+      window.location.href = "/restaurant-dashboard?forcePasswordChange=1";
+      return;
+    }
+
     navigate({ to: "/restaurant-dashboard" });
   };
 

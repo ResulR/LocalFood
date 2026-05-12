@@ -24,6 +24,7 @@ type LocalAuthUserRow = {
   password_hash: string | null;
   password_set: boolean;
   is_active: boolean;
+  must_change_password: boolean;
 };
 
 const localLoginSchema = z.object({
@@ -231,7 +232,8 @@ authRouter.post("/local/change-password", requireAuth, async (request, response,
           email,
           password_hash,
           password_set,
-          is_active
+          is_active,
+          must_change_password
         from public.local_auth_users
         where user_id = $1
         limit 1
@@ -286,6 +288,7 @@ authRouter.post("/local/change-password", requireAuth, async (request, response,
         set
           password_hash = $2,
           password_set = true,
+          must_change_password = false,
           updated_at = now()
         where user_id = $1
       `,
@@ -324,7 +327,8 @@ authRouter.post("/local/login", localLoginRateLimiter, async (request, response,
           email,
           password_hash,
           password_set,
-          is_active
+          is_active,
+          must_change_password
         from public.local_auth_users
         where lower(email) = $1
         limit 1
@@ -423,6 +427,7 @@ authRouter.post("/local/login", localLoginRateLimiter, async (request, response,
         token,
         profile,
         role: roleResult.rows[0]?.role ?? null,
+        mustChangePassword: authUser.must_change_password,
       },
     });
   } catch (error) {

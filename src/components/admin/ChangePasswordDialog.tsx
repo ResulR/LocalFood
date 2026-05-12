@@ -1,16 +1,30 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { KeyRound, Loader2, X } from "lucide-react";
 import { toast } from "sonner";
 import { changeLocalPassword } from "@/lib/auth-api";
 import { useAdminI18n } from "@/lib/admin-i18n";
 
-export function ChangePasswordDialog() {
+type ChangePasswordDialogProps = {
+  forceOpen?: boolean;
+  onPasswordChanged?: () => void;
+};
+
+export function ChangePasswordDialog({
+  forceOpen = false,
+  onPasswordChanged,
+}: ChangePasswordDialogProps) {
   const { tAdmin } = useAdminI18n();
   const [isOpen, setIsOpen] = useState(false);
   const [currentPassword, setCurrentPassword] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newPasswordConfirmation, setNewPasswordConfirmation] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
+
+  useEffect(() => {
+    if (forceOpen) {
+      setIsOpen(true);
+    }
+  }, [forceOpen]);
 
   const resetForm = () => {
     setCurrentPassword("");
@@ -19,7 +33,7 @@ export function ChangePasswordDialog() {
   };
 
   const closeDialog = () => {
-    if (isSubmitting) {
+    if (isSubmitting || forceOpen) {
       return;
     }
 
@@ -46,6 +60,7 @@ export function ChangePasswordDialog() {
       toast.success(tAdmin("admin.password.changed"));
       resetForm();
       setIsOpen(false);
+      onPasswordChanged?.();
     } catch (error) {
       toast.error(tAdmin("admin.password.changeError"), {
         description:
@@ -60,7 +75,11 @@ export function ChangePasswordDialog() {
     <div className="relative">
       <button
         type="button"
-        onClick={() => setIsOpen((current) => !current)}
+        onClick={() => {
+          if (!forceOpen) {
+            setIsOpen((current) => !current);
+          }
+        }}
         className="inline-flex h-9 w-9 items-center justify-center rounded-full border border-border hover:bg-secondary"
         title={tAdmin("admin.password.open")}
         aria-label={tAdmin("admin.password.open")}

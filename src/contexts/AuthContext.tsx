@@ -39,7 +39,7 @@ type AuthContextValue = {
   profile: Profile | null;
   role: AppRole | null;
   loading: boolean;
-  signIn: (email: string, password: string) => Promise<{ error?: string }>;
+  signIn: (email: string, password: string) => Promise<{ error?: string; mustChangePassword?: boolean }>;
   signOut: () => Promise<void>;
   refreshProfile: () => Promise<void>;
 };
@@ -53,6 +53,7 @@ type LocalLoginResponse = {
   token: string;
   profile: Profile | null;
   role: AppRole | null;
+  mustChangePassword: boolean;
 };
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -225,7 +226,9 @@ export function AuthProvider({ children }: { children: ReactNode }) {
           nextRole: loginData.role,
         });
 
-        return {};
+        return {
+          mustChangePassword: loginData.mustChangePassword,
+        };
       } catch (error) {
         return {
           error: error instanceof Error ? error.message : "Connexion impossible.",

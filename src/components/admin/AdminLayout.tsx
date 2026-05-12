@@ -53,6 +53,9 @@ export function AdminLayout() {
   const navigate = useNavigate();
   const { role, signOut } = useAuth();
   const { tAdmin } = useAdminI18n();
+  const forcePasswordChange =
+    typeof window !== "undefined" &&
+    new URLSearchParams(window.location.search).get("forcePasswordChange") === "1";
   const {
     restaurants,
     selectedRestaurant,
@@ -164,7 +167,12 @@ export function AdminLayout() {
             </div>
           </div>
 
-          <ChangePasswordDialog />
+          <ChangePasswordDialog
+            forceOpen={forcePasswordChange}
+            onPasswordChanged={() => {
+              navigate({ to: "/restaurant-dashboard" });
+            }}
+          />
 
           <button
             onClick={handleSignOut}

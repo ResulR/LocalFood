@@ -193,9 +193,10 @@ adminUsersRouter.post("/", requireAuth, requireSuperAdmin, async (request, respo
             email,
             password_hash,
             password_set,
-            is_active
+            is_active,
+            must_change_password
           )
-          values ($1, $2, $3, true, true)
+          values ($1, $2, $3, true, true, true)
         `,
         [userId, email, passwordHash],
       );
