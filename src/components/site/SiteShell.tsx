@@ -273,6 +273,11 @@ export function SiteFooter() {
                 {t("footer.legal")}
               </Link>
             </li>
+            <li>
+              <Link to="/legal/confidentialite" className="hover:text-foreground">
+                {t("footer.privacy")}
+              </Link>
+            </li>
           </ul>
         </div>
       </div>
