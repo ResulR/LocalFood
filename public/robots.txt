@@ -1,0 +1,10 @@
+User-agent: *
+Disallow: /api/
+Disallow: /restaurant-dashboard
+Disallow: /super-admin
+Disallow: /login
+Disallow: /accept-invite
+Disallow: /reset-password
+
+# Sitemap à activer quand le domaine officiel sera confirmé.
+# Sitemap: https://[***]/sitemap.xml
