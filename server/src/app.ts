@@ -11,6 +11,7 @@ import { publicRestaurantsRouter } from "./routes/public/restaurants.js";
 import { healthRouter } from "./routes/health.js";
 import { authRouter } from "./routes/auth.js";
 import { errorHandler, notFoundHandler } from "./middlewares/error-handler.js";
+import { requestLogger } from "./middlewares/request-logger.js";
 import { adminRestaurantsRouter } from "./routes/admin/restaurants.js";
 
 const uploadsRoot = fileURLToPath(new URL("../uploads", import.meta.url));
@@ -20,6 +21,7 @@ export function createApp() {
 
   app.set("trust proxy", 1);
 
+  app.use(requestLogger);
   app.use(helmet());
   app.use("/uploads", express.static(uploadsRoot));
   app.use(
