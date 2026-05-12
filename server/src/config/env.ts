@@ -5,10 +5,6 @@ const envSchema = z.object({
   PORT: z.coerce.number().int().positive().default(4000),
   FRONTEND_ORIGIN: z.string().url().default("http://localhost:5173"),
 
-  SUPABASE_URL: z.string().url().optional(),
-  SUPABASE_ANON_KEY: z.string().optional(),
-  SUPABASE_SERVICE_ROLE_KEY: z.string().optional(),
-
   DATABASE_URL: z.string().optional(),
 
   LOCAL_AUTH_JWT_SECRET: z.string().min(32).optional(),
