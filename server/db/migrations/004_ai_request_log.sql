@@ -7,6 +7,8 @@ create table if not exists public.ai_request_log (
   primary key (ip, day)
 );
 
+alter table public.ai_request_log owner to localfood_user;
+
 drop trigger if exists set_ai_request_log_updated_at on public.ai_request_log;
 
 create trigger set_ai_request_log_updated_at

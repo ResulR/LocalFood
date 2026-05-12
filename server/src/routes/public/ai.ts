@@ -7,14 +7,6 @@ import { dbQuery } from "../../lib/db.js";
 export const publicAiRouter = Router();
 
 const DAILY_REQUEST_LIMIT = env.AI_DAILY_REQUEST_LIMIT;
-const DAY_IN_MS = 24 * 60 * 60 * 1000;
-
-type RateLimitEntry = {
-  count: number;
-  resetAt: number;
-};
-
-const requestCountsByIp = new Map<string, RateLimitEntry>();
 
 const LOCALFOOD_TOPIC_TERMS = [
   "restaurant",
@@ -421,38 +413,29 @@ function getClientIp(req: { headers: Record<string, unknown>; ip?: string }) {
   return req.ip || "unknown";
 }
 
-function checkRateLimit(ip: string) {
-  const now = Date.now();
-  const current = requestCountsByIp.get(ip);
+async function checkRateLimit(ip: string) {
+  const result = await dbQuery<{ count: number; reset_at: Date }>(
+    `
+      insert into public.ai_request_log (ip, day, count)
+      values ($1, current_date, 1)
+      on conflict (ip, day)
+      do update set
+        count = public.ai_request_log.count + 1,
+        updated_at = now()
+      returning
+        count,
+        (current_date + interval '1 day')::timestamptz as reset_at
+    `,
+    [ip],
+  );
 
-  if (!current || current.resetAt <= now) {
-    requestCountsByIp.set(ip, {
-      count: 1,
-      resetAt: now + DAY_IN_MS,
-    });
-
-    return {
-      allowed: true,
-      remaining: DAILY_REQUEST_LIMIT - 1,
-      resetAt: now + DAY_IN_MS,
-    };
-  }
-
-  if (current.count >= DAILY_REQUEST_LIMIT) {
-    return {
-      allowed: false,
-      remaining: 0,
-      resetAt: current.resetAt,
-    };
-  }
-
-  current.count += 1;
-  requestCountsByIp.set(ip, current);
+  const count = Number(result.rows[0]?.count ?? 0);
+  const resetAt = result.rows[0]?.reset_at?.getTime() ?? Date.now();
 
   return {
-    allowed: true,
-    remaining: DAILY_REQUEST_LIMIT - current.count,
-    resetAt: current.resetAt,
+    allowed: count <= DAILY_REQUEST_LIMIT,
+    remaining: Math.max(DAILY_REQUEST_LIMIT - count, 0),
+    resetAt,
   };
 }
 
@@ -598,7 +581,7 @@ publicAiRouter.post("/restaurant-search", async (req, res) => {
   }
 
   const ip = getClientIp(req);
-  const rateLimit = checkRateLimit(ip);
+  const rateLimit = await checkRateLimit(ip);
 
   res.setHeader("X-RateLimit-Limit", String(DAILY_REQUEST_LIMIT));
   res.setHeader("X-RateLimit-Remaining", String(rateLimit.remaining));
