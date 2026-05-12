@@ -288,6 +288,11 @@ export function SiteFooter() {
                 {t("footer.salesTerms")}
               </Link>
             </li>
+            <li>
+              <Link to="/legal/cookies" className="hover:text-foreground">
+                {t("footer.cookies")}
+              </Link>
+            </li>
           </ul>
         </div>
       </div>

@@ -37,6 +37,7 @@ import { Route as RestaurantDashboardFicheRouteImport } from './routes/restauran
 import { Route as RestaurantDashboardAvisRouteImport } from './routes/restaurant-dashboard.avis'
 import { Route as RestaurantDashboardAbonnementRouteImport } from './routes/restaurant-dashboard.abonnement'
 import { Route as LegalMentionsLegalesRouteImport } from './routes/legal.mentions-legales'
+import { Route as LegalCookiesRouteImport } from './routes/legal.cookies'
 import { Route as LegalConfidentialiteRouteImport } from './routes/legal.confidentialite'
 import { Route as LegalCgvRouteImport } from './routes/legal.cgv'
 import { Route as LegalCguRouteImport } from './routes/legal.cgu'
@@ -194,6 +195,11 @@ const LegalMentionsLegalesRoute = LegalMentionsLegalesRouteImport.update({
   path: '/legal/mentions-legales',
   getParentRoute: () => rootRouteImport,
 } as any)
+const LegalCookiesRoute = LegalCookiesRouteImport.update({
+  id: '/legal/cookies',
+  path: '/legal/cookies',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const LegalConfidentialiteRoute = LegalConfidentialiteRouteImport.update({
   id: '/legal/confidentialite',
   path: '/legal/confidentialite',
@@ -222,6 +228,7 @@ export interface FileRoutesByFullPath {
   '/legal/cgu': typeof LegalCguRoute
   '/legal/cgv': typeof LegalCgvRoute
   '/legal/confidentialite': typeof LegalConfidentialiteRoute
+  '/legal/cookies': typeof LegalCookiesRoute
   '/legal/mentions-legales': typeof LegalMentionsLegalesRoute
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
   '/restaurant-dashboard/avis': typeof RestaurantDashboardAvisRoute
@@ -253,6 +260,7 @@ export interface FileRoutesByTo {
   '/legal/cgu': typeof LegalCguRoute
   '/legal/cgv': typeof LegalCgvRoute
   '/legal/confidentialite': typeof LegalConfidentialiteRoute
+  '/legal/cookies': typeof LegalCookiesRoute
   '/legal/mentions-legales': typeof LegalMentionsLegalesRoute
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
   '/restaurant-dashboard/avis': typeof RestaurantDashboardAvisRoute
@@ -287,6 +295,7 @@ export interface FileRoutesById {
   '/legal/cgu': typeof LegalCguRoute
   '/legal/cgv': typeof LegalCgvRoute
   '/legal/confidentialite': typeof LegalConfidentialiteRoute
+  '/legal/cookies': typeof LegalCookiesRoute
   '/legal/mentions-legales': typeof LegalMentionsLegalesRoute
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
   '/restaurant-dashboard/avis': typeof RestaurantDashboardAvisRoute
@@ -322,6 +331,7 @@ export interface FileRouteTypes {
     | '/legal/cgu'
     | '/legal/cgv'
     | '/legal/confidentialite'
+    | '/legal/cookies'
     | '/legal/mentions-legales'
     | '/restaurant-dashboard/abonnement'
     | '/restaurant-dashboard/avis'
@@ -353,6 +363,7 @@ export interface FileRouteTypes {
     | '/legal/cgu'
     | '/legal/cgv'
     | '/legal/confidentialite'
+    | '/legal/cookies'
     | '/legal/mentions-legales'
     | '/restaurant-dashboard/abonnement'
     | '/restaurant-dashboard/avis'
@@ -386,6 +397,7 @@ export interface FileRouteTypes {
     | '/legal/cgu'
     | '/legal/cgv'
     | '/legal/confidentialite'
+    | '/legal/cookies'
     | '/legal/mentions-legales'
     | '/restaurant-dashboard/abonnement'
     | '/restaurant-dashboard/avis'
@@ -420,6 +432,7 @@ export interface RootRouteChildren {
   LegalCguRoute: typeof LegalCguRoute
   LegalCgvRoute: typeof LegalCgvRoute
   LegalConfidentialiteRoute: typeof LegalConfidentialiteRoute
+  LegalCookiesRoute: typeof LegalCookiesRoute
   LegalMentionsLegalesRoute: typeof LegalMentionsLegalesRoute
 }
 
@@ -621,6 +634,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof LegalMentionsLegalesRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/legal/cookies': {
+      id: '/legal/cookies'
+      path: '/legal/cookies'
+      fullPath: '/legal/cookies'
+      preLoaderRoute: typeof LegalCookiesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/legal/confidentialite': {
       id: '/legal/confidentialite'
       path: '/legal/confidentialite'
@@ -724,6 +744,7 @@ const rootRouteChildren: RootRouteChildren = {
   LegalCguRoute: LegalCguRoute,
   LegalCgvRoute: LegalCgvRoute,
   LegalConfidentialiteRoute: LegalConfidentialiteRoute,
+  LegalCookiesRoute: LegalCookiesRoute,
   LegalMentionsLegalesRoute: LegalMentionsLegalesRoute,
 }
 export const routeTree = rootRouteImport
