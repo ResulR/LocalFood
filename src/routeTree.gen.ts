@@ -36,6 +36,7 @@ import { Route as RestaurantDashboardHorairesRouteImport } from './routes/restau
 import { Route as RestaurantDashboardFicheRouteImport } from './routes/restaurant-dashboard.fiche'
 import { Route as RestaurantDashboardAvisRouteImport } from './routes/restaurant-dashboard.avis'
 import { Route as RestaurantDashboardAbonnementRouteImport } from './routes/restaurant-dashboard.abonnement'
+import { Route as LegalMentionsLegalesRouteImport } from './routes/legal.mentions-legales'
 
 const SuperAdminRoute = SuperAdminRouteImport.update({
   id: '/super-admin',
@@ -185,6 +186,11 @@ const RestaurantDashboardAbonnementRoute =
     path: '/abonnement',
     getParentRoute: () => RestaurantDashboardRoute,
   } as any)
+const LegalMentionsLegalesRoute = LegalMentionsLegalesRouteImport.update({
+  id: '/legal/mentions-legales',
+  path: '/legal/mentions-legales',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -195,6 +201,7 @@ export interface FileRoutesByFullPath {
   '/restaurant-dashboard': typeof RestaurantDashboardRouteWithChildren
   '/restaurants': typeof RestaurantsRouteWithChildren
   '/super-admin': typeof SuperAdminRouteWithChildren
+  '/legal/mentions-legales': typeof LegalMentionsLegalesRoute
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
   '/restaurant-dashboard/avis': typeof RestaurantDashboardAvisRoute
   '/restaurant-dashboard/fiche': typeof RestaurantDashboardFicheRoute
@@ -222,6 +229,7 @@ export interface FileRoutesByTo {
   '/for-restaurants': typeof ForRestaurantsRoute
   '/login': typeof LoginRoute
   '/super-admin': typeof SuperAdminRouteWithChildren
+  '/legal/mentions-legales': typeof LegalMentionsLegalesRoute
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
   '/restaurant-dashboard/avis': typeof RestaurantDashboardAvisRoute
   '/restaurant-dashboard/fiche': typeof RestaurantDashboardFicheRoute
@@ -252,6 +260,7 @@ export interface FileRoutesById {
   '/restaurant-dashboard': typeof RestaurantDashboardRouteWithChildren
   '/restaurants': typeof RestaurantsRouteWithChildren
   '/super-admin': typeof SuperAdminRouteWithChildren
+  '/legal/mentions-legales': typeof LegalMentionsLegalesRoute
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
   '/restaurant-dashboard/avis': typeof RestaurantDashboardAvisRoute
   '/restaurant-dashboard/fiche': typeof RestaurantDashboardFicheRoute
@@ -283,6 +292,7 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard'
     | '/restaurants'
     | '/super-admin'
+    | '/legal/mentions-legales'
     | '/restaurant-dashboard/abonnement'
     | '/restaurant-dashboard/avis'
     | '/restaurant-dashboard/fiche'
@@ -310,6 +320,7 @@ export interface FileRouteTypes {
     | '/for-restaurants'
     | '/login'
     | '/super-admin'
+    | '/legal/mentions-legales'
     | '/restaurant-dashboard/abonnement'
     | '/restaurant-dashboard/avis'
     | '/restaurant-dashboard/fiche'
@@ -339,6 +350,7 @@ export interface FileRouteTypes {
     | '/restaurant-dashboard'
     | '/restaurants'
     | '/super-admin'
+    | '/legal/mentions-legales'
     | '/restaurant-dashboard/abonnement'
     | '/restaurant-dashboard/avis'
     | '/restaurant-dashboard/fiche'
@@ -369,6 +381,7 @@ export interface RootRouteChildren {
   RestaurantDashboardRoute: typeof RestaurantDashboardRouteWithChildren
   RestaurantsRoute: typeof RestaurantsRouteWithChildren
   SuperAdminRoute: typeof SuperAdminRouteWithChildren
+  LegalMentionsLegalesRoute: typeof LegalMentionsLegalesRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -562,6 +575,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RestaurantDashboardAbonnementRouteImport
       parentRoute: typeof RestaurantDashboardRoute
     }
+    '/legal/mentions-legales': {
+      id: '/legal/mentions-legales'
+      path: '/legal/mentions-legales'
+      fullPath: '/legal/mentions-legales'
+      preLoaderRoute: typeof LegalMentionsLegalesRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -641,6 +661,7 @@ const rootRouteChildren: RootRouteChildren = {
   RestaurantDashboardRoute: RestaurantDashboardRouteWithChildren,
   RestaurantsRoute: RestaurantsRouteWithChildren,
   SuperAdminRoute: SuperAdminRouteWithChildren,
+  LegalMentionsLegalesRoute: LegalMentionsLegalesRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

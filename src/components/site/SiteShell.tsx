@@ -268,7 +268,11 @@ export function SiteFooter() {
           <ul className="space-y-2 text-sm text-muted-foreground">
             <li>{t("footer.concept")}</li>
             <li>{t("footer.contact")}</li>
-            <li>{t("footer.legal")}</li>
+            <li>
+              <Link to="/legal/mentions-legales" className="hover:text-foreground">
+                {t("footer.legal")}
+              </Link>
+            </li>
           </ul>
         </div>
       </div>
