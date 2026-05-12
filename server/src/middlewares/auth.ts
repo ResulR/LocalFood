@@ -11,6 +11,8 @@ declare global {
         userId: string;
         email: string | null;
         role: "superadmin" | "admin" | "user" | null;
+        jti: string;
+        tokenExpiresAt: number;
       };
     }
   }
@@ -44,7 +46,7 @@ export async function requireAuth(request: Request, _response: Response, next: N
       throw new HttpError(401, "Missing bearer token.", "AUTH_TOKEN_MISSING");
     }
 
-    let tokenPayload: { userId: string; jti?: string };
+    let tokenPayload: { userId: string; jti?: string; exp?: number };
 
     try {
       tokenPayload = verifyLocalAuthToken(accessToken);
@@ -52,7 +54,7 @@ export async function requireAuth(request: Request, _response: Response, next: N
       throw new HttpError(401, "Invalid bearer token.", "AUTH_TOKEN_INVALID");
     }
 
-    if (!tokenPayload.jti) {
+    if (!tokenPayload.jti || !tokenPayload.exp) {
       throw new HttpError(401, "Invalid bearer token.", "AUTH_TOKEN_INVALID");
     }
 
@@ -116,6 +118,8 @@ export async function requireAuth(request: Request, _response: Response, next: N
       userId: profile.user_id,
       email: profile.email,
       role: roleResult.rows[0]?.role ?? null,
+      jti: tokenPayload.jti,
+      tokenExpiresAt: tokenPayload.exp,
     };
 
     next();

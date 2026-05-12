@@ -306,6 +306,42 @@ authRouter.post("/local/change-password", requireAuth, async (request, response,
   }
 });
 
+authRouter.post("/local/logout", requireAuth, async (request, response, next) => {
+  try {
+    const auth = request.auth;
+
+    if (!auth?.jti || !auth.userId || !auth.tokenExpiresAt) {
+      response.status(401).json({
+        ok: false,
+        message: "Utilisateur non authentifié.",
+      });
+      return;
+    }
+
+    await dbQuery(
+      `
+        insert into public.revoked_tokens (
+          jti,
+          user_id,
+          expires_at
+        )
+        values ($1, $2, to_timestamp($3))
+        on conflict (jti) do nothing
+      `,
+      [auth.jti, auth.userId, auth.tokenExpiresAt],
+    );
+
+    response.json({
+      ok: true,
+      data: {
+        loggedOut: true,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
 authRouter.post("/local/login", localLoginRateLimiter, async (request, response, next) => {
   try {
     const parsed = localLoginSchema.safeParse(request.body);
