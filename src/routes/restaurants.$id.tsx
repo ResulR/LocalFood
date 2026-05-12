@@ -20,7 +20,7 @@ import { toast } from "sonner";
 import { SiteShell } from "@/components/site/SiteShell";
 import { useI18n } from "@/lib/i18n";
 import { RestaurantCard } from "@/components/site/RestaurantCard";
-import { PHOTO_CATEGORIES, type PhotoCategory } from "@/data/restaurants";
+import { PHOTO_CATEGORIES, type PhotoCategory, type Restaurant } from "@/data/restaurants";
 import { useFavorites } from "@/lib/favorites";
 import {
   fetchApiRestaurantBySlug,
@@ -70,6 +70,34 @@ export const Route = createFileRoute("/restaurants/$id")({
   notFoundComponent: RestaurantNotFoundComponent,
   component: RestaurantPage,
 });
+
+function buildRestaurantJsonLd(restaurant: Restaurant) {
+  const jsonLd: Record<string, unknown> = {
+    "@context": "https://schema.org",
+    "@type": "Restaurant",
+    name: restaurant.name,
+    description: restaurant.description,
+    image: restaurant.image ? [restaurant.image] : undefined,
+    servesCuisine: restaurant.cuisineType,
+    priceRange: restaurant.price,
+    address: {
+      "@type": "PostalAddress",
+      streetAddress: restaurant.address,
+      addressLocality: restaurant.city,
+    },
+    telephone: restaurant.phone || undefined,
+  };
+
+  if (restaurant.rating > 0 && restaurant.reviewsCount > 0) {
+    jsonLd.aggregateRating = {
+      "@type": "AggregateRating",
+      ratingValue: restaurant.rating.toFixed(1),
+      reviewCount: restaurant.reviewsCount,
+    };
+  }
+
+  return JSON.stringify(jsonLd).replace(/</g, "\\u003c");
+}
 
 function RestaurantNotFoundComponent() {
   const { t } = useI18n();
@@ -211,8 +239,15 @@ function RestaurantPage() {
     });
   };
 
+  const restaurantJsonLd = buildRestaurantJsonLd(r);
+
   return (
     <SiteShell>
+      <script
+        type="application/ld+json"
+        dangerouslySetInnerHTML={{ __html: restaurantJsonLd }}
+      />
+
       {/* Cover */}
       <div className="relative h-[42vh] sm:h-[55vh] min-h-[320px] overflow-hidden">
         <img src={r.image} alt={r.name} className="h-full w-full object-cover" />
