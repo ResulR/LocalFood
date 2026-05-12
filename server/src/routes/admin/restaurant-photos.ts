@@ -2,6 +2,7 @@ import { promises as fs } from "node:fs";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import { Router } from "express";
+import { fileTypeFromBuffer } from "file-type";
 import multer from "multer";
 import { z } from "zod";
 import { dbQuery } from "../../lib/db.js";
@@ -34,6 +35,7 @@ const uploadBodySchema = z.object({
 });
 
 const RESTAURANT_PHOTOS_FOLDER = "restaurant-photos";
+const ALLOWED_IMAGE_MIME_TYPES = new Set(["image/jpeg", "image/png", "image/webp"]);
 const uploadsRoot = fileURLToPath(new URL("../../../uploads", import.meta.url));
 const restaurantPhotosRoot = path.join(uploadsRoot, RESTAURANT_PHOTOS_FOLDER);
 
@@ -106,8 +108,14 @@ adminRestaurantPhotosRouter.post(
         throw new HttpError(400, "Photo file is required.", "PHOTO_FILE_REQUIRED");
       }
 
-      if (!request.file.mimetype.startsWith("image/")) {
-        throw new HttpError(400, "Only image files are allowed.", "PHOTO_FILE_INVALID_TYPE");
+      const detectedFileType = await fileTypeFromBuffer(request.file.buffer);
+
+      if (
+        !detectedFileType ||
+        !ALLOWED_IMAGE_MIME_TYPES.has(detectedFileType.mime) ||
+        request.file.mimetype !== detectedFileType.mime
+      ) {
+        throw new HttpError(400, "Only JPEG, PNG or WebP image files are allowed.", "PHOTO_FILE_INVALID_TYPE");
       }
 
       const restaurantResult = await dbQuery<RestaurantCompanyRow>(
