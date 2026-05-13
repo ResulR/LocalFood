@@ -13,6 +13,7 @@ import {
   ArrowLeft,
   LogOut,
   Shield,
+  User,
 } from "lucide-react";
 import { useAuth } from "@/contexts/AuthContext";
 import { useRestaurantDashboard } from "@/contexts/RestaurantDashboardContext";
@@ -28,7 +29,8 @@ type NavItem = {
     | "admin.layout.offers"
     | "admin.layout.statistics"
     | "admin.layout.reviews"
-    | "admin.layout.photos";
+    | "admin.layout.photos"
+    | "admin.layout.account";
   icon: typeof LayoutDashboard;
   exact?: boolean;
 };
@@ -46,6 +48,7 @@ const NAV: NavItem[] = [
   { to: "/restaurant-dashboard/stats", labelKey: "admin.layout.statistics", icon: BarChart3 },
   { to: "/restaurant-dashboard/reviews", labelKey: "admin.layout.reviews", icon: Star },
   { to: "/restaurant-dashboard/photos", labelKey: "admin.layout.photos", icon: Images },
+  { to: "/restaurant-dashboard/account", labelKey: "admin.layout.account", icon: User },
 ];
 
 export function AdminLayout() {

@@ -36,6 +36,7 @@ import { Route as RestaurantDashboardOffersRouteImport } from './routes/restaura
 import { Route as RestaurantDashboardHorairesRouteImport } from './routes/restaurant-dashboard.horaires'
 import { Route as RestaurantDashboardFicheRouteImport } from './routes/restaurant-dashboard.fiche'
 import { Route as RestaurantDashboardAvisRouteImport } from './routes/restaurant-dashboard.avis'
+import { Route as RestaurantDashboardAccountRouteImport } from './routes/restaurant-dashboard.account'
 import { Route as RestaurantDashboardAbonnementRouteImport } from './routes/restaurant-dashboard.abonnement'
 import { Route as LegalMentionsLegalesRouteImport } from './routes/legal.mentions-legales'
 import { Route as LegalCookiesRouteImport } from './routes/legal.cookies'
@@ -190,6 +191,12 @@ const RestaurantDashboardAvisRoute = RestaurantDashboardAvisRouteImport.update({
   path: '/avis',
   getParentRoute: () => RestaurantDashboardRoute,
 } as any)
+const RestaurantDashboardAccountRoute =
+  RestaurantDashboardAccountRouteImport.update({
+    id: '/account',
+    path: '/account',
+    getParentRoute: () => RestaurantDashboardRoute,
+  } as any)
 const RestaurantDashboardAbonnementRoute =
   RestaurantDashboardAbonnementRouteImport.update({
     id: '/abonnement',
@@ -238,6 +245,7 @@ export interface FileRoutesByFullPath {
   '/legal/cookies': typeof LegalCookiesRoute
   '/legal/mentions-legales': typeof LegalMentionsLegalesRoute
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
+  '/restaurant-dashboard/account': typeof RestaurantDashboardAccountRoute
   '/restaurant-dashboard/avis': typeof RestaurantDashboardAvisRoute
   '/restaurant-dashboard/fiche': typeof RestaurantDashboardFicheRoute
   '/restaurant-dashboard/horaires': typeof RestaurantDashboardHorairesRoute
@@ -271,6 +279,7 @@ export interface FileRoutesByTo {
   '/legal/cookies': typeof LegalCookiesRoute
   '/legal/mentions-legales': typeof LegalMentionsLegalesRoute
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
+  '/restaurant-dashboard/account': typeof RestaurantDashboardAccountRoute
   '/restaurant-dashboard/avis': typeof RestaurantDashboardAvisRoute
   '/restaurant-dashboard/fiche': typeof RestaurantDashboardFicheRoute
   '/restaurant-dashboard/horaires': typeof RestaurantDashboardHorairesRoute
@@ -307,6 +316,7 @@ export interface FileRoutesById {
   '/legal/cookies': typeof LegalCookiesRoute
   '/legal/mentions-legales': typeof LegalMentionsLegalesRoute
   '/restaurant-dashboard/abonnement': typeof RestaurantDashboardAbonnementRoute
+  '/restaurant-dashboard/account': typeof RestaurantDashboardAccountRoute
   '/restaurant-dashboard/avis': typeof RestaurantDashboardAvisRoute
   '/restaurant-dashboard/fiche': typeof RestaurantDashboardFicheRoute
   '/restaurant-dashboard/horaires': typeof RestaurantDashboardHorairesRoute
@@ -344,6 +354,7 @@ export interface FileRouteTypes {
     | '/legal/cookies'
     | '/legal/mentions-legales'
     | '/restaurant-dashboard/abonnement'
+    | '/restaurant-dashboard/account'
     | '/restaurant-dashboard/avis'
     | '/restaurant-dashboard/fiche'
     | '/restaurant-dashboard/horaires'
@@ -377,6 +388,7 @@ export interface FileRouteTypes {
     | '/legal/cookies'
     | '/legal/mentions-legales'
     | '/restaurant-dashboard/abonnement'
+    | '/restaurant-dashboard/account'
     | '/restaurant-dashboard/avis'
     | '/restaurant-dashboard/fiche'
     | '/restaurant-dashboard/horaires'
@@ -412,6 +424,7 @@ export interface FileRouteTypes {
     | '/legal/cookies'
     | '/legal/mentions-legales'
     | '/restaurant-dashboard/abonnement'
+    | '/restaurant-dashboard/account'
     | '/restaurant-dashboard/avis'
     | '/restaurant-dashboard/fiche'
     | '/restaurant-dashboard/horaires'
@@ -640,6 +653,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof RestaurantDashboardAvisRouteImport
       parentRoute: typeof RestaurantDashboardRoute
     }
+    '/restaurant-dashboard/account': {
+      id: '/restaurant-dashboard/account'
+      path: '/account'
+      fullPath: '/restaurant-dashboard/account'
+      preLoaderRoute: typeof RestaurantDashboardAccountRouteImport
+      parentRoute: typeof RestaurantDashboardRoute
+    }
     '/restaurant-dashboard/abonnement': {
       id: '/restaurant-dashboard/abonnement'
       path: '/abonnement'
@@ -687,6 +707,7 @@ declare module '@tanstack/react-router' {
 
 interface RestaurantDashboardRouteChildren {
   RestaurantDashboardAbonnementRoute: typeof RestaurantDashboardAbonnementRoute
+  RestaurantDashboardAccountRoute: typeof RestaurantDashboardAccountRoute
   RestaurantDashboardAvisRoute: typeof RestaurantDashboardAvisRoute
   RestaurantDashboardFicheRoute: typeof RestaurantDashboardFicheRoute
   RestaurantDashboardHorairesRoute: typeof RestaurantDashboardHorairesRoute
@@ -704,6 +725,7 @@ interface RestaurantDashboardRouteChildren {
 
 const RestaurantDashboardRouteChildren: RestaurantDashboardRouteChildren = {
   RestaurantDashboardAbonnementRoute: RestaurantDashboardAbonnementRoute,
+  RestaurantDashboardAccountRoute: RestaurantDashboardAccountRoute,
   RestaurantDashboardAvisRoute: RestaurantDashboardAvisRoute,
   RestaurantDashboardFicheRoute: RestaurantDashboardFicheRoute,
   RestaurantDashboardHorairesRoute: RestaurantDashboardHorairesRoute,

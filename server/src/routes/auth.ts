@@ -112,6 +112,222 @@ authRouter.get("/me", requireAuth, async (request, response, next) => {
   }
 });
 
+
+authRouter.get("/me/export", requireAuth, async (request, response, next) => {
+  try {
+    const userId = request.auth?.userId;
+
+    if (!userId) {
+      response.status(401).json({
+        ok: false,
+        message: "Utilisateur non authentifié.",
+      });
+      return;
+    }
+
+    const [
+      profileResult,
+      rolesResult,
+      companiesResult,
+      localAuthResult,
+      restaurantsResult,
+    ] = await Promise.all([
+      dbQuery(
+        `
+          select
+            id,
+            user_id,
+            email,
+            full_name,
+            is_active,
+            current_company_id,
+            deletion_requested_at,
+            created_at,
+            updated_at
+          from public.profiles
+          where user_id = $1
+          limit 1
+        `,
+        [userId],
+      ),
+      dbQuery(
+        `
+          select role, created_at
+          from public.user_roles
+          where user_id = $1
+          order by role asc
+        `,
+        [userId],
+      ),
+      dbQuery(
+        `
+          select
+            c.id,
+            c.name,
+            c.slug,
+            c.description,
+            c.is_active,
+            c.created_at,
+            c.updated_at,
+            cu.created_at as member_since
+          from public.company_users cu
+          join public.companies c on c.id = cu.company_id
+          where cu.user_id = $1
+          order by c.name asc
+        `,
+        [userId],
+      ),
+      dbQuery(
+        `
+          select
+            user_id,
+            email,
+            password_set,
+            is_active,
+            must_change_password,
+            last_login_at,
+            deletion_requested_at,
+            created_at,
+            updated_at
+          from public.local_auth_users
+          where user_id = $1
+          limit 1
+        `,
+        [userId],
+      ),
+      dbQuery(
+        `
+          select
+            r.id,
+            r.name,
+            r.slug,
+            r.category,
+            r.cuisine_type,
+            r.description,
+            r.main_image_url,
+            r.rating,
+            r.reviews_count,
+            r.price_label,
+            r.is_open,
+            r.hours_summary,
+            r.address,
+            r.city,
+            r.country,
+            r.phone,
+            r.menu_url,
+            r.google_maps_url,
+            r.waze_url,
+            r.is_active,
+            r.company_id,
+            r.created_at,
+            r.updated_at
+          from public.company_users cu
+          join public.restaurants r on r.company_id = cu.company_id
+          where cu.user_id = $1
+          order by r.name asc
+        `,
+        [userId],
+      ),
+    ]);
+
+    response.json({
+      ok: true,
+      data: {
+        exportedAt: new Date().toISOString(),
+        userId,
+        profile: profileResult.rows[0] ?? null,
+        roles: rolesResult.rows,
+        companies: companiesResult.rows,
+        localAuth: localAuthResult.rows[0] ?? null,
+        restaurants: restaurantsResult.rows,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+authRouter.delete("/me", requireAuth, async (request, response, next) => {
+  try {
+    const auth = request.auth;
+
+    if (!auth?.userId || !auth.jti || !auth.tokenExpiresAt) {
+      response.status(401).json({
+        ok: false,
+        message: "Utilisateur non authentifié.",
+      });
+      return;
+    }
+
+    if (auth.role === "superadmin") {
+      response.status(403).json({
+        ok: false,
+        message:
+          "Un compte SuperAdmin ne peut pas être supprimé depuis l'interface. Utilisez une procédure manuelle contrôlée.",
+      });
+      return;
+    }
+
+    await dbQuery("begin");
+
+    try {
+      await dbQuery(
+        `
+          update public.profiles
+          set
+            is_active = false,
+            deletion_requested_at = coalesce(deletion_requested_at, now()),
+            updated_at = now()
+          where user_id = $1
+        `,
+        [auth.userId],
+      );
+
+      await dbQuery(
+        `
+          update public.local_auth_users
+          set
+            is_active = false,
+            deletion_requested_at = coalesce(deletion_requested_at, now()),
+            updated_at = now()
+          where user_id = $1
+        `,
+        [auth.userId],
+      );
+
+      await dbQuery(
+        `
+          insert into public.revoked_tokens (
+            jti,
+            user_id,
+            expires_at
+          )
+          values ($1, $2, to_timestamp($3))
+          on conflict (jti) do nothing
+        `,
+        [auth.jti, auth.userId, auth.tokenExpiresAt],
+      );
+
+      await dbQuery("commit");
+    } catch (error) {
+      await dbQuery("rollback");
+      throw error;
+    }
+
+    response.json({
+      ok: true,
+      data: {
+        deleted: true,
+        deletionMode: "soft",
+        purgeEligibleAfterDays: 30,
+      },
+    });
+  } catch (error) {
+    next(error);
+  }
+});
+
+
 authRouter.post("/local/set-password", requireAuth, async (request, response, next) => {
   try {
     const userId = request.auth?.userId;

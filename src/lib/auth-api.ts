@@ -39,3 +39,46 @@ export async function logoutLocalAuth() {
     headers: getLocalAuthHeaders(),
   });
 }
+
+export async function exportMyAccountData() {
+  const response = await fetch(`${apiBaseUrl}/api/auth/me/export`, {
+    headers: getLocalAuthHeaders(),
+  });
+
+  const json = (await response.json().catch(() => null)) as {
+    ok?: boolean;
+    data?: unknown;
+    error?: string;
+    message?: string;
+  } | null;
+
+  if (!response.ok || !json?.ok) {
+    throw new Error(json?.message ?? json?.error ?? "Impossible d’exporter les données du compte.");
+  }
+
+  return json.data;
+}
+
+export async function deleteMyAccount() {
+  const response = await fetch(`${apiBaseUrl}/api/auth/me`, {
+    method: "DELETE",
+    headers: getLocalAuthHeaders(),
+  });
+
+  const json = (await response.json().catch(() => null)) as {
+    ok?: boolean;
+    data?: {
+      deleted: boolean;
+      deletionMode: string;
+      purgeEligibleAfterDays: number;
+    };
+    error?: string;
+    message?: string;
+  } | null;
+
+  if (!response.ok || !json?.ok) {
+    throw new Error(json?.message ?? json?.error ?? "Impossible de supprimer le compte.");
+  }
+
+  return json.data;
+}
