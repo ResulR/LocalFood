@@ -22,7 +22,25 @@ export function createApp() {
   app.set("trust proxy", 1);
 
   app.use(requestLogger);
-  app.use(helmet());
+  app.use(
+    helmet({
+      contentSecurityPolicy: {
+        directives: {
+          defaultSrc: ["'self'"],
+          baseUri: ["'self'"],
+          fontSrc: ["'self'", "https:", "data:"],
+          formAction: ["'self'"],
+          frameAncestors: ["'self'"],
+          imgSrc: ["'self'", "data:"],
+          objectSrc: ["'none'"],
+          scriptSrc: ["'self'"],
+          scriptSrcAttr: ["'none'"],
+          styleSrc: ["'self'", "https:"],
+          upgradeInsecureRequests: [],
+        },
+      },
+    }),
+  );
   app.use("/uploads", express.static(uploadsRoot));
   app.use(
     cors({
