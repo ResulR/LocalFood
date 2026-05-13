@@ -4,6 +4,7 @@ import { Download, Trash2 } from "lucide-react";
 import { toast } from "sonner";
 import { useAuth } from "@/contexts/AuthContext";
 import { deleteMyAccount, exportMyAccountData } from "@/lib/auth-api";
+import { useAdminI18n } from "@/lib/admin-i18n";
 
 export const Route = createFileRoute("/restaurant-dashboard/account")({
   component: AccountPage,
@@ -26,22 +27,31 @@ function downloadJsonFile(fileName: string, data: unknown) {
 
 function AccountPage() {
   const navigate = useNavigate();
+  const { tAdmin } = useAdminI18n();
   const { profile, role, signOut } = useAuth();
   const [exporting, setExporting] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [confirmation, setConfirmation] = useState("");
 
-  const canDelete = confirmation.trim().toUpperCase() === "SUPPRIMER" && role !== "superadmin";
+  const confirmationKeyword = tAdmin("admin.account.deleteConfirmKeyword");
+  const canDelete =
+    confirmation.trim().toUpperCase() === confirmationKeyword.toUpperCase() &&
+    role !== "superadmin";
 
   const handleExport = async () => {
     setExporting(true);
 
     try {
       const data = await exportMyAccountData();
-      downloadJsonFile(`localfood-account-export-${new Date().toISOString().slice(0, 10)}.json`, data);
-      toast.success("Export généré");
+      downloadJsonFile(
+        `localfood-account-export-${new Date().toISOString().slice(0, 10)}.json`,
+        data,
+      );
+      toast.success(tAdmin("admin.account.exportSuccess"));
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Export impossible.");
+      toast.error(
+        error instanceof Error ? error.message : tAdmin("admin.account.exportError"),
+      );
     } finally {
       setExporting(false);
     }
@@ -56,11 +66,13 @@ function AccountPage() {
 
     try {
       await deleteMyAccount();
-      toast.success("Compte désactivé");
+      toast.success(tAdmin("admin.account.deleteSuccess"));
       await signOut();
       navigate({ to: "/login" });
     } catch (error) {
-      toast.error(error instanceof Error ? error.message : "Suppression impossible.");
+      toast.error(
+        error instanceof Error ? error.message : tAdmin("admin.account.deleteError"),
+      );
     } finally {
       setDeleting(false);
     }
@@ -70,37 +82,48 @@ function AccountPage() {
     <div className="max-w-3xl space-y-6">
       <div>
         <div className="text-xs font-semibold text-primary uppercase tracking-wider">
-          RGPD
+          {tAdmin("admin.account.badge")}
         </div>
-        <h1 className="font-display text-3xl font-semibold mt-1">Mon compte</h1>
+        <h1 className="font-display text-3xl font-semibold mt-1">
+          {tAdmin("admin.account.title")}
+        </h1>
         <p className="text-muted-foreground mt-2">
-          Exportez vos données ou demandez la désactivation de votre compte LocalFood.
+          {tAdmin("admin.account.subtitle")}
         </p>
       </div>
 
       <section className="rounded-2xl border border-border bg-card p-6">
-        <h2 className="font-display text-xl font-semibold">Informations du compte</h2>
+        <h2 className="font-display text-xl font-semibold">
+          {tAdmin("admin.account.infoTitle")}
+        </h2>
         <div className="mt-4 grid gap-3 text-sm">
           <div>
-            <span className="text-muted-foreground">Email : </span>
-            <span className="font-medium">{profile?.email ?? "Non renseigné"}</span>
+            <span className="text-muted-foreground">{tAdmin("admin.account.email")} : </span>
+            <span className="font-medium">
+              {profile?.email ?? tAdmin("admin.account.notProvided")}
+            </span>
           </div>
           <div>
-            <span className="text-muted-foreground">Nom : </span>
-            <span className="font-medium">{profile?.full_name ?? "Non renseigné"}</span>
+            <span className="text-muted-foreground">{tAdmin("admin.account.name")} : </span>
+            <span className="font-medium">
+              {profile?.full_name ?? tAdmin("admin.account.notProvided")}
+            </span>
           </div>
           <div>
-            <span className="text-muted-foreground">Rôle : </span>
-            <span className="font-medium">{role ?? "Non défini"}</span>
+            <span className="text-muted-foreground">{tAdmin("admin.account.role")} : </span>
+            <span className="font-medium">
+              {role ?? tAdmin("admin.account.notDefined")}
+            </span>
           </div>
         </div>
       </section>
 
       <section className="rounded-2xl border border-border bg-card p-6">
-        <h2 className="font-display text-xl font-semibold">Exporter mes données</h2>
+        <h2 className="font-display text-xl font-semibold">
+          {tAdmin("admin.account.exportTitle")}
+        </h2>
         <p className="text-sm text-muted-foreground mt-2">
-          Téléchargez un fichier JSON contenant les principales données liées à votre compte,
-          vos rôles, entreprises et restaurants associés.
+          {tAdmin("admin.account.exportDescription")}
         </p>
         <button
           type="button"
@@ -109,29 +132,28 @@ function AccountPage() {
           className="mt-5 inline-flex items-center gap-2 rounded-full bg-foreground text-background px-5 py-2.5 text-sm font-semibold hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Download className="h-4 w-4" />
-          {exporting ? "Export en cours..." : "Exporter mes données"}
+          {exporting
+            ? tAdmin("admin.account.exporting")
+            : tAdmin("admin.account.exportButton")}
         </button>
       </section>
 
       <section className="rounded-2xl border border-destructive/30 bg-card p-6">
         <h2 className="font-display text-xl font-semibold text-destructive">
-          Supprimer mon compte
+          {tAdmin("admin.account.deleteTitle")}
         </h2>
         <p className="text-sm text-muted-foreground mt-2">
-          Cette action désactive votre compte, bloque les futures connexions et enregistre une
-          demande de suppression. La purge/anonymisation définitive devra être traitée après
-          vérification, notamment pour les obligations légales, sécurité et facturation.
+          {tAdmin("admin.account.deleteDescription")}
         </p>
 
         {role === "superadmin" && (
           <div className="mt-4 rounded-xl border border-destructive/30 bg-destructive/10 p-4 text-sm text-destructive">
-            Un compte SuperAdmin ne peut pas être supprimé depuis l’interface. Utilisez une
-            procédure manuelle contrôlée.
+            {tAdmin("admin.account.superAdminBlocked")}
           </div>
         )}
 
         <label className="mt-5 block text-sm font-medium">
-          Tapez SUPPRIMER pour confirmer
+          {tAdmin("admin.account.confirmLabel")}
           <input
             value={confirmation}
             onChange={(event) => setConfirmation(event.target.value)}
@@ -147,7 +169,9 @@ function AccountPage() {
           className="mt-5 inline-flex items-center gap-2 rounded-full bg-destructive text-destructive-foreground px-5 py-2.5 text-sm font-semibold hover:opacity-90 disabled:cursor-not-allowed disabled:opacity-60"
         >
           <Trash2 className="h-4 w-4" />
-          {deleting ? "Suppression en cours..." : "Supprimer mon compte"}
+          {deleting
+            ? tAdmin("admin.account.deleting")
+            : tAdmin("admin.account.deleteButton")}
         </button>
       </section>
     </div>
