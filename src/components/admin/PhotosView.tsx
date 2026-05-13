@@ -259,7 +259,7 @@ export function PhotosView() {
               >
                 <img
                   src={p.url}
-                  alt={p.category}
+                  alt={`${selectedRestaurant?.name ?? "Restaurant"} - ${p.category}`}
                   loading="lazy"
                   className="h-full w-full object-cover transition group-hover:scale-105"
                 />

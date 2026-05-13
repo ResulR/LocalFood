@@ -252,7 +252,7 @@ function HomePage() {
                 <div className="aspect-[16/9] overflow-hidden">
                   <img
                     src={r.image}
-                    alt=""
+                    alt={`${r.name} - ${r.category}`}
                     className="h-full w-full object-cover group-hover:scale-105 transition duration-500"
                   />
                 </div>

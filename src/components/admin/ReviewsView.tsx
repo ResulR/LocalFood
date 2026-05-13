@@ -282,7 +282,11 @@ export function ReviewsView() {
               </div>
               <p className="text-sm text-muted-foreground mt-3 sm:pl-13">{rev.comment}</p>
               {rev.photo && (
-                <img src={rev.photo} alt="" className="mt-3 rounded-lg max-h-40 object-cover" />
+                <img
+                  src={rev.photo}
+                  alt={`Photo de l’avis de ${rev.author}`}
+                  className="mt-3 rounded-lg max-h-40 object-cover"
+                />
               )}
             </div>
           ))

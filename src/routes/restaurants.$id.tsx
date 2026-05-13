@@ -250,7 +250,7 @@ function RestaurantPage() {
 
       {/* Cover */}
       <div className="relative h-[42vh] sm:h-[55vh] min-h-[320px] overflow-hidden">
-        <img src={r.image} alt={r.name} className="h-full w-full object-cover" />
+        <img src={r.image} alt={`${r.name} - ${r.category}`} className="h-full w-full object-cover" />
         <div className="absolute inset-0 bg-gradient-to-t from-foreground/85 via-foreground/30 to-transparent" />
         <div className="absolute top-4 left-4">
           <Link
@@ -398,7 +398,7 @@ function RestaurantPage() {
                   >
                     <img
                       src={p.url}
-                      alt={p.category}
+                      alt={`${r.name} - ${p.category}`}
                       loading="lazy"
                       className="h-full w-full object-cover hover:scale-105 transition duration-500"
                     />
@@ -495,7 +495,11 @@ function RestaurantPage() {
                   </div>
                   <p className="text-sm mt-3 text-muted-foreground">{rev.comment}</p>
                   {rev.photo && (
-                    <img src={rev.photo} alt="" className="mt-3 rounded-lg max-h-48 object-cover" />
+                    <img
+                      src={rev.photo}
+                      alt={`Photo de l’avis de ${rev.author} pour ${r.name}`}
+                      className="mt-3 rounded-lg max-h-48 object-cover"
+                    />
                   )}
                 </div>
               ))}
