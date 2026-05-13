@@ -513,7 +513,12 @@ function RestaurantPage() {
                 <div className="text-sm font-medium mb-2">{t("restaurantDetail.yourRating")}</div>
                 <div className="flex gap-1">
                   {Array.from({ length: 5 }).map((_, i) => (
-                    <button type="button" key={i} onClick={() => setRating(i + 1)}>
+                    <button
+                      type="button"
+                      key={i}
+                      onClick={() => setRating(i + 1)}
+                      aria-label={`${t("restaurantDetail.ratingAriaLabel")} ${i + 1}/5`}
+                    >
                       <Star
                         className={`h-7 w-7 transition ${i < rating ? "fill-warning text-warning" : "text-muted-foreground/30 hover:text-warning"}`}
                       />

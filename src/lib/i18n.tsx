@@ -330,6 +330,7 @@ const translations = {
     "restaurants.sortRating": "Best rated",
     "restaurants.sortPopular": "Most popular",
     "restaurants.sortOpen": "Open now",
+    "restaurants.sortLabel": "Sort restaurants",
     "restaurants.noActiveRestaurants": "No active restaurant is available right now.",
     "restaurants.loadError": "Unable to load restaurants from the database.",
 
@@ -360,6 +361,7 @@ const translations = {
     "restaurantDetail.customerReviews": "Customer reviews",
     "restaurantDetail.leaveReview": "Leave a review",
     "restaurantDetail.yourRating": "Your rating",
+    "restaurantDetail.ratingAriaLabel": "Choose rating",
     "restaurantDetail.reviewPlaceholder": "Share your experience…",
     "restaurantDetail.publishReview": "Publish review",
     "restaurantDetail.chooseRating": "Choose a rating",
@@ -774,6 +776,7 @@ const translations = {
     "restaurants.sortRating": "Më të vlerësuar",
     "restaurants.sortPopular": "Më popullore",
     "restaurants.sortOpen": "Hapur tani",
+    "restaurants.sortLabel": "Rendit restorantet",
     "restaurants.noActiveRestaurants":
       "Asnjë restorant aktiv nuk është i disponueshëm për momentin.",
     "restaurants.loadError": "Nuk mund të ngarkohen restorantet nga baza e të dhënave.",
@@ -805,6 +808,7 @@ const translations = {
     "restaurantDetail.customerReviews": "Komentet e klientëve",
     "restaurantDetail.leaveReview": "Lër një koment",
     "restaurantDetail.yourRating": "Vlerësimi yt",
+    "restaurantDetail.ratingAriaLabel": "Zgjidh vlerësimin",
     "restaurantDetail.reviewPlaceholder": "Ndaje përvojën tënde…",
     "restaurantDetail.publishReview": "Publiko komentin",
     "restaurantDetail.chooseRating": "Zgjidh një vlerësim",
@@ -1218,6 +1222,7 @@ const translations = {
     "restaurants.sortRating": "Mieux noté",
     "restaurants.sortPopular": "Plus populaire",
     "restaurants.sortOpen": "Ouvert maintenant",
+    "restaurants.sortLabel": "Trier les restaurants",
     "restaurants.noActiveRestaurants": "Aucun restaurant actif n’est disponible pour le moment.",
     "restaurants.loadError": "Impossible de charger les restaurants depuis la base de données.",
 
@@ -1248,6 +1253,7 @@ const translations = {
     "restaurantDetail.customerReviews": "Avis clients",
     "restaurantDetail.leaveReview": "Laisser un avis",
     "restaurantDetail.yourRating": "Votre note",
+    "restaurantDetail.ratingAriaLabel": "Choisir la note",
     "restaurantDetail.reviewPlaceholder": "Partagez votre expérience…",
     "restaurantDetail.publishReview": "Publier l'avis",
     "restaurantDetail.chooseRating": "Choisissez une note",

@@ -284,6 +284,7 @@ function RestaurantsPage() {
               <select
                 value={sort}
                 onChange={(e) => setSort(e.target.value as Sort)}
+                aria-label={t("restaurants.sortLabel")}
                 className="rounded-full border border-border bg-background px-4 py-2 text-sm outline-none focus:border-ring"
               >
                 <option value="near">{t("restaurants.sortNearest")}</option>

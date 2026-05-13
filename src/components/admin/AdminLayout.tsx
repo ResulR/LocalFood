@@ -132,7 +132,11 @@ export function AdminLayout() {
               className="w-full rounded-full bg-secondary border border-transparent focus:border-ring focus:bg-background pl-9 pr-4 h-9 text-sm outline-none transition"
             />
           </div>
-          <button className="relative h-9 w-9 rounded-full hover:bg-secondary inline-flex items-center justify-center">
+          <button
+            className="relative h-9 w-9 rounded-full hover:bg-secondary inline-flex items-center justify-center"
+            aria-label={tAdmin("admin.layout.notifications")}
+            title={tAdmin("admin.layout.notifications")}
+          >
             <Bell className="h-4 w-4" />
             <span className="absolute top-2 right-2 h-2 w-2 rounded-full bg-primary" />
           </button>

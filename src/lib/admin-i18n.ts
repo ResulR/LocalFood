@@ -24,6 +24,7 @@ const adminTranslations = {
     "admin.layout.search": "Search…",
     "admin.layout.chooseRestaurant": "Choose a restaurant",
     "admin.layout.signOut": "Sign out",
+    "admin.layout.notifications": "Notifications",
 
     "admin.password.open": "Change password",
     "admin.password.close": "Close",
@@ -516,6 +517,7 @@ const adminTranslations = {
     "admin.layout.search": "Kërko…",
     "admin.layout.chooseRestaurant": "Zgjidh një restaurant",
     "admin.layout.signOut": "Dil",
+    "admin.layout.notifications": "Njoftimet",
 
     "admin.password.open": "Ndrysho fjalëkalimin",
     "admin.password.close": "Mbyll",
@@ -1016,6 +1018,7 @@ const adminTranslations = {
     "admin.layout.search": "Rechercher…",
     "admin.layout.chooseRestaurant": "Choisir un restaurant",
     "admin.layout.signOut": "Se déconnecter",
+    "admin.layout.notifications": "Notifications",
 
     "admin.password.open": "Modifier le mot de passe",
     "admin.password.close": "Fermer",
